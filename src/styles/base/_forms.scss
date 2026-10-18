@@ -1,0 +1,9 @@
+@use '../abstracts' as *;
+
+:focus-visible {
+  @include focus-ring;
+}
+
+::placeholder {
+  color: var(--color-text-subtle);
+}

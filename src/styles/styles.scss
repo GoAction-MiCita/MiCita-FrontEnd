@@ -1,0 +1,8 @@
+// Global entry point (angular.json). Only @use here; no rules.
+@use 'tokens';
+@use 'themes/light';
+@use 'base/reset';
+@use 'base/typography';
+@use 'base/forms';
+@use 'utilities/layout';
+@use 'utilities/visually-hidden';

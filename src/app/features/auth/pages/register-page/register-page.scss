@@ -1,0 +1,23 @@
+@use 'abstracts' as *;
+
+:host {
+  display: block;
+}
+
+.register-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-12) var(--space-4);
+  text-align: center;
+
+  @include respond-to(md) {
+    padding-block: var(--space-16);
+  }
+
+  &__subtitle {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-lg);
+  }
+}

@@ -1,0 +1,9 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background-color: var(--color-bg);
+}
+
+.public-layout {
+  min-height: inherit;
+}

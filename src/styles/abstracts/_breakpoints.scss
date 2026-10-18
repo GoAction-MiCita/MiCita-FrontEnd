@@ -1,0 +1,7 @@
+// Single source of truth for breakpoints (mobile-first, min-width).
+$breakpoints: (
+  sm: 576px,
+  md: 768px,
+  lg: 1024px,
+  xl: 1280px,
+);

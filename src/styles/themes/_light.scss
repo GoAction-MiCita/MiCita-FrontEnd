@@ -1,0 +1,35 @@
+@use '../tokens/colors' as c;
+
+// Semantic color tokens. Components only use these (var(--color-*)), never raw palette values.
+// A future dark theme redefines the same variables under [data-theme='dark'].
+:root {
+  --color-primary: #{c.$blue-600};
+  --color-primary-hover: #{c.$blue-700};
+  --color-primary-subtle: #{c.$blue-50};
+  --color-on-primary: #{c.$white};
+
+  --color-brand-dark: #{c.$navy-800};
+  --color-brand-darker: #{c.$navy-900};
+
+  --color-bg: #{c.$slate-50};
+  --color-surface: #{c.$white};
+  --color-surface-muted: #{c.$slate-100};
+
+  --color-text: #{c.$navy-900};
+  --color-text-muted: #{c.$slate-600};
+  --color-text-subtle: #{c.$slate-500};
+  --color-text-inverse: #{c.$white};
+
+  --color-border: #{c.$slate-200};
+  --color-border-strong: #{c.$slate-300};
+  --color-focus-ring: #{c.$blue-500};
+
+  --color-danger: #{c.$red-600};
+  --color-danger-subtle: #{c.$red-50};
+  --color-success: #{c.$green-600};
+  --color-success-subtle: #{c.$green-50};
+  --color-warning: #{c.$amber-500};
+  --color-warning-subtle: #{c.$amber-50};
+  --color-accent: #{c.$violet-500};
+  --color-accent-subtle: #{c.$violet-50};
+}

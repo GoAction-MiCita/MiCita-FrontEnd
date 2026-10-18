@@ -1,0 +1,10 @@
+// Keep utilities few and prefixed with `u-`. Component styles are the default.
+.u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.u-text-center {
+  text-align: center;
+}
