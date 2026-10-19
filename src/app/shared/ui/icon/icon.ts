@@ -7,6 +7,7 @@ export type IconName =
   | 'check-circle'
   | 'eye'
   | 'eye-off'
+  | 'id-card'
   | 'layout-grid'
   | 'lock'
   | 'log-out'
@@ -15,6 +16,7 @@ export type IconName =
   | 'map-pin'
   | 'phone'
   | 'settings'
+  | 'store'
   | 'user'
   | 'users';
 

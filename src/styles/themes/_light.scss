@@ -21,6 +21,8 @@
   --color-text-subtle: #{c.$slate-500};
   --color-text-inverse: #{c.$white};
 
+  --color-backdrop: #{rgba(c.$navy-900, 0.55)};
+
   --color-border: #{c.$slate-200};
   --color-border-strong: #{c.$slate-300};
   --color-focus-ring: #{c.$blue-500};
