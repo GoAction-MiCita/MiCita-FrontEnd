@@ -9,7 +9,7 @@ scenarios:
   - name: frontend
     path: ./frontend.js
     default: true
-  # Static examples generated from the collection (postman mock generate --update).
+  # Static examples generated from the collection: npm run mock:contract (never --update).
   - name: contract
     path: ./default.js
     default: false

@@ -19,8 +19,10 @@ Para trabajar sin el backend real:
 3. `npm run mock:test`: corre los `pm.test` de la colección contra el mock.
 
 - Contrato: `postman/collections/micita-backend.postman_collection.json` (Postman v2.1) y environment `postman/environments/micita-mock.postman_environment.json`.
-- Mock: `postman/mocks/micita-backend/`. El escenario por defecto `frontend` (`frontend.js`) está escrito a mano y tiene estado (lee el body). El escenario `contract` (`default.js`) se genera desde la colección con `postman mock generate <colección> --update ./postman/mocks/micita-backend` y responde los ejemplos fijos (se elige con el header `x-mock-scenario: contract`). Al añadir endpoints a la colección, actualiza también `frontend.js`.
-- Cuentas del mock (contraseña `Abc#12`): `analopez` / `ana@correo.com` (sin negocio) y `owner` / `owner@correo.com` (con negocio). El estado se reinicia al parar el mock.
+- Mock: `postman/mocks/micita-backend/`. El escenario por defecto `frontend` (`frontend.js`) está escrito a mano y tiene estado (lee el body y valida el Bearer en rutas privadas). El escenario `contract` (`default.js`) responde los ejemplos fijos de la colección y se elige con el header `x-mock-scenario: contract`.
+- Al añadir o cambiar endpoints: edita la colección, implementa el endpoint en `frontend.js` y regenera `contract` con `npm run mock:contract`. **Nunca uses `postman mock generate --update`** sobre este mock: reescribe el escenario predeterminado (`frontend.js`) y no añade endpoints nuevos.
+- Endpoints simulados: `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout` y `/api/negocios/onboarding` (HU-03).
+- Cuentas del mock (contraseña `Abc#12`): `analopez` / `ana@correo.com` (sin negocio) y `owner` / `owner@correo.com` (con el negocio "Barbería Central", NIT `900.123.456-7`). El estado se reinicia al parar el mock.
 
 ## Idioma
 

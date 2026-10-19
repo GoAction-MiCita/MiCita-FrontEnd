@@ -1,13 +1,18 @@
 /**
- * Scenario "frontend": stateful mock of the Mi Cita auth API for local frontend work.
+ * Scenario "frontend": stateful mock of the Mi Cita API (auth + business onboarding) for local
+ * frontend work.
  *
- * Hand-written (not generated): `postman mock generate --update` only rewrites default.js, which
- * keeps the static examples of the collection. This scenario reads the request body so the app
- * can exercise every branch without special headers.
+ * Hand-written (not generated). Never run `postman mock generate --update` on this mock: it
+ * rewrites the default scenario, which is this file. Regenerate the `contract` scenario as
+ * described in CLAUDE.md. This scenario reads the request body so the app can exercise every
+ * branch without special headers.
  *
  * Accounts (password `Abc#12`):
- *   analopez / ana@correo.com    → hasBusiness=false (goes to onboarding)
- *   owner    / owner@correo.com  → hasBusiness=true  (goes to dashboard)
+ *   analopez / ana@correo.com    → hasBusiness=false (dashboard opens the onboarding dialog)
+ *   owner    / owner@correo.com  → hasBusiness=true  (owns "Barbería Central", NIT 900.123.456-7)
+ *
+ * POST /api/negocios/onboarding needs a Bearer token issued by this mock. Creating the business
+ * flips hasBusiness: the next login or refresh carries the claim.
  *
  * State lives in memory and resets on restart. Env vars: PORT (4010), MOCK_DELAY_MS (400),
  * MOCK_ACCESS_TTL_SECONDS (900).
@@ -47,6 +52,20 @@ const users = [
 /** refreshToken → username. Removed on logout and on rotation. */
 const refreshTokens = new Map();
 
+const businesses = [
+  {
+    id: '4f7c1d2e-8b3a-4c5d-9e6f-7a8b9c0d1e2f',
+    ownerUsername: 'owner',
+    name: 'Barbería Central',
+    address: 'Calle 10 # 43-12, Medellín',
+    phone: '3109876543',
+    nit: '900.123.456-7',
+    email: null,
+    status: 'ACTIVE',
+    timeZone: 'America/Bogota',
+  },
+];
+
 // Mirrors the backend RegisterUserRequest rules (see HU-01 Back).
 const REGISTER_RULES = [
   ['firstName', (v) => isFilled(v), 'El nombre es obligatorio'],
@@ -72,6 +91,23 @@ const REGISTER_RULES = [
       );
     },
     'La contraseña no cumple las reglas de seguridad',
+  ],
+];
+
+// Mirrors the backend onboarding rules (see HU-03 Back): name, address and phone required.
+const BUSINESS_RULES = [
+  ['name', (v) => isFilled(v), 'El nombre del negocio es obligatorio'],
+  ['address', (v) => isFilled(v), 'La dirección es obligatoria'],
+  [
+    'phone',
+    (v) => /^\+?\d{7,15}$/.test(String(v ?? '')),
+    'El teléfono debe tener entre 7 y 15 dígitos',
+  ],
+  ['nit', (v) => isBlank(v) || /^\d{6,10}(-\d)?$/.test(normalizeNit(v)), 'El NIT no es válido'],
+  [
+    'email',
+    (v) => isBlank(v) || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v)),
+    'El correo no es válido',
   ],
 ];
 
@@ -133,7 +169,64 @@ const routes = {
     refreshTokens.delete(body.refreshToken);
     return { status: 204, headers: {}, body: '' };
   },
+
+  'POST /api/negocios/onboarding': (body, req) => {
+    const instance = '/api/negocios/onboarding';
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    if (user.hasBusiness) {
+      return problem(409, 'Conflict', 'User already has a business', instance);
+    }
+    const errors = {};
+    for (const [field, isValid, message] of BUSINESS_RULES) {
+      if (!isValid(body[field])) {
+        errors[field] = message;
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
+    }
+    const nit = isBlank(body.nit) ? null : String(body.nit).trim();
+    if (nit && businesses.some((b) => b.nit && normalizeNit(b.nit) === normalizeNit(nit))) {
+      return problem(409, 'Conflict', 'NIT already registered', instance);
+    }
+    const business = {
+      id: crypto.randomUUID(),
+      ownerUsername: user.username,
+      name: body.name.trim(),
+      address: body.address.trim(),
+      phone: body.phone,
+      nit,
+      email: isBlank(body.email) ? null : String(body.email).trim().toLowerCase(),
+      status: 'ACTIVE',
+      timeZone: 'America/Bogota',
+    };
+    businesses.push(business);
+    user.hasBusiness = true;
+    const { ownerUsername, ...response } = business;
+    return json(201, response);
+  },
 };
+
+/** User of a valid, unexpired Bearer token issued by this mock; null otherwise. */
+function authenticatedUser(req) {
+  const [scheme, token] = String(req.headers.authorization ?? '').split(' ');
+  const [, payload, signature] = String(token ?? '').split('.');
+  if (scheme !== 'Bearer' || !payload || signature !== 'mock-signature') {
+    return null;
+  }
+  try {
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (typeof claims.exp !== 'number' || claims.exp * 1000 < Date.now()) {
+      return null;
+    }
+    return users.find((u) => u.username === claims.sub) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function issueTokens(user) {
   const now = Math.floor(Date.now() / 1000);
@@ -163,6 +256,14 @@ function publicUser({ password, hasBusiness, ...user }) {
 
 function isFilled(value) {
   return typeof value === 'string' && value.trim() !== '';
+}
+
+function isBlank(value) {
+  return value === null || value === undefined || String(value).trim() === '';
+}
+
+function normalizeNit(value) {
+  return String(value).trim().replace(/\./g, '');
 }
 
 function json(status, data) {
@@ -201,7 +302,7 @@ const server = http.createServer((req, res) => {
       response = json(404, { error: 'Endpoint not defined' });
     } else {
       try {
-        response = handler(raw ? JSON.parse(raw) : {});
+        response = handler(raw ? JSON.parse(raw) : {}, req);
       } catch {
         response = problem(400, 'Bad Request', 'Malformed JSON body', pathname);
       }

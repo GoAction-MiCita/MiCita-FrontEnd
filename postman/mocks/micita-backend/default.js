@@ -65,6 +65,33 @@ const server = http.createServer((req, res) => {
     return res.end("");
   }
 
+  // @endpoint POST /api/negocios/onboarding
+  if (req.method === 'POST' && pathname === '/api/negocios/onboarding') {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "400 Validation error" — when x-mock-response-code: 400
+    if (requestedStatusCode === '400') {
+      res.writeHead(400, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/negocios/onboarding","errors":{"name":"El nombre del negocio es obligatorio","phone":"El teléfono debe tener entre 7 y 15 dígitos"}}));
+    }
+
+    // "409 NIT already registered" — when x-mock-response-code: 409
+    if (requestedStatusCode === '409') {
+      res.writeHead(409, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Conflict","status":409,"detail":"NIT already registered","instance":"/api/negocios/onboarding"}));
+    }
+
+    // "401 Unauthorized" — when x-mock-response-code: 401
+    if (requestedStatusCode === '401') {
+      res.writeHead(401, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Unauthorized","status":401,"detail":"Missing or invalid access token","instance":"/api/negocios/onboarding"}));
+    }
+
+    // "201 Created" — default
+    res.writeHead(201, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"id":"0d2c6f4e-5b1a-4e8f-9c3d-2a1b0c9d8e7f","name":"Barbería El Estilo","address":"Cra 25 # 45-67, Medellín","phone":"3001234567","nit":null,"email":"contacto@minegocio.com","status":"ACTIVE","timeZone":"America/Bogota"}));
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not defined' }));
 });

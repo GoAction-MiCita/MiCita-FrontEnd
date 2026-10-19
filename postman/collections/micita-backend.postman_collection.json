@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Mi Cita Backend",
-    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true)\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
+    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true), dueño de \"Barbería Central\" con NIT `900.123.456-7`\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\nFlujo de la colección: Register crea un usuario único, Login inicia sesión con él (`{{username}}`) y Negocios › Onboarding le crea el negocio (HU-03), así que cada ejecución pasa completa.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -16,6 +16,10 @@
     {
       "key": "refreshToken",
       "value": ""
+    },
+    {
+      "key": "username",
+      "value": "analopez"
     }
   ],
   "item": [
@@ -60,6 +64,7 @@
                   "  const user = pm.response.json();",
                   "  pm.expect(user).to.have.property('id');",
                   "  pm.expect(user).to.not.have.property('password');",
+                  "  pm.collectionVariables.set('username', user.username);",
                   "});"
                 ]
               }
@@ -224,7 +229,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"analopez\",\n  \"password\": \"Abc#12\"\n}",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Abc#12\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -236,7 +241,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "login"]
             },
-            "description": "Inicio de sesión (HU-02). `username` acepta usuario o correo. 200 con access token (claim `hasBusiness`) y refresh token; 401 con credenciales inválidas."
+            "description": "Inicio de sesión (HU-02). `username` acepta usuario o correo. 200 con access token (claim `hasBusiness`) y refresh token; 401 con credenciales inválidas. Usa `{{username}}`: el usuario creado por Register (o `analopez` si se ejecuta solo)."
           },
           "event": [
             {
@@ -557,6 +562,262 @@
               "code": 204,
               "header": [],
               "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Negocios",
+      "description": "E01 · HU-03 (crear negocio durante el onboarding).",
+      "item": [
+        {
+          "name": "Onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": null,\n  \"email\": \"contacto@minegocio.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/negocios/onboarding",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "negocios", "onboarding"]
+            },
+            "description": "Crea el negocio del usuario autenticado (HU-03). Requiere Bearer. Nombre, dirección y teléfono obligatorios; NIT y correo opcionales. 201 con el negocio (estado ACTIVE y zona America/Bogota); 400 con errores por campo; 409 si el usuario ya tiene negocio o el NIT ya existe; 401 sin token válido. Tras crearlo, el siguiente login o refresh trae `hasBusiness=true`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 con el negocio creado', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const business = pm.response.json();",
+                  "  pm.expect(business).to.have.property('id');",
+                  "  pm.expect(business.status).to.eql('ACTIVE');",
+                  "  pm.expect(business.timeZone).to.eql('America/Bogota');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": null,\n  \"email\": \"contacto@minegocio.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/negocios/onboarding",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "negocios", "onboarding"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"0d2c6f4e-5b1a-4e8f-9c3d-2a1b0c9d8e7f\",\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": null,\n  \"email\": \"contacto@minegocio.com\",\n  \"status\": \"ACTIVE\",\n  \"timeZone\": \"America/Bogota\"\n}"
+            },
+            {
+              "name": "400 Validation error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"address\": \"Cra 25\",\n  \"phone\": \"300 12\",\n  \"nit\": null,\n  \"email\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/negocios/onboarding",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "negocios", "onboarding"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/negocios/onboarding\",\n  \"errors\": {\n    \"name\": \"El nombre del negocio es obligatorio\",\n    \"phone\": \"El teléfono debe tener entre 7 y 15 dígitos\"\n  }\n}"
+            },
+            {
+              "name": "409 NIT already registered",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": \"900.123.456-7\",\n  \"email\": \"contacto@minegocio.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/negocios/onboarding",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "negocios", "onboarding"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"NIT already registered\",\n  \"instance\": \"/api/negocios/onboarding\"\n}"
+            },
+            {
+              "name": "409 User already has a business",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": null,\n  \"email\": \"contacto@minegocio.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/negocios/onboarding",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "negocios", "onboarding"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"User already has a business\",\n  \"instance\": \"/api/negocios/onboarding\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Barbería El Estilo\",\n  \"address\": \"Cra 25 # 45-67, Medellín\",\n  \"phone\": \"3001234567\",\n  \"nit\": null,\n  \"email\": \"contacto@minegocio.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/negocios/onboarding",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "negocios", "onboarding"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/negocios/onboarding\"\n}"
             }
           ]
         }
