@@ -153,6 +153,10 @@ src/styles/
 4. Escribir las pruebas y pasar `lint`, `test:ci` y `build`.
 5. Comprobar la DoD de la tarea punto por punto.
 
+## Git y GitHub
+
+Las tareas de repositorio (ramas, commits, push, PRs, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`), que define las convenciones de ramas (`feat/e01-hu-02-<slug>`), commits (Conventional Commits en español) y PRs. Remoto: `GoAction-MiCita/MiCita-FrontEnd`, rama principal `main`.
+
 ## No hacer
 
 NgModules · `any` · `enum` · `@Input`/`@Output` · `*ngIf`/`*ngFor` · `@import` en SCSS · `::ng-deep` · valores de color o espacio sueltos · imports entre features · `HttpErrorResponse` fuera de `core` · lógica de negocio en templates · librerías nuevas (UI o estado) sin acordarlo antes.
