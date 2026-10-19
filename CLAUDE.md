@@ -147,6 +147,7 @@ src/styles/
 
 ## Flujo de trabajo de una HU
 
+0. Confirmar el tipo de trabajo y ubicarse en la rama de la HU desde `integration` (ver "Git y GitHub").
 1. Leer la tarea en Notion: criterios de aceptación, notas técnicas, mockups y definición de terminado.
 2. Revisar el contrato del backend en su tarea "Back" equivalente (ruta, DTO, códigos 400/409).
 3. Implementar dentro de `features/<dominio>/` siguiendo estas reglas. La UI que se reutilice va a `shared/ui`.
@@ -155,7 +156,10 @@ src/styles/
 
 ## Git y GitHub
 
-Las tareas de repositorio (ramas, commits, push, PRs, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`), que define las convenciones de ramas (`feat/e01-hu-02-<slug>`), commits (Conventional Commits en español) y PRs. Remoto: `GoAction-MiCita/MiCita-FrontEnd`, rama principal `main`.
+- **Nunca hacer push, merge ni PR a `main` salvo que el usuario lo pida explícitamente nombrando `main`.** Flujo de ramas: `integration` → `staging` → `main`. Los PR de trabajo van a `integration`.
+- **Trabajo sobre una HU de Notion:** primero se confirma el tipo de trabajo (nueva funcionalidad → `feat`, ajuste o corrección de bug → `fix`, actualización de una funcionalidad → `feat`/`refactor`). Luego, partiendo de `integration`, se trabaja y se hace push en una única rama por HU con su código: "E01 · HU-02" → `E01-HU-02`. Excepciones: `chore/<slug>` desde `integration` y `hotfix/<slug>` desde `main`, este último solo cuando haya un incidente en producción.
+- Las tareas de repositorio (ramas, commits, push, PRs, hotfixes, rollbacks, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`). Ahí están las convenciones de ramas y commits (Conventional Commits en español, incluidos `hotfix` y `revert`), el protocolo de rollback y la ejecución rigurosa de pruebas obligatoria antes de commit, push y PR.
+- Remoto: `GoAction-MiCita/MiCita-FrontEnd`.
 
 ## No hacer
 
