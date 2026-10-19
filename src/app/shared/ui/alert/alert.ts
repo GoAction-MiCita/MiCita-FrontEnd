@@ -1,7 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { Icon, IconName } from '@shared/ui/icon/icon';
 
-export type AlertVariant = 'danger' | 'success';
+export type AlertVariant = 'danger' | 'success' | 'info';
+
+const ICONS: Readonly<Record<AlertVariant, IconName>> = {
+  danger: 'alert-circle',
+  success: 'check-circle',
+  info: 'alert-circle',
+};
 
 /** Inline banner. Danger alerts are announced immediately (role="alert"). */
 @Component({
@@ -19,7 +25,5 @@ export class Alert {
   readonly variant = input<AlertVariant>('danger');
   readonly title = input<string | null>(null);
 
-  protected readonly icon = computed<IconName>(() =>
-    this.variant() === 'danger' ? 'alert-circle' : 'check-circle',
-  );
+  protected readonly icon = computed(() => ICONS[this.variant()]);
 }
