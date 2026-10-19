@@ -22,7 +22,12 @@ describe('toApiError', () => {
   it('maps 409 to a conflict error using detail as message', () => {
     const result = toApiError(httpError(409, { title: 'Conflict', detail: 'Email already used' }));
 
-    expect(result).toEqual({ kind: 'conflict', status: 409, message: 'Email already used' });
+    expect(result).toEqual({
+      kind: 'conflict',
+      status: 409,
+      message: 'Email already used',
+      fieldErrors: {},
+    });
   });
 
   it('maps status 0 to a network error', () => {

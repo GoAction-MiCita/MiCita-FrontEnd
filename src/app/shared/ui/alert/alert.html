@@ -1,0 +1,7 @@
+<app-icon class="alert__icon" [name]="icon()" />
+<div class="alert__body">
+  @if (title(); as titleText) {
+    <p class="alert__title">{{ titleText }}</p>
+  }
+  <p class="alert__message"><ng-content /></p>
+</div>

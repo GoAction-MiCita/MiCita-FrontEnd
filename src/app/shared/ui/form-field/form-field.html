@@ -1,0 +1,23 @@
+<label class="form-field__label" [for]="controlId">
+  {{ label() }}
+  @if (required()) {
+    <span class="form-field__required" aria-hidden="true">*</span>
+  }
+</label>
+
+<div class="form-field__box" [class.form-field__box--invalid]="invalid()">
+  <ng-content select="[appFieldPrefix]" />
+  <ng-content />
+  <ng-content select="[appFieldSuffix]" />
+</div>
+
+@if (errorMessage(); as message) {
+  <p class="form-field__message form-field__message--error" [id]="errorId">
+    <app-icon name="alert-circle" />
+    {{ message }}
+  </p>
+} @else if (hint(); as hintText) {
+  <p class="form-field__message" [id]="hintId">{{ hintText }}</p>
+}
+
+<ng-content select="[appFieldDetail]" />

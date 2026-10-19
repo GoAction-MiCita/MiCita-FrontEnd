@@ -8,6 +8,11 @@ export const PASSWORD_RULES = {
 
 export type PasswordRule = 'minLength' | 'maxLength' | 'lowercase' | 'uppercase' | 'special';
 
+export interface PasswordRuleResult {
+  readonly rule: PasswordRule;
+  readonly passed: boolean;
+}
+
 export interface PasswordStrengthError {
   readonly passwordStrength: { readonly failed: readonly PasswordRule[] };
 }
@@ -21,6 +26,11 @@ const CHECKS: readonly (readonly [PasswordRule, (value: string) => boolean])[] =
   ['special', (v) => /[^\p{L}\p{N}\s]/u.test(v)],
 ];
 
+/** Evaluates every password rule; used by the validator and by the rules checklist UI. */
+export function evaluatePassword(value: string): PasswordRuleResult[] {
+  return CHECKS.map(([rule, passes]) => ({ rule, passed: passes(value) }));
+}
+
 /**
  * Fails with `{ passwordStrength: { failed: [...] } }` listing every broken rule.
  * Empty values are left to `Validators.required`.
@@ -31,7 +41,9 @@ export function passwordStrength(): ValidatorFn {
     if (value === '') {
       return null;
     }
-    const failed = CHECKS.filter(([, passes]) => !passes(value)).map(([rule]) => rule);
+    const failed = evaluatePassword(value)
+      .filter((result) => !result.passed)
+      .map((result) => result.rule);
     if (failed.length === 0) {
       return null;
     }

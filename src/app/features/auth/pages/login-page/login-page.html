@@ -1,0 +1,17 @@
+<header class="login-page__header">
+  <span class="login-page__logo"><app-icon name="logo" /></span>
+  <h1>Inicia sesión</h1>
+</header>
+
+@if (registered()) {
+  <app-alert variant="success" title="¡Tu cuenta fue creada!">
+    Ya puedes iniciar sesión con tu nombre de usuario y contraseña.
+  </app-alert>
+}
+
+<p class="login-page__pending">El inicio de sesión estará disponible próximamente.</p>
+
+<p class="login-page__footer">
+  ¿No tienes una cuenta?
+  <a routerLink="/auth/register">Regístrate</a>
+</p>

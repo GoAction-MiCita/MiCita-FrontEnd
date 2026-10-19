@@ -1,4 +1,115 @@
-<section class="register-page">
+<header class="register-page__header">
+  <span class="register-page__logo"><app-icon name="logo" /></span>
   <h1 class="register-page__title">Crea tu cuenta</h1>
   <p class="register-page__subtitle">Regístrate para administrar tu negocio</p>
-</section>
+</header>
+
+@if (store.failure(); as failure) {
+  <app-alert title="No pudimos crear tu cuenta">{{ failure.summary }}</app-alert>
+}
+
+<form class="register-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="register-form__row">
+    <app-form-field label="Nombre" [errorMessages]="messages.firstName">
+      <app-icon appFieldPrefix name="user" />
+      <input
+        appFormFieldControl
+        formControlName="firstName"
+        placeholder="Ej. Ana"
+        autocomplete="given-name"
+      />
+    </app-form-field>
+
+    <app-form-field label="Apellido" [errorMessages]="messages.lastName">
+      <app-icon appFieldPrefix name="user" />
+      <input
+        appFormFieldControl
+        formControlName="lastName"
+        placeholder="Ej. López"
+        autocomplete="family-name"
+      />
+    </app-form-field>
+  </div>
+
+  <app-form-field label="Dirección" [errorMessages]="messages.address">
+    <app-icon appFieldPrefix name="map-pin" />
+    <input
+      appFormFieldControl
+      formControlName="address"
+      placeholder="Ej. Cra 25 # 45-67, Medellín"
+      autocomplete="street-address"
+    />
+  </app-form-field>
+
+  <app-form-field label="Teléfono" [errorMessages]="messages.phone">
+    <app-icon appFieldPrefix name="phone" />
+    <input
+      appFormFieldControl
+      formControlName="phone"
+      type="tel"
+      inputmode="tel"
+      placeholder="Ej. 300 123 4567"
+      autocomplete="tel"
+    />
+  </app-form-field>
+
+  <app-form-field label="Correo electrónico" [errorMessages]="messages.email">
+    <app-icon appFieldPrefix name="mail" />
+    <input
+      appFormFieldControl
+      formControlName="email"
+      type="email"
+      placeholder="ejemplo@correo.com"
+      autocomplete="email"
+    />
+  </app-form-field>
+
+  <app-form-field label="Nombre de usuario" [errorMessages]="messages.username">
+    <app-icon appFieldPrefix name="at-sign" />
+    <input
+      appFormFieldControl
+      formControlName="username"
+      placeholder="Ej. analopez"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+  </app-form-field>
+
+  <app-form-field
+    label="Contraseña"
+    [hint]="password() ? null : passwordHint"
+    [errorMessages]="messages.password"
+  >
+    <app-icon appFieldPrefix name="lock" />
+    <input
+      appFormFieldControl
+      formControlName="password"
+      [type]="showPassword() ? 'text' : 'password'"
+      placeholder="Crea una contraseña"
+      autocomplete="new-password"
+    />
+    <button
+      appFieldSuffix
+      class="register-form__toggle"
+      type="button"
+      [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+      [attr.aria-pressed]="showPassword()"
+      (click)="togglePassword()"
+    >
+      <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
+    </button>
+    <div appFieldDetail>
+      @if (password()) {
+        <app-password-rules [value]="password()" />
+      }
+    </div>
+  </app-form-field>
+
+  <button appButton type="submit" block [loading]="store.pending()">Crear cuenta</button>
+</form>
+
+<p class="register-page__footer">
+  ¿Ya tienes una cuenta?
+  <a routerLink="/auth/login">Inicia sesión</a>
+</p>

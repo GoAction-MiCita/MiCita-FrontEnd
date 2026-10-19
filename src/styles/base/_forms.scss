@@ -7,3 +7,20 @@
 ::placeholder {
   color: var(--color-text-subtle);
 }
+
+// Input projected into app-form-field (FormFieldControl directive). The field box owns the
+// border and focus ring; projected content cannot be styled from the component (encapsulation).
+.form-field-control {
+  flex: 1;
+  min-width: 0;
+  padding-block: var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+}

@@ -1,23 +1,81 @@
 @use 'abstracts' as *;
 
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 30rem;
 }
 
 .register-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-12) var(--space-4);
-  text-align: center;
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: center;
+  }
 
-  @include respond-to(md) {
-    padding-block: var(--space-16);
+  &__logo {
+    display: grid;
+    place-items: center;
+    width: 4rem;
+    aspect-ratio: 1;
+    margin-block-end: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    color: var(--color-primary);
+    --icon-size: 2rem;
+  }
+
+  &__title {
+    font-size: var(--font-size-2xl);
   }
 
   &__subtitle {
     color: var(--color-text-muted);
     font-size: var(--font-size-lg);
+  }
+
+  &__footer {
+    text-align: center;
+    color: var(--color-text-muted);
+  }
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+
+  &__row {
+    display: grid;
+    gap: var(--space-5);
+
+    @include respond-to(sm) {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+  }
+
+  &__toggle {
+    display: grid;
+    place-items: center;
+    padding: var(--space-1);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-subtle);
+
+    &:hover {
+      color: var(--color-text);
+    }
+  }
+
+  button[type='submit'] {
+    margin-block-start: var(--space-2);
   }
 }

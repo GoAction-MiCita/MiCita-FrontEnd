@@ -42,7 +42,7 @@ src/
 - `core` → puede importar `shared`, pero **no** `features` ni `layouts`.
 - `shared` → no importa nada de `core`, `features` ni `layouts`.
 - **Un feature nunca importa otro feature.** Lo que se comparta se mueve a `shared` (si es UI o utilidades) o a `core` (si es un singleton o la sesión).
-- Imports con alias: `@core/*`, `@shared/*`, `@features/*`, `@layouts/*` y `@env/*`. Los relativos solo se usan dentro de la misma carpeta (`./`) o un nivel arriba (`../`).
+- Imports con alias: `@core/*`, `@shared/*`, `@features/*`, `@layouts/*` y `@env/*`. Los relativos solo se usan dentro de la misma carpeta (`./`) o un nivel arriba (`../`). Dentro de un feature, si hay que subir más (por ejemplo, de `pages/x/` a `data-access/`), se usa `@features/<dominio>/...`.
 - Cada feature se carga en diferido: `loadChildren: () => import('@features/x/x.routes')`. Las páginas usan `loadComponent` con `export default`.
 
 ## Nombres de archivos
@@ -89,9 +89,9 @@ Kebab-case y sin sufijo `.component`, según la guía de estilo actual de Angula
 - **Modelo** (`*.model.ts`): es lo que usa la UI. Los mappers puros convierten entre DTO y modelo, y siempre tienen pruebas.
 - `interface` para formas de objeto y `type` para uniones y utilidades. **No usar `enum`**: se usa un objeto `as const` y su tipo derivado (`(typeof X)[keyof typeof X]`).
 - `any` está prohibido; se usa `unknown` con narrowing. El modo estricto de TypeScript está activo.
-- **Errores HTTP:** `errorInterceptor` convierte todo `HttpErrorResponse` en `ApiError` (`@core/http/api-error.model.ts`), que es una unión discriminada por `kind`:
-  - `validation` (400) trae `fieldErrors`. Se aplica al formulario con `applyServerErrors(form, fieldErrors)` de `@shared/forms/apply-server-errors`.
-  - `conflict` (409), `unauthorized`, `forbidden`, `not-found`, `network`, `server` y `unknown`.
+- **Errores HTTP:** `errorInterceptor` convierte todo `HttpErrorResponse` en `ApiError` (`@core/http/api-error.model.ts`) con `kind`, `status`, `message` y `fieldErrors`:
+  - `kind`: `validation` (400), `conflict` (409), `unauthorized`, `forbidden`, `not-found`, `network`, `server` y `unknown`.
+  - `fieldErrors` es el mapa `errors` del ProblemDetail (vacío si no viene). Se aplica al formulario con `applyServerErrors(form, fieldErrors)` de `@shared/forms/apply-server-errors`.
   - Los stores y páginas trabajan con `ApiError` y nunca con `HttpErrorResponse`.
 
 ## Formularios

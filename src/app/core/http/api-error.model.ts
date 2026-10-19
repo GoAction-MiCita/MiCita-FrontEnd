@@ -13,23 +13,15 @@ export const API_ERROR_KIND = {
 
 export type ApiErrorKind = (typeof API_ERROR_KIND)[keyof typeof API_ERROR_KIND];
 
-interface ApiErrorBase {
+/** Normalized HTTP error. Every failed HttpClient call rethrows one of these (see errorInterceptor). */
+export interface ApiError {
+  readonly kind: ApiErrorKind;
   readonly status: number;
   /** Human readable message from the server (`detail` or `title`), if any. */
   readonly message: string | null;
-}
-
-export interface ValidationApiError extends ApiErrorBase {
-  readonly kind: typeof API_ERROR_KIND.validation;
+  /** ProblemDetail `errors` map (field → message). Usually filled on 400; empty when absent. */
   readonly fieldErrors: FieldErrors;
 }
-
-export interface OtherApiError extends ApiErrorBase {
-  readonly kind: Exclude<ApiErrorKind, typeof API_ERROR_KIND.validation>;
-}
-
-/** Normalized HTTP error. Every failed HttpClient call rethrows one of these (see errorInterceptor). */
-export type ApiError = ValidationApiError | OtherApiError;
 
 const KINDS: readonly unknown[] = Object.values(API_ERROR_KIND);
 

@@ -6,4 +6,9 @@ export default [
     title: 'Crea tu cuenta · Mi Cita',
     loadComponent: () => import('./pages/register-page/register-page'),
   },
+  {
+    path: 'login',
+    title: 'Inicia sesión · Mi Cita',
+    loadComponent: () => import('./pages/login-page/login-page'),
+  },
 ] satisfies Routes;

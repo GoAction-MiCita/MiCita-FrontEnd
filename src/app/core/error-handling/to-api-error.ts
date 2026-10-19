@@ -19,10 +19,7 @@ export function toApiError(error: HttpErrorResponse): ApiError {
     KIND_BY_STATUS[error.status] ??
     (error.status >= 500 ? API_ERROR_KIND.server : API_ERROR_KIND.unknown);
 
-  if (kind === API_ERROR_KIND.validation) {
-    return { kind, status: error.status, message, fieldErrors: body?.errors ?? {} };
-  }
-  return { kind, status: error.status, message };
+  return { kind, status: error.status, message, fieldErrors: body?.errors ?? {} };
 }
 
 function asProblemDetail(body: unknown): ProblemDetailDto | null {
