@@ -9,6 +9,7 @@ export type IconName =
   | 'eye-off'
   | 'layout-grid'
   | 'lock'
+  | 'log-out'
   | 'logo'
   | 'mail'
   | 'map-pin'

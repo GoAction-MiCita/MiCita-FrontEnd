@@ -1,15 +1,104 @@
 <header class="login-page__header">
   <span class="login-page__logo"><app-icon name="logo" /></span>
-  <h1>Inicia sesión</h1>
+  <h1 class="login-page__title">Bienvenido de nuevo</h1>
+  <p class="login-page__subtitle">Inicia sesión para continuar</p>
 </header>
 
-@if (registered()) {
+@if (store.failure(); as failure) {
+  <app-alert>{{ failure }}</app-alert>
+} @else if (registered()) {
   <app-alert variant="success" title="¡Tu cuenta fue creada!">
     Ya puedes iniciar sesión con tu nombre de usuario y contraseña.
   </app-alert>
+} @else if (expired()) {
+  <app-alert variant="info">Tu sesión expiró. Inicia sesión de nuevo.</app-alert>
 }
 
-<p class="login-page__pending">El inicio de sesión estará disponible próximamente.</p>
+<form class="login-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <app-form-field label="Usuario o correo electrónico" [errorMessages]="messages.identifier">
+    <app-icon appFieldPrefix name="mail" />
+    <input
+      appFormFieldControl
+      formControlName="identifier"
+      placeholder="Ej. analopez o ana@correo.com"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+  </app-form-field>
+
+  <app-form-field label="Contraseña" [errorMessages]="messages.password">
+    <app-icon appFieldPrefix name="lock" />
+    <input
+      appFormFieldControl
+      formControlName="password"
+      [type]="showPassword() ? 'text' : 'password'"
+      placeholder="Tu contraseña"
+      autocomplete="current-password"
+    />
+    <button
+      appFieldSuffix
+      class="login-form__toggle"
+      type="button"
+      [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+      [attr.aria-pressed]="showPassword()"
+      (click)="togglePassword()"
+    >
+      <app-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
+    </button>
+  </app-form-field>
+
+  <div class="login-form__options">
+    <label class="login-form__remember">
+      <input type="checkbox" formControlName="remember" />
+      Recordarme
+    </label>
+    <button
+      class="login-form__link"
+      type="button"
+      aria-controls="forgot-notice"
+      [attr.aria-expanded]="showForgotNotice()"
+      (click)="toggleForgotNotice()"
+    >
+      ¿Olvidaste tu contraseña?
+    </button>
+  </div>
+  @if (showForgotNotice()) {
+    <p id="forgot-notice" class="login-form__notice" role="status">
+      La recuperación de contraseña estará disponible próximamente.
+    </p>
+  }
+
+  <button appButton type="submit" block [loading]="store.pending()">Iniciar sesión</button>
+</form>
+
+<div class="login-page__divider"><span>o continúa con</span></div>
+
+<div class="login-page__social">
+  <button class="login-page__google" type="button" disabled aria-describedby="google-soon">
+    <!-- Official Google "G" colors (brand asset, not theme tokens). -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.96 10.96 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"
+      />
+    </svg>
+    Continuar con Google
+  </button>
+  <p id="google-soon" class="login-page__soon">Próximamente</p>
+</div>
 
 <p class="login-page__footer">
   ¿No tienes una cuenta?
