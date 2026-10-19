@@ -17,7 +17,7 @@ Eres el responsable de repositorio de **mi-cita-app** (Angular 22). Tu trabajo e
 
 - Remoto: `origin` → `https://github.com/GoAction-MiCita/MiCita-FrontEnd.git`.
 - Ramas de larga vida y flujo de promoción: `integration` → `staging` → `main`.
-  - `integration`: destino por defecto de los PR de trabajo (HU, fixes, chores).
+  - `integration`: destino por defecto de los PR de trabajo (HU, fixes, chores), salvo `chore/mock-server`, que nunca se integra.
   - `staging`: preproducción; se promueve desde `integration`.
   - `main`: producción; solo se promueve desde `staging` o mediante hotfix, y solo con petición explícita.
 - Finales de línea: LF (`.gitattributes` con `* text=auto eol=lf`). Nunca introduzcas CRLF.
@@ -70,13 +70,26 @@ Se aplica cada vez que se pida trabajar sobre una historia de usuario de Notion 
 
 ### Excepciones (no siguen la rama por HU)
 
-- **Chore** (configuración, dependencias, tooling, documentación del repo sin HU): rama `chore/<slug>` desde `origin/integration`, push a esa rama y PR hacia `integration`.
+- **Chore** (configuración, dependencias, tooling, documentación del repo sin HU): rama `chore/<slug>` desde `origin/integration`, push a esa rama y PR hacia `integration`. La única excepción es `chore/mock-server` (ver "Rama de herramientas `chore/mock-server`").
 - **Hotfix** (fallo en producción): rama `hotfix/<slug>` desde `origin/main`. **Solo se crea cuando se necesita** de verdad para un incidente; no la crees por adelantado ni la dejes preparada. Sigue las reglas de "Tipo de commit `hotfix`".
 - **Rollback**: rama `revert/<slug>` desde la rama afectada (ver "Protocolo de rollback").
+
+## Rama de herramientas `chore/mock-server`
+
+Contiene el backend simulado (colección de Postman, mock y scripts). Es una rama de **larga vida que nunca se integra** en el flujo de despliegue.
+
+- **Prohibido** abrir PR, hacer merge, cherry-pick o rebase de `chore/mock-server` hacia `integration`, `staging` o `main`, y también traer su contenido a una rama de HU. Si alguien lo pide, advierte que rompe esta regla y pide confirmación explícita.
+- Vive en un **git worktree** aparte: `../mi-cita-mock` (hermano de la carpeta del proyecto). Las ramas de HU se trabajan en la carpeta principal; el mock y la colección se ejecutan desde el worktree sin cambiar de rama.
+  - Crear (una vez): `git worktree add ../mi-cita-mock chore/mock-server`. Git no permite tener la misma rama abierta en dos carpetas, así que la carpeta principal debe estar en otra rama.
+  - Comprobar: `git worktree list`. Si la carpeta se borró a mano: `git worktree prune`.
+- Los cambios del mock (endpoints de una HU nueva, colección, escenarios) se hacen **dentro del worktree**: commit y push a `origin/chore/mock-server`. Las reglas de commits y la ejecución de pruebas son las mismas, más `npx prettier --check postman` y la colección contra el mock.
+- Para mantenerla al día con el código de la app, puedes llevar `origin/integration` hacia ella (`git merge origin/integration` dentro del worktree; está publicada, así que no hagas rebase). Nunca al revés.
+- Uso desde cualquier rama de HU: el mock en el puerto 8080 (`postman mock run ./postman/mocks/micita-backend --port 8080`, dentro del worktree), porque `environment.development.ts` apunta a `http://localhost:8080/api` y el mock responde con CORS. La colección se ejecuta con `--env-var "baseUrl=http://localhost:8080"`.
 
 ## Ramas
 
 - Ramas de HU: `E<épica>-HU-<número>` (por ejemplo `E01-HU-02`), según el flujo anterior.
+- Rama de herramientas: `chore/mock-server`, de larga vida y sin integrar (ver la sección anterior).
 - Ramas de excepción: `chore/<slug>`, `hotfix/<slug>` y `revert/<slug>`, con el slug en minúsculas y con guiones (por ejemplo `chore/ci-github-actions`).
 - Ramas de larga vida: `integration`, `staging` y `main`. No se trabaja directamente sobre ninguna de ellas.
 - Para traer cambios de la rama base a una rama de trabajo, prefiere `git rebase origin/<base>` si la rama no se ha compartido; si ya está publicada (lo normal en las ramas de HU), usa `git merge origin/<base>`.
