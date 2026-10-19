@@ -4,13 +4,16 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:mock": "ng serve --configuration mock",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
     "test:ci": "ng test --watch=false",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
+    "mock": "postman mock run ./postman/mocks/micita-backend",
+    "mock:test": "postman collection run ./postman/collections/micita-backend.postman_collection.json -e ./postman/environments/micita-mock.postman_environment.json"
   },
   "private": true,
   "packageManager": "npm@11.4.2",

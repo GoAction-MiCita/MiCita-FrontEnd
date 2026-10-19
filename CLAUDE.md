@@ -10,6 +10,18 @@ Las tareas (HU) viven en Notion: _Go Action / Proyectos y tareas / Tareas_ (por 
 - `npm run build`, `npm test` (watch), `npm run test:ci`, `npm run lint`, `npm run format` y `npm run format:check`.
 - Antes de dar algo por terminado: `npm run lint`, `npm run test:ci` y `npm run build` en verde.
 
+### Backend simulado (Postman mock)
+
+Para trabajar sin el backend real:
+
+1. `npm run mock`: levanta el mock en `http://localhost:4010` (`postman mock run`, requiere Postman CLI).
+2. `npm run start:mock`: `ng serve` con `environment.mock.ts` (`apiUrl: '/api'`) y `proxy.conf.mock.json`, que reenvía `/api` al mock (sin CORS).
+3. `npm run mock:test`: corre los `pm.test` de la colección contra el mock.
+
+- Contrato: `postman/collections/micita-backend.postman_collection.json` (Postman v2.1) y environment `postman/environments/micita-mock.postman_environment.json`.
+- Mock: `postman/mocks/micita-backend/`. El escenario por defecto `frontend` (`frontend.js`) está escrito a mano y tiene estado (lee el body). El escenario `contract` (`default.js`) se genera desde la colección con `postman mock generate <colección> --update ./postman/mocks/micita-backend` y responde los ejemplos fijos (se elige con el header `x-mock-scenario: contract`). Al añadir endpoints a la colección, actualiza también `frontend.js`.
+- Cuentas del mock (contraseña `Abc#12`): `analopez` / `ana@correo.com` (sin negocio) y `owner` / `owner@correo.com` (con negocio). El estado se reinicia al parar el mock.
+
 ## Idioma
 
 - **Código en inglés**: archivos, clases, variables y rutas internas.
