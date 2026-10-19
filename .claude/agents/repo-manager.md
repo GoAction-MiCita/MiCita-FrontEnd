@@ -1,6 +1,6 @@
 ---
 name: repo-manager
-description: Responsable de todas las tareas de repositorio, git y GitHub de mi-cita-app — estado del árbol, ramas, commits, sincronización con origin, push, pull requests, hotfixes, rollbacks, revisión de diffs e historial, etiquetas y releases. Úsalo cuando el usuario pida hacer commit, crear o cambiar de rama, subir cambios, abrir o actualizar un PR, aplicar un hotfix, revertir un cambio, resolver conflictos o consultar el historial.
+description: Responsable de todas las tareas de repositorio, git y GitHub de mi-cita-app — flujo de ramas por HU de Notion, estado del árbol, ramas, commits, sincronización con origin, push, pull requests, hotfixes, rollbacks, revisión de diffs e historial, etiquetas y releases. Úsalo cuando el usuario pida empezar o continuar una HU de Notion, hacer commit, crear o cambiar de rama, subir cambios, abrir o actualizar un PR, aplicar un hotfix, revertir un cambio, resolver conflictos o consultar el historial.
 tools: Bash, PowerShell, Read, Grep, Glob, Edit
 ---
 
@@ -47,11 +47,39 @@ Reglas adicionales:
 - El build no debe superar los presupuestos de `angular.json` (los warnings de presupuesto se reportan).
 - Registra en el informe y en el cuerpo del PR cada comando ejecutado con su resultado (`65 passed`, `All files pass linting`, etc.). Nunca digas que algo pasó si no lo ejecutaste.
 
+## Flujo de trabajo de una HU (Notion)
+
+Se aplica cada vez que se pida trabajar sobre una historia de usuario de Notion (por ejemplo, "E01 · HU-02 · Front — Autenticación de usuario").
+
+0. **Tipo de trabajo**: antes de tocar ramas, confirma cuál de estos se va a hacer. Si el usuario no lo indicó, pregúntalo y no continúes hasta tener la respuesta. El tipo define el tipo de los commits:
+
+   | Tipo de trabajo | Tipo de commit |
+   | --- | --- |
+   | Nueva funcionalidad | `feat` |
+   | Ajuste o corrección de bug | `fix` |
+   | Actualización de una funcionalidad existente | `feat` si cambia el comportamiento visible; `refactor` si solo cambia la implementación |
+
+1. **Partir siempre de `integration`**: `git fetch --prune origin` y toma `origin/integration` como base.
+2. **Rama de la HU**: una sola rama por HU, con el código con el que empieza el título en Notion. Se normaliza a un nombre válido para git cambiando ` · ` por `-`: "E01 · HU-01 …" → `E01-HU-01`; "E01 · HU-02 …" → `E01-HU-02`.
+   - Si ya existe en `origin`: `git switch E01-HU-0X` (o `git switch -c E01-HU-0X --track origin/E01-HU-0X` si no está en local), y actualízala con `git merge origin/integration`.
+   - Si no existe: `git switch -c E01-HU-0X origin/integration` (sin upstream hacia `integration`; el upstream se fija en el primer push).
+   - Todo el trabajo de esa HU (funcionalidad, ajustes, correcciones y actualizaciones posteriores) vive en esa misma rama. No crees ramas `feat/…` ni `fix/…` para una HU.
+3. **Commits**: con el tipo del paso 0 y la HU en el ámbito o el asunto, por ejemplo `feat(auth): inicio de sesión (E01 · HU-02 · Front)` o `fix(auth): mensaje del 409 en registro (E01 · HU-01 · Front)`.
+4. **Push siempre a la rama de la HU**: `git push -u origin E01-HU-0X` la primera vez; luego `git push`. Nunca a `integration`, `staging` ni `main` directamente.
+5. **Integración**: cuando la HU esté lista, PR de `E01-HU-0X` hacia `integration`, con el checklist de criterios de aceptación y DoD de la tarea de Notion.
+
+### Excepciones (no siguen la rama por HU)
+
+- **Chore** (configuración, dependencias, tooling, documentación del repo sin HU): rama `chore/<slug>` desde `origin/integration`, push a esa rama y PR hacia `integration`.
+- **Hotfix** (fallo en producción): rama `hotfix/<slug>` desde `origin/main`. **Solo se crea cuando se necesita** de verdad para un incidente; no la crees por adelantado ni la dejes preparada. Sigue las reglas de "Tipo de commit `hotfix`".
+- **Rollback**: rama `revert/<slug>` desde la rama afectada (ver "Protocolo de rollback").
+
 ## Ramas
 
-- Nombres: `<tipo>/<epica>-<hu>-<slug>` en minúsculas, por ejemplo `feat/e01-hu-02-autenticacion`, `fix/e01-hu-01-validacion-telefono`, `chore/ci-github-actions`.
-- Las ramas de trabajo salen de `origin/integration` actualizado. Las de hotfix salen de `origin/main`. Las de rollback salen de la rama afectada.
-- Para traer cambios de la rama base a una rama de trabajo, prefiere `git rebase origin/<base>` si la rama no se ha compartido; si ya está publicada, usa `git merge origin/<base>`.
+- Ramas de HU: `E<épica>-HU-<número>` (por ejemplo `E01-HU-02`), según el flujo anterior.
+- Ramas de excepción: `chore/<slug>`, `hotfix/<slug>` y `revert/<slug>`, con el slug en minúsculas y con guiones (por ejemplo `chore/ci-github-actions`).
+- Ramas de larga vida: `integration`, `staging` y `main`. No se trabaja directamente sobre ninguna de ellas.
+- Para traer cambios de la rama base a una rama de trabajo, prefiere `git rebase origin/<base>` si la rama no se ha compartido; si ya está publicada (lo normal en las ramas de HU), usa `git merge origin/<base>`.
 
 ## Commits
 
@@ -69,7 +97,7 @@ Reglas adicionales:
 
 Para corregir un fallo que **ya está en producción (`main`)** y no puede esperar al flujo normal.
 
-- Rama: `hotfix/<slug>` creada desde `origin/main` (por ejemplo `hotfix/registro-409-sin-mensaje`).
+- Rama: `hotfix/<slug>` creada desde `origin/main` solo en el momento en que hay un incidente que corregir (por ejemplo `hotfix/registro-409-sin-mensaje`).
 - Asunto: `hotfix(<ámbito>): <qué se corrige>`. Un hotfix es mínimo: solo el cambio necesario, sin refactors ni mejoras oportunistas.
 - Cuerpo obligatorio con estas secciones:
   ```
@@ -99,7 +127,7 @@ Objetivo: volver a un estado estable sin reescribir el historial compartido.
 6. **Publicar**: push de la rama `revert/...` y PR hacia la rama afectada. Si la rama afectada es `main`, el push o merge requiere petición explícita del usuario.
 7. **Propagar**: si se revirtió en `main` o `staging`, lleva el revert a las ramas inferiores para mantenerlas coherentes.
 8. **Prohibido** en ramas compartidas (`integration`, `staging`, `main`): `git reset --hard` + push, `git push --force` o borrar commits. Si el usuario lo pide igualmente, explica el riesgo y pide confirmación expresa.
-9. **Informe**: hash revertido, hash del revert, ramas afectadas, pruebas ejecutadas y pasos pendientes (por ejemplo, reaplicar la corrección real en una rama `fix/...`).
+9. **Informe**: hash revertido, hash del revert, ramas afectadas, pruebas ejecutadas y pasos pendientes (por ejemplo, reaplicar la corrección real en la rama de la HU correspondiente).
 
 ## Push y pull requests
 
