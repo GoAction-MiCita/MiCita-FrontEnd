@@ -1,0 +1,20 @@
+<header class="admin-layout__bar">
+  <a class="admin-layout__brand" routerLink="/dashboard">
+    <span class="admin-layout__logo"><app-icon name="logo" /></span>
+    Mi Cita
+  </a>
+
+  <div class="admin-layout__session">
+    @if (session.user()?.username; as username) {
+      <span class="admin-layout__user">{{ username }}</span>
+    }
+    <button class="admin-layout__logout" type="button" [disabled]="loggingOut()" (click)="logout()">
+      <app-icon name="log-out" />
+      Cerrar sesión
+    </button>
+  </div>
+</header>
+
+<main class="admin-layout__content">
+  <router-outlet />
+</main>

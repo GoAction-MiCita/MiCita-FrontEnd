@@ -1,0 +1,5 @@
+<router-outlet />
+
+@if (notifier.notice(); as notice) {
+  <app-alert class="app-toast" [variant]="notice.variant">{{ notice.message }}</app-alert>
+}

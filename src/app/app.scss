@@ -1,0 +1,15 @@
+@use 'abstracts' as *;
+
+.app-toast {
+  position: fixed;
+  inset-inline: var(--space-4);
+  bottom: var(--space-4);
+  z-index: var(--z-toast);
+  box-shadow: var(--shadow-lg);
+
+  @include respond-to(md) {
+    inset-inline: auto var(--space-6);
+    bottom: var(--space-6);
+    max-width: 26rem;
+  }
+}
