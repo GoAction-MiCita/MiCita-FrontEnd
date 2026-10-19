@@ -155,7 +155,9 @@ src/styles/
 
 ## Git y GitHub
 
-Las tareas de repositorio (ramas, commits, push, PRs, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`), que define las convenciones de ramas (`feat/e01-hu-02-<slug>`), commits (Conventional Commits en español) y PRs. Remoto: `GoAction-MiCita/MiCita-FrontEnd`, rama principal `main`.
+- **Nunca hacer push, merge ni PR a `main` salvo que el usuario lo pida explícitamente nombrando `main`.** Flujo de ramas: `integration` → `staging` → `main`. Los PR de trabajo van a `integration`.
+- Las tareas de repositorio (ramas, commits, push, PRs, hotfixes, rollbacks, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`). Ahí están las convenciones de ramas y commits (Conventional Commits en español, incluidos `hotfix` y `revert`), el protocolo de rollback y la ejecución rigurosa de pruebas obligatoria antes de commit, push y PR.
+- Remoto: `GoAction-MiCita/MiCita-FrontEnd`.
 
 ## No hacer
 
