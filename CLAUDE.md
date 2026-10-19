@@ -153,6 +153,12 @@ src/styles/
 4. Escribir las pruebas y pasar `lint`, `test:ci` y `build`.
 5. Comprobar la DoD de la tarea punto por punto.
 
+## Git y GitHub
+
+- **Nunca hacer push, merge ni PR a `main` salvo que el usuario lo pida explícitamente nombrando `main`.** Flujo de ramas: `integration` → `staging` → `main`. Los PR de trabajo van a `integration`.
+- Las tareas de repositorio (ramas, commits, push, PRs, hotfixes, rollbacks, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`). Ahí están las convenciones de ramas y commits (Conventional Commits en español, incluidos `hotfix` y `revert`), el protocolo de rollback y la ejecución rigurosa de pruebas obligatoria antes de commit, push y PR.
+- Remoto: `GoAction-MiCita/MiCita-FrontEnd`.
+
 ## No hacer
 
 NgModules · `any` · `enum` · `@Input`/`@Output` · `*ngIf`/`*ngFor` · `@import` en SCSS · `::ng-deep` · valores de color o espacio sueltos · imports entre features · `HttpErrorResponse` fuera de `core` · lógica de negocio en templates · librerías nuevas (UI o estado) sin acordarlo antes.
