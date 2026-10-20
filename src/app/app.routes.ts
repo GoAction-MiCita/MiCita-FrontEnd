@@ -18,7 +18,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', loadChildren: () => import('@features/dashboard/dashboard.routes') },
-      { path: 'onboarding', loadChildren: () => import('@features/onboarding/onboarding.routes') },
+      // The onboarding is a dialog on the dashboard (HU-03); keep old links working.
+      { path: 'onboarding', redirectTo: 'dashboard' },
     ],
   },
   { path: '**', redirectTo: '' },

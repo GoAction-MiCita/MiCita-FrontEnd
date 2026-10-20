@@ -12,6 +12,12 @@
     color: var(--color-text);
   }
 
+  &__optional {
+    margin-inline-start: var(--space-1);
+    color: var(--color-text-subtle);
+    font-weight: var(--font-weight-regular);
+  }
+
   &__required {
     color: var(--color-danger);
   }

@@ -1,0 +1,81 @@
+<dialog
+  #dialog
+  class="onboarding-dialog"
+  aria-labelledby="onboarding-title"
+  aria-describedby="onboarding-description"
+  (cancel)="preventDismiss($event)"
+  (close)="reopen()"
+>
+  <span class="onboarding-dialog__icon"><app-icon name="store" /></span>
+  <h2 id="onboarding-title" class="onboarding-dialog__title">Registra tu negocio</h2>
+  <p id="onboarding-description" class="onboarding-dialog__description">
+    Completa los datos de tu negocio para comenzar a usar Mi Cita.
+  </p>
+
+  @if (failure(); as failure) {
+    <app-alert [title]="failure.title">{{ failure.summary }}</app-alert>
+  }
+
+  <form class="onboarding-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <app-form-field label="Nombre del negocio" [errorMessages]="messages.name">
+      <app-icon appFieldPrefix name="store" />
+      <input
+        appFormFieldControl
+        formControlName="name"
+        placeholder="Ej. Barbería El Estilo"
+        autocomplete="organization"
+      />
+    </app-form-field>
+
+    <app-form-field label="Dirección" [errorMessages]="messages.address">
+      <app-icon appFieldPrefix name="map-pin" />
+      <input
+        appFormFieldControl
+        formControlName="address"
+        placeholder="Ej. Cra 25 # 45-67, Medellín"
+        autocomplete="street-address"
+      />
+    </app-form-field>
+
+    <div class="onboarding-form__row">
+      <app-form-field label="Teléfono" [errorMessages]="messages.phone">
+        <app-icon appFieldPrefix name="phone" />
+        <input
+          appFormFieldControl
+          formControlName="phone"
+          type="tel"
+          inputmode="tel"
+          placeholder="Ej. 300 123 4567"
+          autocomplete="tel"
+        />
+      </app-form-field>
+
+      <app-form-field label="NIT" optional [errorMessages]="messages.nit">
+        <app-icon appFieldPrefix name="id-card" />
+        <input appFormFieldControl formControlName="nit" placeholder="Ej. 900.123.456-7" />
+      </app-form-field>
+    </div>
+
+    <app-form-field label="Correo del negocio" optional [errorMessages]="messages.email">
+      <app-icon appFieldPrefix name="mail" />
+      <input
+        appFormFieldControl
+        formControlName="email"
+        type="email"
+        placeholder="contacto@minegocio.com"
+        autocomplete="email"
+      />
+    </app-form-field>
+
+    <button appButton type="submit" block [loading]="pending()">
+      {{ pending() ? 'Registrando negocio…' : 'Registrar negocio' }}
+    </button>
+  </form>
+
+  <p class="onboarding-dialog__footer">
+    ¿No es tu cuenta?
+    <button class="onboarding-dialog__link" type="button" (click)="logoutRequested.emit()">
+      Cerrar sesión
+    </button>
+  </p>
+</dialog>
