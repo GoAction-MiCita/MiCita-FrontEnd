@@ -9,6 +9,7 @@ Las tareas (HU) viven en Notion: _Go Action / Proyectos y tareas / Tareas_ (por 
 - `npm start`: servidor de desarrollo (usa `environment.development.ts` → `http://localhost:8080/api`).
 - `npm run build`, `npm test` (watch), `npm run test:ci`, `npm run lint`, `npm run format` y `npm run format:check`.
 - Antes de dar algo por terminado: `npm run lint`, `npm run test:ci` y `npm run build` en verde.
+- Seguridad: `npm run security:scan` (escaneo estático del cambio frente a `origin/integration` y del bundle de `dist/`; sale con 1 si hay hallazgos HIGH) y `npm run security:audit` (dependencias de producción). En cada HU son obligatorios, junto con las pruebas unitarias de seguridad (ver la skill `hu-workflow`, §6.1).
 
 ### Backend simulado (Postman mock en un worktree)
 
@@ -165,6 +166,8 @@ src/styles/
 3. Implementar dentro de `features/<dominio>/` siguiendo estas reglas. La UI que se reutilice va a `shared/ui`.
 4. Escribir las pruebas y pasar `lint`, `test:ci` y `build`.
 5. Comprobar la DoD de la tarea punto por punto.
+
+**Automatización:** la skill `hu-workflow` (`.claude/skills/hu-workflow/SKILL.md`) ejecuta este flujo completo. Toma las tareas Front del tablero "Tareas" asignadas a LUIS CARLOS RUIZ CHICANGANA que pasan a "En curso" y las lleva hasta el PR hacia `integration`; después mueve la tarea a "En revisión" y notifica. Ante cualquier ambigüedad o decisión de arquitectura se detiene y pregunta. Las revisiones se programan con `/hu-workflow programar` (8, 11, 14, 17, 20 y 23 h; solo con la sesión abierta y caducan a los 7 días).
 
 ## Git y GitHub
 

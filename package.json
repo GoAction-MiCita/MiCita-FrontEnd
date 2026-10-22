@@ -10,7 +10,9 @@
     "lint": "ng lint",
     "test:ci": "ng test --watch=false",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
+    "security:scan": "node tools/security/security-scan.js",
+    "security:audit": "npm audit --omit=dev --audit-level=high"
   },
   "private": true,
   "packageManager": "npm@11.4.2",

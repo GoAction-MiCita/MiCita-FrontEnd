@@ -37,7 +37,7 @@ Es obligatoria y no se negocia. Si cualquier paso falla, **no** hagas commit, pu
 | --- | --- |
 | Antes de cada commit que toque código, estilos o configuración | `npm run lint`, `npm run format:check`, `npm run test:ci` |
 | Antes de cada push | Lo anterior + `npm run build`, sobre el estado final de la rama (después de rebase o merge con su rama destino) |
-| Antes de abrir un PR o promover a `staging`/`main` | Todo lo anterior desde un árbol limpio (`git status` sin cambios) y tras `npm ci` si cambió `package-lock.json` |
+| Antes de abrir un PR o promover a `staging`/`main` | Todo lo anterior desde un árbol limpio (`git status` sin cambios) y tras `npm ci` si cambió `package-lock.json`, más `npm run security:scan` (después del build) y `npm run security:audit`. Un hallazgo HIGH o una vulnerabilidad high/critical en producción bloquea el PR |
 | Hotfix y rollback | Todo lo anterior, más la verificación manual del flujo afectado en `npm start` (navegador) |
 
 Reglas adicionales:
