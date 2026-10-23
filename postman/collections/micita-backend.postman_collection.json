@@ -825,7 +825,7 @@
     },
     {
       "name": "Servicios",
-      "description": "E02 · Gestión de servicios (HU-08…).",
+      "description": "E02 · Gestión de servicios (HU-08, HU-09…).",
       "item": [
         {
           "name": "Listar servicios",
@@ -971,6 +971,302 @@
               "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios\"\n}"
             }
           ]
+        },
+        {
+          "name": "Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            },
+            "description": "Crea un servicio en el negocio del usuario autenticado (HU-09). Obligatorios `name` y `status` (`ACTIVE`/`INACTIVE`); `description`, `durationMinutes` (> 0) y `price` (>= 0, COP) son opcionales. `employeeIds` entra con HU-12. 400 con errores por campo; 409 si el nombre ya existe en el negocio (sin distinguir mayúsculas y sin contar los DELETED); 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 con el servicio creado', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const service = pm.response.json();",
+                  "  pm.expect(service.id).to.be.a('string');",
+                  "  pm.expect(service).to.include({ name: 'Corte de cabello', status: 'ACTIVE', price: 45000 });",
+                  "  pm.expect(service).to.not.have.property('businessId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"svc-08\",\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\",\n  \"employees\": []\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/servicios\",\n  \"errors\": {\n    \"name\": \"El nombre del servicio es obligatorio\",\n    \"durationMinutes\": \"La duración debe ser mayor a 0 minutos\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Service name already exists\",\n  \"instance\": \"/api/servicios\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/servicios\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 45,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crear servicio duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CORTE DE CABELLO\",\n  \"status\": \"INACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            },
+            "description": "Mismo nombre que \"Crear servicio\" con otras mayúsculas: el backend responde 409."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409 por nombre duplicado', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().status).to.eql(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
       ]
     }

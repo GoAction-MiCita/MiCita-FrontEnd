@@ -113,6 +113,46 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({"content":[{"id":"svc-04","name":"Barba","description":"Arreglo y perfilado de barba.","durationMinutes":20,"price":20000,"status":"ACTIVE","employees":[{"id":"e-juan","name":"Juan Pérez","photoUrl":null},{"id":"e-pedro","name":"Pedro Ruiz","photoUrl":null}]},{"id":"svc-05","name":"Limpieza facial","description":"Limpieza profunda del rostro.","durationMinutes":90,"price":60000,"status":"INACTIVE","employees":[]}],"page":0,"size":20,"totalElements":2,"totalPages":1}));
   }
 
+  // @endpoint POST /api/servicios
+  if (req.method === 'POST' && pathname === '/api/servicios') {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "400 Bad Request" — when x-mock-response-code: 400
+    if (requestedStatusCode === '400') {
+      res.writeHead(400, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/servicios","errors":{"name":"El nombre del servicio es obligatorio","durationMinutes":"La duración debe ser mayor a 0 minutos"}}));
+    }
+
+    // "409 Conflict" — when x-mock-response-code: 409
+    if (requestedStatusCode === '409') {
+      res.writeHead(409, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Conflict","status":409,"detail":"Service name already exists","instance":"/api/servicios"}));
+    }
+
+    // "401 Unauthorized" — when x-mock-response-code: 401
+    if (requestedStatusCode === '401') {
+      res.writeHead(401, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Unauthorized","status":401,"detail":"Missing or invalid access token","instance":"/api/servicios"}));
+    }
+
+    // "403 Forbidden" — when x-mock-response-code: 403
+    if (requestedStatusCode === '403') {
+      res.writeHead(403, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Forbidden","status":403,"detail":"Business required","instance":"/api/servicios"}));
+    }
+
+    // "201 Created" — default
+    res.writeHead(201, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"id":"svc-08","name":"Corte de cabello","description":"Corte profesional para hombres y mujeres.","durationMinutes":45,"price":45000,"status":"ACTIVE","employees":[]}));
+  }
+
+  // @endpoint POST /api/servicios
+  if (req.method === 'POST' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not defined' }));
 });

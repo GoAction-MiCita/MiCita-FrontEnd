@@ -12,7 +12,8 @@
  *   owner    / owner@correo.com  → hasBusiness=true  (owns "Barbería Central", NIT 900.123.456-7)
  *
  * GET /api/servicios (HU-08) lists the services of the user's business: owner has sample data,
- * new businesses start empty, users without business get 403.
+ * new businesses start empty, users without business get 403. POST /api/servicios (HU-09) adds
+ * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  *
  * POST /api/negocios/onboarding needs a Bearer token issued by this mock. Creating the business
  * flips hasBusiness: the next login or refresh carries the claim.
@@ -158,6 +159,27 @@ const BUSINESS_RULES = [
   ],
 ];
 
+// Mirrors the backend service rules (see HU-09 Back): name and status required.
+const SERVICE_RULES = [
+  ['name', (v) => isFilled(v), 'El nombre del servicio es obligatorio'],
+  [
+    'description',
+    (v) => isBlank(v) || (typeof v === 'string' && v.length <= 255),
+    'La descripción admite máximo 255 caracteres',
+  ],
+  [
+    'durationMinutes',
+    (v) => v === null || v === undefined || (Number.isInteger(v) && v > 0),
+    'La duración debe ser mayor a 0 minutos',
+  ],
+  [
+    'price',
+    (v) => v === null || v === undefined || (typeof v === 'number' && Number.isFinite(v) && v >= 0),
+    'El precio no puede ser negativo',
+  ],
+  ['status', (v) => v === 'ACTIVE' || v === 'INACTIVE', 'El estado debe ser ACTIVE o INACTIVE'],
+];
+
 const routes = {
   'POST /api/auth/register': (body) => {
     const errors = {};
@@ -243,6 +265,50 @@ const routes = {
       totalElements: visible.length,
       totalPages: Math.ceil(visible.length / size),
     });
+  },
+
+  'POST /api/servicios': (body, req) => {
+    const instance = '/api/servicios';
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const errors = {};
+    for (const [field, isValid, message] of SERVICE_RULES) {
+      if (!isValid(body[field])) {
+        errors[field] = message;
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
+    }
+    const name = body.name.trim();
+    const duplicate = services.some(
+      (s) =>
+        s.businessId === business.id &&
+        s.status !== 'DELETED' &&
+        s.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      return problem(409, 'Conflict', 'Service name already exists', instance);
+    }
+    const service = {
+      id: crypto.randomUUID(),
+      businessId: business.id,
+      name,
+      description: isBlank(body.description) ? null : body.description.trim(),
+      durationMinutes: body.durationMinutes ?? null,
+      price: body.price ?? null,
+      status: body.status,
+      employees: [], // employeeIds arrive with HU-12
+    };
+    services.push(service);
+    const { businessId, ...response } = service;
+    return json(201, response);
   },
 
   'POST /api/negocios/onboarding': (body, req) => {
