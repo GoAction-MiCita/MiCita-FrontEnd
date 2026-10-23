@@ -22,6 +22,20 @@ El mock del backend (colección de Postman y servidor simulado) vive en la rama 
 - Cuentas del mock (contraseña `Abc#12`): `analopez` (sin negocio) y `owner` (con negocio, NIT `900.123.456-7`).
 - Para una HU nueva, los endpoints se añaden al mock dentro del worktree (colección y `frontend.js`; luego `npm run mock:contract`), con commit y push a `chore/mock-server`. La guía detallada está en el CLAUDE.md de esa rama.
 
+#### Detalle del mock (solo en esta rama)
+
+Scripts de npm de esta rama (alternativa al flujo con worktree en el puerto 8080):
+
+1. `npm run mock`: levanta el mock en `http://localhost:4010` (`postman mock run`, requiere Postman CLI).
+2. `npm run start:mock`: `ng serve` con `environment.mock.ts` (`apiUrl: '/api'`) y `proxy.conf.mock.json`, que reenvía `/api` al mock (sin CORS).
+3. `npm run mock:test`: corre los `pm.test` de la colección contra el mock.
+
+- Contrato: `postman/collections/micita-backend.postman_collection.json` (Postman v2.1) y environment `postman/environments/micita-mock.postman_environment.json`.
+- Mock: `postman/mocks/micita-backend/`. El escenario por defecto `frontend` (`frontend.js`) está escrito a mano y tiene estado (lee el body y valida el Bearer en rutas privadas). El escenario `contract` (`default.js`) responde los ejemplos fijos de la colección y se elige con el header `x-mock-scenario: contract`.
+- Al añadir o cambiar endpoints: edita la colección, implementa el endpoint en `frontend.js` y regenera `contract` con `npm run mock:contract`. **Nunca uses `postman mock generate --update`** sobre este mock: reescribe el escenario predeterminado (`frontend.js`) y no añade endpoints nuevos.
+- Endpoints simulados: `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/negocios/onboarding` (HU-03) y `GET /api/servicios` (HU-08: listado paginado del negocio del usuario; 401 sin token, 403 sin negocio; `owner` tiene servicios de ejemplo y los negocios nuevos empiezan vacíos).
+- Cuentas del mock (contraseña `Abc#12`): `analopez` / `ana@correo.com` (sin negocio) y `owner` / `owner@correo.com` (con el negocio "Barbería Central", NIT `900.123.456-7`). El estado se reinicia al parar el mock.
+
 ## Idioma
 
 - **Código en inglés**: archivos, clases, variables y rutas internas.
