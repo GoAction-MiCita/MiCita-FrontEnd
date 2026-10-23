@@ -72,3 +72,70 @@ describe('ServicesApi.create', () => {
     http.verify();
   });
 });
+
+describe('ServicesApi edit (HU-10)', () => {
+  function setup() {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_URL, useValue: 'http://api.test/api' },
+      ],
+    });
+    return { api: TestBed.inject(ServicesApi), http: TestBed.inject(HttpTestingController) };
+  }
+
+  it('gets one service by id, encoding the id', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(api.get('a/b?c'));
+
+    const req = http.expectOne('http://api.test/api/servicios/a%2Fb%3Fc');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      id: 'a/b?c',
+      name: 'Barba',
+      status: 'ACTIVE',
+      employees: [{ id: 'e1', name: 'Ana López' }],
+    });
+
+    expect(await result).toMatchObject({
+      id: 'a/b?c',
+      employees: [{ id: 'e1', name: 'Ana López', photoUrl: null }],
+    });
+    http.verify();
+  });
+
+  it('puts the mapped request with the employee ids and maps the answer', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(
+      api.update(
+        's1',
+        {
+          name: ' Barba ',
+          description: null,
+          durationMinutes: 30,
+          price: 25000,
+          status: 'INACTIVE',
+        },
+        ['e1'],
+      ),
+    );
+
+    const req = http.expectOne('http://api.test/api/servicios/s1');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      name: 'Barba',
+      description: null,
+      durationMinutes: 30,
+      price: 25000,
+      status: 'INACTIVE',
+      employeeIds: ['e1'],
+    });
+    req.flush({ id: 's1', name: 'Barba', price: 25000, status: 'INACTIVE' });
+
+    expect(await result).toMatchObject({ id: 's1', status: 'INACTIVE', price: 25000 });
+    http.verify();
+  });
+});

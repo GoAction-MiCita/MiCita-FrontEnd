@@ -1,4 +1,5 @@
 import {
+  toUpdateServiceRequestDto,
   toCreateServiceRequestDto,
   toNewServiceFieldErrors,
   toService,
@@ -98,6 +99,35 @@ describe('toCreateServiceRequestDto', () => {
 
     expect(dto).toMatchObject({ description: 'Arreglo', durationMinutes: null, price: null });
     expect(dto).not.toHaveProperty('employeeIds');
+  });
+});
+
+describe('toUpdateServiceRequestDto', () => {
+  it('sends the same fields as the create request plus the employee ids', () => {
+    const employeeIds = ['e1', 'e2'];
+    const dto = toUpdateServiceRequestDto(
+      { name: ' Barba ', description: '', durationMinutes: 20, price: 0, status: 'ACTIVE' },
+      employeeIds,
+    );
+
+    expect(dto).toEqual({
+      name: 'Barba',
+      description: null,
+      durationMinutes: 20,
+      price: 0,
+      status: 'ACTIVE',
+      employeeIds: ['e1', 'e2'],
+    });
+    expect(dto.employeeIds).not.toBe(employeeIds);
+  });
+
+  it('sends an empty list when the service has no employees', () => {
+    const dto = toUpdateServiceRequestDto(
+      { name: 'Barba', description: null, durationMinutes: null, price: null, status: 'INACTIVE' },
+      [],
+    );
+
+    expect(dto.employeeIds).toEqual([]);
   });
 });
 

@@ -20,6 +20,7 @@ import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { integer } from '@shared/forms/validators/integer.validator';
 import { Alert } from '@shared/ui/alert/alert';
+import { AvatarGroup } from '@shared/ui/avatar-group/avatar-group';
 import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
@@ -29,6 +30,7 @@ import {
   NewService,
   NewServiceField,
   SERVICE_STATUS,
+  Service,
   ServiceStatus,
 } from '@features/services/models/service.model';
 
@@ -48,18 +50,34 @@ const MESSAGES: Readonly<Record<NewServiceField, ErrorMessages>> = {
   status: { required: 'Selecciona el estado' },
 };
 
+export type ServiceFormMode = 'create' | 'edit';
+
 /**
- * HU-09 "Agregar servicio": side panel on desktop, full screen on mobile.
- * Closes with Esc, the X or "Cancelar" (emits `closed`); the parent removes it.
+ * HU-09 "Agregar servicio" and HU-10 "Editar servicio": side panel on desktop, full screen on
+ * mobile. Closes with Esc, the X or "Cancelar" (emits `closed`); the parent removes it.
+ * In edit mode the form waits for `service` and shows its employees read-only (picker: HU-12).
  */
 @Component({
   selector: 'app-service-form-panel',
-  imports: [ReactiveFormsModule, Alert, Button, CurrencyInput, FormField, FormFieldControl, Icon],
+  imports: [
+    ReactiveFormsModule,
+    Alert,
+    AvatarGroup,
+    Button,
+    CurrencyInput,
+    FormField,
+    FormFieldControl,
+    Icon,
+  ],
   templateUrl: './service-form-panel.html',
   styleUrl: './service-form-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServiceFormPanel {
+  readonly mode = input<ServiceFormMode>('create');
+  /** Edit mode: the service to edit, `null` while it loads or if it could not be loaded. */
+  readonly service = input<Service | null>(null);
+  readonly loading = input(false);
   readonly pending = input(false);
   readonly failure = input<ServiceFormFailure | null>(null);
 
@@ -85,6 +103,19 @@ export class ServiceFormPanel {
     () => `${this.description().length}/${DESCRIPTION_MAX_LENGTH}`,
   );
 
+  protected readonly editing = computed(() => this.mode() === 'edit');
+  protected readonly title = computed(() =>
+    this.editing() ? 'Editar servicio' : 'Agregar servicio',
+  );
+  /** In edit mode there is nothing to show or save until the service arrives. */
+  protected readonly ready = computed(() => !this.editing() || this.service() !== null);
+  protected readonly employees = computed(() => this.service()?.employees ?? []);
+  protected readonly employeeNames = computed(() =>
+    this.employees()
+      .map((employee) => employee.name)
+      .join(', '),
+  );
+
   constructor() {
     // Give focus back to the button that opened the panel.
     const opener = inject(DOCUMENT).activeElement;
@@ -95,6 +126,21 @@ export class ServiceFormPanel {
     });
 
     afterNextRender(() => this.open());
+
+    effect(() => {
+      const service = this.service();
+      if (service) {
+        untracked(() =>
+          this.form.reset({
+            name: service.name,
+            description: service.description ?? '',
+            durationMinutes: service.durationMinutes,
+            price: service.price,
+            status: service.status,
+          }),
+        );
+      }
+    });
 
     effect(() => {
       const failure = this.failure();
@@ -135,7 +181,7 @@ export class ServiceFormPanel {
   }
 
   protected submit(): void {
-    if (this.pending()) {
+    if (this.pending() || !this.ready()) {
       return;
     }
     if (this.form.invalid) {

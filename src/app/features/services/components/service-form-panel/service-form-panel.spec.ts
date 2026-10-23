@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ServiceFormFailure } from '@features/services/models/service-form-failure';
-import { NewService } from '@features/services/models/service.model';
+import { NewService, Service } from '@features/services/models/service.model';
 import { ServiceFormPanel } from './service-form-panel';
 
 type FieldName = keyof NewService;
@@ -227,5 +227,126 @@ describe('ServiceFormPanel', () => {
     element.querySelector('dialog')!.dispatchEvent(cancel);
 
     expect(cancel.defaultPrevented).toBe(false);
+  });
+});
+
+describe('ServiceFormPanel in edit mode (HU-10)', () => {
+  const service: Service = {
+    id: 's1',
+    name: 'Barba',
+    description: 'Arreglo de barba',
+    durationMinutes: 20,
+    price: 20000,
+    status: 'INACTIVE',
+    employees: [
+      { id: 'e1', name: 'Juan Pérez', photoUrl: null },
+      { id: 'e2', name: 'Pedro Ruiz', photoUrl: null },
+    ],
+  };
+
+  async function renderEdit(inputs: { service?: Service | null; loading?: boolean } = {}) {
+    const rendered = await render();
+    rendered.fixture.componentRef.setInput('mode', 'edit');
+    rendered.fixture.componentRef.setInput('service', inputs.service ?? null);
+    rendered.fixture.componentRef.setInput('loading', inputs.loading ?? false);
+    await rendered.fixture.whenStable();
+    return rendered;
+  }
+
+  it('shows a loading state without fields and cannot save while the service loads', async () => {
+    const { element, submit, submitted } = await renderEdit({ loading: true });
+
+    expect(element.querySelector('h2')?.textContent).toContain('Editar servicio');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando servicio');
+    expect(element.querySelector('[formcontrolname]')).toBeNull();
+    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+
+    await submit();
+    expect(submitted).toHaveLength(0);
+  });
+
+  it('prefills the form with the current data and shows the employees read-only', async () => {
+    const { element, control } = await renderEdit({ service });
+
+    expect(control('name').value).toBe('Barba');
+    expect(control('description').value).toBe('Arreglo de barba');
+    expect(control('durationMinutes').value).toBe('20');
+    expect(control('price').value).toBe('20.000');
+    expect(control('status').value).toBe('INACTIVE');
+    expect(element.textContent).toContain('16/120');
+    expect(element.textContent).toContain('Empleados asociados');
+    expect(element.textContent).toContain('Juan Pérez, Pedro Ruiz');
+    expect(element.querySelector('select[multiple], input[type="checkbox"]')).toBeNull();
+  });
+
+  it('says when the service has no employees', async () => {
+    const { element } = await renderEdit({ service: { ...service, employees: [] } });
+
+    expect(element.textContent).toContain('Sin empleados asignados');
+  });
+
+  it('emits the edited values', async () => {
+    const { fill, submit, submitted } = await renderEdit({ service });
+
+    await fill({ name: 'Barba clásica', description: '', price: '25000', status: 'ACTIVE' });
+    await submit();
+
+    expect(submitted).toEqual([
+      {
+        name: 'Barba clásica',
+        description: null,
+        durationMinutes: 20,
+        price: 25000,
+        status: 'ACTIVE',
+      },
+    ]);
+  });
+
+  it('validates like the create form', async () => {
+    const { element, fill, submit, submitted } = await renderEdit({ service });
+
+    await fill({ name: '', durationMinutes: '0' });
+    await submit();
+
+    expect(submitted).toHaveLength(0);
+    expect(element.textContent).toContain('El nombre del servicio es obligatorio');
+    expect(element.textContent).toContain('La duración debe ser mayor a 0 minutos');
+  });
+
+  it('shows a load failure without the form', async () => {
+    const { fixture, element } = await renderEdit();
+
+    fixture.componentRef.setInput('failure', {
+      title: 'No pudimos cargar el servicio',
+      summary: 'Sin conexión',
+      fieldErrors: {},
+    } satisfies ServiceFormFailure);
+    await fixture.whenStable();
+
+    expect(element.textContent).toContain('No pudimos cargar el servicio');
+    expect(element.querySelector('[formcontrolname]')).toBeNull();
+    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+  });
+
+  it('closes without emitting anything when cancelled', async () => {
+    const { fixture, button, submitted, closes } = await renderEdit({ service });
+
+    button('Cancelar').click();
+    await fixture.whenStable();
+
+    expect(closes()).toBe(1);
+    expect(submitted).toHaveLength(0);
+  });
+
+  it('renders the service data as text, never as HTML', async () => {
+    const { element } = await renderEdit({
+      service: {
+        ...service,
+        employees: [{ id: 'e9', name: '<img src=x onerror=alert(1)>', photoUrl: null }],
+      },
+    });
+
+    expect(element.querySelector('dialog img')).toBeNull();
+    expect(element.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 });
