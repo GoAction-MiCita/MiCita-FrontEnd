@@ -20,6 +20,10 @@
     {
       "key": "username",
       "value": "analopez"
+    },
+    {
+      "key": "serviceId",
+      "value": ""
     }
   ],
   "item": [
@@ -1014,6 +1018,7 @@
                   "  pm.expect(service.id).to.be.a('string');",
                   "  pm.expect(service).to.include({ name: 'Corte de cabello', status: 'ACTIVE', price: 45000 });",
                   "  pm.expect(service).to.not.have.property('businessId');",
+                  "  pm.collectionVariables.set('serviceId', service.id);",
                   "});"
                 ]
               }
@@ -1261,6 +1266,639 @@
                   "pm.test('responde 409 por nombre duplicado', () => {",
                   "  pm.response.to.have.status(409);",
                   "  pm.expect(pm.response.json().status).to.eql(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Obtener servicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Detalle de un servicio del negocio con sus empleados (HU-10). 404 si el id no existe, es de otro negocio o está DELETED; 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con el detalle', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const service = pm.response.json();",
+                  "  pm.expect(service.id).to.eql(pm.collectionVariables.get('serviceId'));",
+                  "  pm.expect(service.employees).to.be.an('array');",
+                  "  pm.expect(service).to.not.have.property('businessId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"svc-01\",\n  \"name\": \"Corte de cabello\",\n  \"description\": \"Corte profesional para hombres y mujeres.\",\n  \"durationMinutes\": 30,\n  \"price\": 45000,\n  \"status\": \"ACTIVE\",\n  \"employees\": [\n    {\n      \"id\": \"e-ana\",\n      \"name\": \"Ana López\",\n      \"photoUrl\": null\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "404"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"Service not found\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "401"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "403"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Editar servicio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Actualiza un servicio (HU-10) con las mismas reglas de HU-09. `employeeIds` reemplaza la asociación completa (lista vacía quita todos). 400 con errores por campo; 409 si otro servicio del negocio ya usa el nombre (el propio no cuenta); 404 si no existe, es de otro negocio o está DELETED; 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con el servicio actualizado (su propio nombre no es duplicado)', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const service = pm.response.json();",
+                  "  pm.expect(service).to.include({ name: 'corte de cabello', status: 'INACTIVE', price: 50000 });",
+                  "  pm.expect(service.employees).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"svc-01\",\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employees\": []\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "400"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/servicios/svc-01\",\n  \"errors\": {\n    \"name\": \"El nombre del servicio es obligatorio\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "409"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Barba\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Service name already exists\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "404"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"Service not found\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "401"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "403"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"corte de cabello\",\n  \"description\": \"Corte y lavado.\",\n  \"durationMinutes\": 40,\n  \"price\": 50000,\n  \"status\": \"INACTIVE\",\n  \"employeeIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Editar servicio inválido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \" \",\n  \"durationMinutes\": 0,\n  \"price\": -1,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Datos inválidos: el backend responde 400 con errores por campo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con errores por campo', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('name', 'durationMinutes', 'price');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Editar servicio con nombre de otro",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"BARBA\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Tras \"Crear servicio duplicado\" (409) no hay otro servicio, así que se crea \"Barba\" en la pre-request y se intenta renombrar el editado como \"BARBA\": 409."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.sendRequest({",
+                  "  url: pm.variables.get('baseUrl') + '/api/servicios',",
+                  "  method: 'POST',",
+                  "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('accessToken'), 'Content-Type': 'application/json' },",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ name: 'Barba', status: 'ACTIVE' }) },",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409 si otro servicio ya usa el nombre', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Editar servicio inexistente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fantasma\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/svc-no-existe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "svc-no-existe"]
+            },
+            "description": "Un id que no existe (o de otro negocio, o DELETED) responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "  pm.expect(pm.response.json().status).to.eql(404);",
                   "});"
                 ]
               }

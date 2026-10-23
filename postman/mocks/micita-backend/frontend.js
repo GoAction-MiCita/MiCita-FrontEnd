@@ -14,6 +14,8 @@
  * GET /api/servicios (HU-08) lists the services of the user's business: owner has sample data,
  * new businesses start empty, users without business get 403. POST /api/servicios (HU-09) adds
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
+ * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
+ * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
  *
  * POST /api/negocios/onboarding needs a Bearer token issued by this mock. Creating the business
  * flips hasBusiness: the next login or refresh carries the claim.
@@ -311,6 +313,83 @@ const routes = {
     return json(201, response);
   },
 
+  'GET /api/servicios/{id}': (_body, req, params) => {
+    const instance = `/api/servicios/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const service = findService(business, params.id);
+    if (!service) {
+      return problem(404, 'Not Found', 'Service not found', instance);
+    }
+    const { businessId, ...response } = service;
+    return json(200, response);
+  },
+
+  'PUT /api/servicios/{id}': (body, req, params) => {
+    const instance = `/api/servicios/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const service = findService(business, params.id);
+    if (!service) {
+      return problem(404, 'Not Found', 'Service not found', instance);
+    }
+    const errors = {};
+    for (const [field, isValid, message] of SERVICE_RULES) {
+      if (!isValid(body[field])) {
+        errors[field] = message;
+      }
+    }
+    const staff = Object.values(employees);
+    const employeeIds = body.employeeIds;
+    if (
+      employeeIds !== undefined &&
+      employeeIds !== null &&
+      (!Array.isArray(employeeIds) || employeeIds.some((id) => !staff.some((e) => e.id === id)))
+    ) {
+      errors.employeeIds = 'Hay empleados que no pertenecen al negocio';
+    }
+    if (Object.keys(errors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
+    }
+    const name = body.name.trim();
+    // The service itself does not count as a duplicate (HU-10 Back).
+    const duplicate = services.some(
+      (s) =>
+        s.id !== service.id &&
+        s.businessId === business.id &&
+        s.status !== 'DELETED' &&
+        s.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      return problem(409, 'Conflict', 'Service name already exists', instance);
+    }
+    Object.assign(service, {
+      name,
+      description: isBlank(body.description) ? null : body.description.trim(),
+      durationMinutes: body.durationMinutes ?? null,
+      price: body.price ?? null,
+      status: body.status,
+    });
+    // employeeIds replaces the whole association; an empty list removes everyone.
+    if (Array.isArray(employeeIds)) {
+      service.employees = staff.filter((e) => employeeIds.includes(e.id));
+    }
+    const { businessId, ...response } = service;
+    return json(200, response);
+  },
+
   'POST /api/negocios/onboarding': (body, req) => {
     const instance = '/api/negocios/onboarding';
     const user = authenticatedUser(req);
@@ -350,6 +429,25 @@ const routes = {
     return json(201, response);
   },
 };
+
+/** Service of the business that is not DELETED; null for unknown ids or other businesses. */
+function findService(business, id) {
+  return (
+    services.find((s) => s.id === id && s.businessId === business.id && s.status !== 'DELETED') ??
+    null
+  );
+}
+
+/** Exact route first, then routes with an `{id}` path parameter. */
+function resolveRoute(method, pathname) {
+  const exact = routes[`${method} ${pathname}`];
+  if (exact) {
+    return { handler: exact, params: {} };
+  }
+  const match = /^(\/api\/servicios)\/([^/]+)$/.exec(pathname);
+  const handler = match && routes[`${method} ${match[1]}/{id}`];
+  return handler ? { handler, params: { id: decodeURIComponent(match[2]) } } : null;
+}
 
 /** User of a valid, unexpired Bearer token issued by this mock; null otherwise. */
 function authenticatedUser(req) {
@@ -437,13 +535,13 @@ const server = http.createServer((req, res) => {
   let raw = '';
   req.on('data', (chunk) => (raw += chunk));
   req.on('end', () => {
-    const handler = routes[`${req.method} ${pathname}`];
+    const route = resolveRoute(req.method, pathname);
     let response;
-    if (!handler) {
+    if (!route) {
       response = json(404, { error: 'Endpoint not defined' });
     } else {
       try {
-        response = handler(raw ? JSON.parse(raw) : {}, req);
+        response = route.handler(raw ? JSON.parse(raw) : {}, req, route.params);
       } catch {
         response = problem(400, 'Bad Request', 'Malformed JSON body', pathname);
       }
