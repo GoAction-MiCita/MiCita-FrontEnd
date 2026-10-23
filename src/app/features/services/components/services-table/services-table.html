@@ -44,9 +44,8 @@
           <button
             class="services-table__danger"
             type="button"
-            disabled
-            title="Próximamente"
             [attr.aria-label]="row.deleteLabel"
+            (click)="remove.emit(row.service)"
           >
             <app-icon name="trash" />
           </button>

@@ -5,7 +5,9 @@ import {
   ServiceFormPanel,
 } from '@features/services/components/service-form-panel/service-form-panel';
 import { ServicesTable } from '@features/services/components/services-table/services-table';
+import { DeleteServiceDialog } from '@features/services/components/delete-service-dialog/delete-service-dialog';
 import { CreateServiceStore } from '@features/services/data-access/create-service-store';
+import { DeleteServiceStore } from '@features/services/data-access/delete-service-store';
 import { EditServiceStore } from '@features/services/data-access/edit-service-store';
 import { ServicesStore } from '@features/services/data-access/services-store';
 import { NewService, Service } from '@features/services/models/service.model';
@@ -16,14 +18,15 @@ import { Icon } from '@shared/ui/icon/icon';
 export const SERVICES_PAGE_MESSAGES = {
   created: 'Servicio creado',
   updated: 'Servicio actualizado',
+  deleted: 'Servicio eliminado',
   gone: 'Este servicio ya no existe',
 } as const;
 
-/** HU-08 listado, HU-09 registrar and HU-10 editar servicio (private). */
+/** HU-08 listado, HU-09 registrar, HU-10 editar and HU-14 eliminar servicio (private). */
 @Component({
   selector: 'app-services-page',
-  imports: [Alert, Button, Icon, ServiceFormPanel, ServicesTable],
-  providers: [ServicesStore, CreateServiceStore, EditServiceStore],
+  imports: [Alert, Button, DeleteServiceDialog, Icon, ServiceFormPanel, ServicesTable],
+  providers: [ServicesStore, CreateServiceStore, EditServiceStore, DeleteServiceStore],
   templateUrl: './services-page.html',
   styleUrl: './services-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +35,7 @@ export default class ServicesPage {
   protected readonly store = inject(ServicesStore);
   private readonly createStore = inject(CreateServiceStore);
   private readonly editStore = inject(EditServiceStore);
+  protected readonly deleteStore = inject(DeleteServiceStore);
   private readonly notifier = inject(Notifier);
 
   /** `null` while the panel is closed. */
@@ -88,6 +92,18 @@ export default class ServicesPage {
       this.notifier.success(SERVICES_PAGE_MESSAGES.updated);
     } else if (result === 'not-found') {
       this.serviceGone();
+    }
+  }
+
+  /** HU-14: after a 204 the list is reloaded (going back a page waits for paging, HU-15). */
+  protected async confirmDelete(): Promise<void> {
+    const result = await this.deleteStore.confirm();
+    if (result === 'deleted') {
+      this.store.reload();
+      this.notifier.success(SERVICES_PAGE_MESSAGES.deleted);
+    } else if (result === 'not-found') {
+      this.store.reload();
+      this.notifier.error(SERVICES_PAGE_MESSAGES.gone);
     }
   }
 

@@ -139,3 +139,27 @@ describe('ServicesApi edit (HU-10)', () => {
     http.verify();
   });
 });
+
+describe('ServicesApi.remove (HU-14)', () => {
+  it('sends DELETE to /servicios/{id}, encoding the id', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_URL, useValue: 'http://api.test/api' },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+
+    const result = firstValueFrom(TestBed.inject(ServicesApi).remove('a/b'), {
+      defaultValue: undefined,
+    });
+
+    const req = http.expectOne('http://api.test/api/servicios/a%2Fb');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    await expect(result).resolves.toBeNull();
+    http.verify();
+  });
+});
