@@ -2194,6 +2194,247 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "Filtrar servicios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?name=COR&status=ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "COR"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            },
+            "description": "Filtros de HU-13 combinados con Y: `name` (contiene, sin distinguir mayúsculas), `status` (ACTIVE/INACTIVE; otro valor responde 400) y `employeeIds=a,b` (al menos uno). `totalElements` y `totalPages` respetan los filtros."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('filtra por nombre y estado, y el total respeta los filtros', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content.length).to.be.above(0);",
+                  "  body.content.forEach((s) => {",
+                  "    pm.expect(s.name.toLowerCase()).to.include('cor');",
+                  "    pm.expect(s.status).to.eql('ACTIVE');",
+                  "  });",
+                  "  pm.expect(body.totalElements).to.eql(body.content.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK (filtrado)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios?name=cor&status=ACTIVE",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "cor"
+                    },
+                    {
+                      "key": "status",
+                      "value": "ACTIVE"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": \"svc-01\",\n      \"name\": \"Corte de cabello\",\n      \"description\": \"Corte profesional para hombres y mujeres.\",\n      \"durationMinutes\": 30,\n      \"price\": 45000,\n      \"status\": \"ACTIVE\",\n      \"employees\": [\n        {\n          \"id\": \"e-ana\",\n          \"name\": \"Ana López\",\n          \"photoUrl\": null\n        }\n      ]\n    }\n  ],\n  \"page\": 0,\n  \"size\": 20,\n  \"totalElements\": 1,\n  \"totalPages\": 1\n}"
+            },
+            {
+              "name": "400 Estado inválido",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "400"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios?status=DELETED",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "DELETED"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/servicios\",\n  \"errors\": {\n    \"status\": \"El estado debe ser ACTIVE o INACTIVE\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Filtrar servicios sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?status=INACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "INACTIVE"
+                }
+              ]
+            },
+            "description": "Ningún servicio del negocio está inactivo: página vacía con total 0."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde una página vacía', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.include({ totalElements: 0, totalPages: 0 });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Filtrar servicios por empleados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?employeeIds=e-ana,e-juan",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "employeeIds",
+                  "value": "e-ana,e-juan"
+                }
+              ]
+            },
+            "description": "Servicios con al menos uno de esos empleados. Los servicios del negocio de prueba no tienen empleados: 0 resultados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 sin servicios de otros empleados', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().totalElements).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Filtrar servicios con estado inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?status=DELETED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DELETED"
+                }
+              ]
+            },
+            "description": "`status` solo admite ACTIVE o INACTIVE: 400 con el error en `status`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el error en status', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
       ]
     }

@@ -294,6 +294,42 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
   }
 
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "400 Estado inválido" — when x-mock-response-code: 400
+    if (requestedStatusCode === '400') {
+      res.writeHead(400, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/servicios","errors":{"status":"El estado debe ser ACTIVE o INACTIVE"}}));
+    }
+
+    // "200 OK (filtrado)" — default
+    res.writeHead(200, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"content":[{"id":"svc-01","name":"Corte de cabello","description":"Corte profesional para hombres y mujeres.","durationMinutes":30,"price":45000,"status":"ACTIVE","employees":[{"id":"e-ana","name":"Ana López","photoUrl":null}]}],"page":0,"size":20,"totalElements":1,"totalPages":1}));
+  }
+
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not defined' }));
 });

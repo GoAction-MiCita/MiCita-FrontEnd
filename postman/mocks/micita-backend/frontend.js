@@ -12,7 +12,8 @@
  *   owner    / owner@correo.com  → hasBusiness=true  (owns "Barbería Central", NIT 900.123.456-7)
  *
  * GET /api/servicios (HU-08) lists the services of the user's business: owner has sample data,
- * new businesses start empty, users without business get 403. POST /api/servicios (HU-09) adds
+ * new businesses start empty, users without business get 403. HU-13 filters: `name` (contains,
+ * case-insensitive), `status` (ACTIVE/INACTIVE, anything else 400) and `employeeIds=a,b` (any). POST /api/servicios (HU-09) adds
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
  * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
@@ -259,8 +260,23 @@ const routes = {
     const query = new URL(req.url || '', 'http://localhost').searchParams;
     const page = Math.max(Number.parseInt(query.get('page') ?? '0', 10) || 0, 0);
     const size = Math.min(Math.max(Number.parseInt(query.get('size') ?? '20', 10) || 20, 1), 100);
+    // HU-13 filters, combined with AND: name contains (case-insensitive), status, any employee.
+    const name = (query.get('name') ?? '').trim().toLowerCase();
+    const status = query.get('status');
+    if (status !== null && status !== 'ACTIVE' && status !== 'INACTIVE') {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, {
+        status: 'El estado debe ser ACTIVE o INACTIVE',
+      });
+    }
+    const employeeIds = (query.get('employeeIds') ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
     const visible = services
       .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
+      .filter((s) => !name || s.name.toLowerCase().includes(name))
+      .filter((s) => !status || s.status === status)
+      .filter((s) => !employeeIds.length || s.employees.some((e) => employeeIds.includes(e.id)))
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
     const content = visible
       .slice(page * size, page * size + size)
