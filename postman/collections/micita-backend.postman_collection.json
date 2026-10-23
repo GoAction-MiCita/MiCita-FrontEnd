@@ -1905,6 +1905,295 @@
             }
           ],
           "response": []
+        },
+        {
+          "name": "Eliminar servicio",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Baja lógica (HU-14): el servicio queda en DELETED, deja de listarse y su detalle responde 404. 409 si tiene citas futuras (con la cantidad); 404 si no existe, es de otro negocio o ya está DELETED; 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 204 sin cuerpo', () => {",
+                  "  pm.response.to.have.status(204);",
+                  "  pm.expect(pm.response.text()).to.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "body": ""
+            },
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "409"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Service has 3 future appointments\",\n  \"instance\": \"/api/servicios/svc-01\",\n  \"futureAppointments\": 3\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "404"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"Service not found\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "401"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "403"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios/svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios", "svc-01"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios/svc-01\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Eliminar servicio ya eliminado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "Un servicio ya DELETED responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Obtener servicio eliminado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{serviceId}}"]
+            },
+            "description": "El detalle de un servicio DELETED responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reutilizar nombre de servicio eliminado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Corte de cabello\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            },
+            "description": "El nombre de un servicio eliminado se puede usar en uno nuevo: 201."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201: el nombre del eliminado queda libre', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
       ]
     }

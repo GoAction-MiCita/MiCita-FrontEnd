@@ -16,6 +16,8 @@
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
  * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
+ * DELETE /api/servicios/{id} (HU-14) marks it DELETED (204); owner's "Corte de cabello" (svc-01)
+ * has future appointments and answers 409.
  *
  * POST /api/negocios/onboarding needs a Bearer token issued by this mock. Creating the business
  * flips hasBusiness: the next login or refresh carries the claim.
@@ -115,6 +117,9 @@ const services = [
   status,
   employees: staff.map((key) => employees[key]),
 }));
+
+/** Future appointments per service id (HU-14): deleting one of these answers 409. */
+const futureAppointments = { 'svc-01': 3 };
 
 // Mirrors the backend RegisterUserRequest rules (see HU-01 Back).
 const REGISTER_RULES = [
@@ -388,6 +393,37 @@ const routes = {
     }
     const { businessId, ...response } = service;
     return json(200, response);
+  },
+
+  'DELETE /api/servicios/{id}': (_body, req, params) => {
+    const instance = `/api/servicios/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const service = findService(business, params.id);
+    if (!service) {
+      return problem(404, 'Not Found', 'Service not found', instance);
+    }
+    const count = futureAppointments[service.id] ?? 0;
+    if (count > 0) {
+      const conflict = problem(
+        409,
+        'Conflict',
+        `Service has ${count} future appointments`,
+        instance,
+      );
+      // Assumed extension member for the count: HU-14 Back does not name it yet.
+      conflict.body = JSON.stringify({ ...JSON.parse(conflict.body), futureAppointments: count });
+      return conflict;
+    }
+    // Logical delete: the record and its employees stay; it just stops being listed.
+    service.status = 'DELETED';
+    return { status: 204, headers: {}, body: '' };
   },
 
   'POST /api/negocios/onboarding': (body, req) => {
