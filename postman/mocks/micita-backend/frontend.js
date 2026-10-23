@@ -11,6 +11,9 @@
  *   analopez / ana@correo.com    → hasBusiness=false (dashboard opens the onboarding dialog)
  *   owner    / owner@correo.com  → hasBusiness=true  (owns "Barbería Central", NIT 900.123.456-7)
  *
+ * GET /api/servicios (HU-08) lists the services of the user's business: owner has sample data,
+ * new businesses start empty, users without business get 403.
+ *
  * POST /api/negocios/onboarding needs a Bearer token issued by this mock. Creating the business
  * flips hasBusiness: the next login or refresh carries the claim.
  *
@@ -65,6 +68,50 @@ const businesses = [
     timeZone: 'America/Bogota',
   },
 ];
+
+const OWNER_BUSINESS_ID = '4f7c1d2e-8b3a-4c5d-9e6f-7a8b9c0d1e2f';
+
+const employees = {
+  ana: { id: 'e-ana', name: 'Ana López', photoUrl: null },
+  juan: { id: 'e-juan', name: 'Juan Pérez', photoUrl: null },
+  maria: { id: 'e-maria', name: 'María Gómez', photoUrl: null },
+  pedro: { id: 'e-pedro', name: 'Pedro Ruiz', photoUrl: null },
+  luisa: { id: 'e-luisa', name: 'Luisa Díaz', photoUrl: null },
+};
+
+/** Services per business (HU-08). DELETED ones are never listed. */
+const services = [
+  [
+    'Corte de cabello',
+    'Corte profesional para hombres y mujeres.',
+    30,
+    45000,
+    'ACTIVE',
+    ['ana', 'juan', 'maria', 'pedro', 'luisa'],
+  ],
+  [
+    'Tinte completo',
+    'Aplicación de tinte en todo el cabello.',
+    60,
+    85000,
+    'ACTIVE',
+    ['ana', 'maria'],
+  ],
+  ['Manicure', 'Cuidado y embellecimiento de uñas.', 45, 35000, 'ACTIVE', ['luisa']],
+  ['Barba', 'Arreglo y perfilado de barba.', 20, 20000, 'ACTIVE', ['juan', 'pedro']],
+  ['Limpieza facial', 'Limpieza profunda del rostro.', 90, 60000, 'INACTIVE', []],
+  ['Asesoría de imagen', null, null, null, 'ACTIVE', []],
+  ['Peinado para evento', 'Peinado para bodas y grados.', 75, 70000, 'DELETED', ['maria']],
+].map(([name, description, durationMinutes, price, status, staff], index) => ({
+  id: `svc-${String(index + 1).padStart(2, '0')}`,
+  businessId: OWNER_BUSINESS_ID,
+  name,
+  description,
+  durationMinutes,
+  price,
+  status,
+  employees: staff.map((key) => employees[key]),
+}));
 
 // Mirrors the backend RegisterUserRequest rules (see HU-01 Back).
 const REGISTER_RULES = [
@@ -168,6 +215,34 @@ const routes = {
   'POST /api/auth/logout': (body) => {
     refreshTokens.delete(body.refreshToken);
     return { status: 204, headers: {}, body: '' };
+  },
+
+  'GET /api/servicios': (_body, req) => {
+    const instance = '/api/servicios';
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const query = new URL(req.url || '', 'http://localhost').searchParams;
+    const page = Math.max(Number.parseInt(query.get('page') ?? '0', 10) || 0, 0);
+    const size = Math.min(Math.max(Number.parseInt(query.get('size') ?? '20', 10) || 20, 1), 100);
+    const visible = services
+      .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const content = visible
+      .slice(page * size, page * size + size)
+      .map(({ businessId, ...service }) => service);
+    return json(200, {
+      content,
+      page,
+      size,
+      totalElements: visible.length,
+      totalPages: Math.ceil(visible.length / size),
+    });
   },
 
   'POST /api/negocios/onboarding': (body, req) => {

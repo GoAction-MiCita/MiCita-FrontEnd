@@ -92,6 +92,27 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({"id":"0d2c6f4e-5b1a-4e8f-9c3d-2a1b0c9d8e7f","name":"Barbería El Estilo","address":"Cra 25 # 45-67, Medellín","phone":"3001234567","nit":null,"email":"contacto@minegocio.com","status":"ACTIVE","timeZone":"America/Bogota"}));
   }
 
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "401 Unauthorized" — when x-mock-response-code: 401
+    if (requestedStatusCode === '401') {
+      res.writeHead(401, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Unauthorized","status":401,"detail":"Missing or invalid access token","instance":"/api/servicios"}));
+    }
+
+    // "403 Business required" — when x-mock-response-code: 403
+    if (requestedStatusCode === '403') {
+      res.writeHead(403, {"Content-Type":"application/problem+json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Forbidden","status":403,"detail":"Business required","instance":"/api/servicios"}));
+    }
+
+    // "200 OK" — default
+    res.writeHead(200, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"content":[{"id":"svc-04","name":"Barba","description":"Arreglo y perfilado de barba.","durationMinutes":20,"price":20000,"status":"ACTIVE","employees":[{"id":"e-juan","name":"Juan Pérez","photoUrl":null},{"id":"e-pedro","name":"Pedro Ruiz","photoUrl":null}]},{"id":"svc-05","name":"Limpieza facial","description":"Limpieza profunda del rostro.","durationMinutes":90,"price":60000,"status":"INACTIVE","employees":[]}],"page":0,"size":20,"totalElements":2,"totalPages":1}));
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not defined' }));
 });

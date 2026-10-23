@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Mi Cita Backend",
-    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true), dueño de \"Barbería Central\" con NIT `900.123.456-7`\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\nFlujo de la colección: Register crea un usuario único, Login inicia sesión con él (`{{username}}`) y Negocios › Onboarding le crea el negocio (HU-03), así que cada ejecución pasa completa.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
+    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true), dueño de \"Barbería Central\" con NIT `900.123.456-7`\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\nFlujo de la colección: Register crea un usuario único, Login inicia sesión con él (`{{username}}`) Negocios › Onboarding le crea el negocio (HU-03) y Servicios › Listar servicios consulta el listado de ese negocio, que empieza vacío (HU-08). Cada ejecución pasa completa. El usuario `owner` tiene servicios de ejemplo.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -818,6 +818,157 @@
                 }
               ],
               "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/negocios/onboarding\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicios",
+      "description": "E02 · Gestión de servicios (HU-08…).",
+      "item": [
+        {
+          "name": "Listar servicios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            },
+            "description": "Lista paginada de los servicios del negocio del usuario autenticado (HU-08), ordenada por nombre y sin los DELETED. Contrato de paginación de HU-15: `content`, `page`, `size`, `totalElements` y `totalPages`. 401 sin token válido; 403 si el usuario no tiene negocio. `employees` va vacío hasta HU-12 y `photoUrl` es null hasta E03."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con una página de servicios', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const page = pm.response.json();",
+                  "  pm.expect(page.content).to.be.an('array');",
+                  "  pm.expect(page).to.include.keys('page', 'size', 'totalElements', 'totalPages');",
+                  "  page.content.forEach((s) => pm.expect(s.status).to.not.eql('DELETED'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": \"svc-04\",\n      \"name\": \"Barba\",\n      \"description\": \"Arreglo y perfilado de barba.\",\n      \"durationMinutes\": 20,\n      \"price\": 20000,\n      \"status\": \"ACTIVE\",\n      \"employees\": [\n        {\n          \"id\": \"e-juan\",\n          \"name\": \"Juan Pérez\",\n          \"photoUrl\": null\n        },\n        {\n          \"id\": \"e-pedro\",\n          \"name\": \"Pedro Ruiz\",\n          \"photoUrl\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"svc-05\",\n      \"name\": \"Limpieza facial\",\n      \"description\": \"Limpieza profunda del rostro.\",\n      \"durationMinutes\": 90,\n      \"price\": 60000,\n      \"status\": \"INACTIVE\",\n      \"employees\": []\n    }\n  ],\n  \"page\": 0,\n  \"size\": 20,\n  \"totalElements\": 2,\n  \"totalPages\": 1\n}"
+            },
+            {
+              "name": "200 Empty business",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [],\n  \"page\": 0,\n  \"size\": 20,\n  \"totalElements\": 0,\n  \"totalPages\": 0\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/servicios\"\n}"
+            },
+            {
+              "name": "403 Business required",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/servicios\"\n}"
             }
           ]
         }
