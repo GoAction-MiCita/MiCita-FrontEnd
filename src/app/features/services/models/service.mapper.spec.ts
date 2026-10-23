@@ -1,4 +1,5 @@
 import {
+  toServiceListParams,
   toUpdateServiceRequestDto,
   toCreateServiceRequestDto,
   toNewServiceFieldErrors,
@@ -137,5 +138,17 @@ describe('toNewServiceFieldErrors', () => {
       durationMinutes: 'Debe ser mayor a 0',
       other: 'x',
     });
+  });
+});
+
+describe('toServiceListParams (HU-13)', () => {
+  it('sends no params without filters', () => {
+    expect(toServiceListParams({ name: '', status: null, employeeIds: [] })).toEqual({});
+  });
+
+  it('sends the filters in use with the backend names', () => {
+    expect(
+      toServiceListParams({ name: ' cor ', status: 'ACTIVE', employeeIds: ['e1', 'e2'] }),
+    ).toEqual({ name: 'cor', status: 'ACTIVE', employeeIds: 'e1,e2' });
   });
 });

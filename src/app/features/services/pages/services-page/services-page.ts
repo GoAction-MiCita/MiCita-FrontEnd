@@ -1,15 +1,32 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Notifier } from '@core/notifications/notifier';
 import {
   ServiceFormMode,
   ServiceFormPanel,
 } from '@features/services/components/service-form-panel/service-form-panel';
+import { ServicesFilterBar } from '@features/services/components/services-filter-bar/services-filter-bar';
 import { ServicesTable } from '@features/services/components/services-table/services-table';
 import { DeleteServiceDialog } from '@features/services/components/delete-service-dialog/delete-service-dialog';
 import { CreateServiceStore } from '@features/services/data-access/create-service-store';
 import { DeleteServiceStore } from '@features/services/data-access/delete-service-store';
 import { EditServiceStore } from '@features/services/data-access/edit-service-store';
 import { ServicesStore } from '@features/services/data-access/services-store';
+import {
+  NO_SERVICE_FILTERS,
+  ServiceFilters,
+  toServiceFilterParams,
+  toServiceFilters,
+} from '@features/services/models/service-filters';
 import { NewService, Service } from '@features/services/models/service.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
@@ -22,10 +39,21 @@ export const SERVICES_PAGE_MESSAGES = {
   gone: 'Este servicio ya no existe',
 } as const;
 
-/** HU-08 listado, HU-09 registrar, HU-10 editar and HU-14 eliminar servicio (private). */
+/**
+ * HU-08 listado, HU-09 registrar, HU-10 editar, HU-13 filtrar and HU-14 eliminar servicio
+ * (private). The filters live in the query params (`?name=&status=&employeeIds=`).
+ */
 @Component({
   selector: 'app-services-page',
-  imports: [Alert, Button, DeleteServiceDialog, Icon, ServiceFormPanel, ServicesTable],
+  imports: [
+    Alert,
+    Button,
+    DeleteServiceDialog,
+    Icon,
+    ServiceFormPanel,
+    ServicesFilterBar,
+    ServicesTable,
+  ],
   providers: [ServicesStore, CreateServiceStore, EditServiceStore, DeleteServiceStore],
   templateUrl: './services-page.html',
   styleUrl: './services-page.scss',
@@ -37,6 +65,17 @@ export default class ServicesPage {
   private readonly editStore = inject(EditServiceStore);
   protected readonly deleteStore = inject(DeleteServiceStore);
   private readonly notifier = inject(Notifier);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  // Query params, bound by withComponentInputBinding.
+  readonly name = input<string>();
+  readonly status = input<string>();
+  readonly employeeIds = input<string>();
+
+  private readonly urlFilters = computed(() =>
+    toServiceFilters({ name: this.name(), status: this.status(), employeeIds: this.employeeIds() }),
+  );
 
   /** `null` while the panel is closed. */
   protected readonly panelMode = signal<ServiceFormMode | null>(null);
@@ -52,6 +91,36 @@ export default class ServicesPage {
   protected readonly formFailure = computed(() =>
     this.editing() ? this.editStore.failure() : this.createStore.failure(),
   );
+
+  constructor() {
+    // Before the first fetch, so a reload with filters in the URL asks only once.
+    const { queryParamMap } = this.route.snapshot;
+    this.store.setFilters(
+      toServiceFilters({
+        name: queryParamMap.get('name'),
+        status: queryParamMap.get('status'),
+        employeeIds: queryParamMap.get('employeeIds'),
+      }),
+    );
+    effect(() => {
+      const filters = this.urlFilters();
+      untracked(() => this.store.setFilters(filters));
+    });
+  }
+
+  /** Writes the filters to the URL (no new history entry); the list follows the URL. */
+  protected applyFilters(filters: ServiceFilters): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: toServiceFilterParams(filters),
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  protected clearFilters(): void {
+    this.applyFilters(NO_SERVICE_FILTERS);
+  }
 
   protected openPanel(): void {
     this.createStore.reset();

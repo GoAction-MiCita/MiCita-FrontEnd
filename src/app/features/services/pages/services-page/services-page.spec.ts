@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
 import { Notifier } from '@core/notifications/notifier';
@@ -8,6 +10,7 @@ import {
   futureAppointmentsMessage,
 } from '@features/services/models/delete-service-failure';
 import { SERVICE_FORM_MESSAGES } from '@features/services/models/service-form-failure';
+import { NO_SERVICE_FILTERS, ServiceFilters } from '@features/services/models/service-filters';
 import { Service, ServicePage } from '@features/services/models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '@features/services/models/services-error';
 import { Observable, of, Subject, throwError } from 'rxjs';
@@ -60,6 +63,7 @@ async function render(
         },
       },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
+      provideRouter([]),
       { provide: Notifier, useValue: notifier },
     ],
   });
@@ -93,7 +97,9 @@ function button(element: HTMLElement, text: string): HTMLButtonElement {
 }
 
 function fillName(element: HTMLElement, value: string): void {
-  const input = element.querySelector<HTMLInputElement>('[formcontrolname="name"]')!;
+  const input = element.querySelector<HTMLInputElement>(
+    'app-service-form-panel [formcontrolname="name"]',
+  )!;
   input.value = value;
   input.dispatchEvent(new Event('input'));
 }
@@ -350,7 +356,9 @@ describe('ServicesPage · editar servicio (HU-10)', () => {
     expect(rendered.element.querySelector('app-service-form-panel h2')?.textContent).toContain(
       'Agregar servicio',
     );
-    const name = rendered.element.querySelector<HTMLInputElement>('[formcontrolname="name"]');
+    const name = rendered.element.querySelector<HTMLInputElement>(
+      'app-service-form-panel [formcontrolname="name"]',
+    );
     expect(name?.value).toBe('');
   });
 });
@@ -432,5 +440,93 @@ describe('ServicesPage · eliminar servicio (HU-14)', () => {
     expect(dialog(rendered.element)).toBeNull();
     expect(rendered.notifier.error).toHaveBeenCalledWith(SERVICES_PAGE_MESSAGES.gone);
     expect(rendered.list).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('ServicesPage · filtrar servicios (HU-13)', () => {
+  async function renderAt(
+    url: string,
+    list: (filters?: ServiceFilters) => Observable<ServicePage>,
+  ) {
+    const listSpy = vi.fn(list);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ServicesApi, useValue: { list: listSpy } },
+        { provide: AuthSession, useValue: { expire: vi.fn() } },
+        { provide: Notifier, useValue: { success: vi.fn(), error: vi.fn() } },
+        provideRouter(
+          [{ path: 'servicios', component: ServicesPage }],
+          withComponentInputBinding(),
+        ),
+      ],
+    });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    await harness.fixture.whenStable();
+    const router = TestBed.inject(Router);
+    return {
+      harness,
+      element: harness.routeNativeElement as HTMLElement,
+      list: listSpy,
+      url: () => router.url,
+    };
+  }
+
+  const empty: ServicePage = { ...page, items: [], totalElements: 0, totalPages: 0 };
+
+  it('reads the filters from the URL and sends them to the API', async () => {
+    const { element, list } = await renderAt(
+      '/servicios?name=bar&status=INACTIVE&employeeIds=e1,e2',
+      () => of(page),
+    );
+
+    expect(list).toHaveBeenLastCalledWith({
+      name: 'bar',
+      status: 'INACTIVE',
+      employeeIds: ['e1', 'e2'],
+    });
+    expect(element.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('bar');
+    expect(element.querySelector<HTMLSelectElement>('select')?.value).toBe('INACTIVE');
+  });
+
+  it('ignores an invalid status in the URL', async () => {
+    const { list } = await renderAt('/servicios?status=DELETED', () => of(page));
+
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS);
+  });
+
+  it('writes the chosen status to the URL and filters the list', async () => {
+    const { harness, element, list, url } = await renderAt('/servicios', () => of(page));
+
+    const select = element.querySelector<HTMLSelectElement>('select')!;
+    select.value = 'ACTIVE';
+    select.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios?status=ACTIVE');
+    expect(list).toHaveBeenLastCalledWith({ name: '', status: 'ACTIVE', employeeIds: [] });
+  });
+
+  it('shows a filtered empty state with "Limpiar filtros" that reloads everything', async () => {
+    const { harness, element, list, url } = await renderAt('/servicios?name=zzz', (filters) =>
+      of(filters?.name ? empty : page),
+    );
+
+    expect(element.textContent).toContain('No encontramos servicios con esos filtros');
+    expect(element.textContent).not.toContain('Aún no tienes servicios');
+
+    button(element, 'Limpiar filtros').click();
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios');
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS);
+    expect(element.textContent).toContain('Barba');
+  });
+
+  it('keeps the "sin servicios" empty state, without filters bar, when there are none', async () => {
+    const { element } = await renderAt('/servicios', () => of(empty));
+
+    expect(element.textContent).toContain('Aún no tienes servicios');
+    expect(element.querySelector('app-services-filter-bar')).toBeNull();
   });
 });

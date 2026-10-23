@@ -9,6 +9,10 @@
   </button>
 </header>
 
+@if (!store.empty()) {
+  <app-services-filter-bar [filters]="store.filters()" (filtersChange)="applyFilters($event)" />
+}
+
 @if (store.loading()) {
   <div class="services-page__state" role="status">
     <span class="services-page__spinner" aria-hidden="true"></span>
@@ -32,6 +36,16 @@
     <button appButton type="button" (click)="openPanel()">
       <app-icon name="plus" />
       Agregar nuevo servicio
+    </button>
+  </section>
+} @else if (store.noResults()) {
+  <section class="services-page__state services-page__empty" aria-labelledby="services-no-results">
+    <span class="services-page__empty-icon"><app-icon name="search" /></span>
+    <h2 id="services-no-results">No encontramos servicios con esos filtros</h2>
+    <p>Prueba con otro nombre o estado, o limpia los filtros para ver todos tus servicios.</p>
+    <button class="services-page__retry" type="button" (click)="clearFilters()">
+      <app-icon name="x" />
+      Limpiar filtros
     </button>
   </section>
 } @else {
