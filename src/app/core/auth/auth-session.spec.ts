@@ -139,6 +139,32 @@ describe('AuthSession', () => {
     expect(storage.readRefreshToken()).toBeNull();
   });
 
+  it('markBusinessCreated() refreshes the token and flags the user as having a business', async () => {
+    const refresh = vi.fn(() => of(issued('rt-2', false)));
+    const { session } = setup({ login: () => of(issued('rt-1', false)), refresh });
+    await firstValueFrom(session.login({ identifier: 'ana', password: 'x' }, false));
+
+    await session.markBusinessCreated();
+
+    expect(refresh).toHaveBeenCalledWith('rt-1');
+    // The backend claim may lag behind: the local session is updated anyway.
+    expect(session.user()?.hasBusiness).toBe(true);
+    expect(session.isAuthenticated()).toBe(true);
+  });
+
+  it('markBusinessCreated() flags the user even if the refresh fails', async () => {
+    const network: ApiError = { kind: 'network', status: 0, message: null, fieldErrors: {} };
+    const { session } = setup({
+      login: () => of(issued('rt-1', false)),
+      refresh: () => throwError(() => network),
+    });
+    await firstValueFrom(session.login({ identifier: 'ana', password: 'x' }, false));
+
+    await session.markBusinessCreated();
+
+    expect(session.user()?.hasBusiness).toBe(true);
+  });
+
   it('expire() clears the session and redirects to login flagged as expired', async () => {
     const { session, navigate } = setup({ login: () => of(issued()) });
     await firstValueFrom(session.login({ identifier: 'ana', password: 'x' }, false));

@@ -13,8 +13,7 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   if (await session.ensureSession()) {
     return true;
   }
-  // The default home is not a real choice of the user: let the login decide it (onboarding vs
-  // dashboard) instead of forcing it back through returnUrl.
+  // The default home is not a real choice of the user: do not force it back through returnUrl.
   const queryParams = state.url === HOME_PATH ? {} : { returnUrl: state.url };
   return router.createUrlTree([LOGIN_PATH], { queryParams });
 };

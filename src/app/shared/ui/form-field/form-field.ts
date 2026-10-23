@@ -1,4 +1,5 @@
 import {
+  booleanAttribute,
   AfterContentInit,
   ChangeDetectionStrategy,
   Component,
@@ -33,6 +34,8 @@ let nextId = 0;
 export class FormField implements AfterContentInit {
   readonly label = input.required<string>();
   readonly hint = input<string | null>(null);
+  /** Shows "(opcional)" next to the label of a field without Validators.required. */
+  readonly optional = input(false, { transform: booleanAttribute });
   readonly errorMessages = input<ErrorMessages>({});
 
   readonly controlId = `app-field-${nextId++}`;

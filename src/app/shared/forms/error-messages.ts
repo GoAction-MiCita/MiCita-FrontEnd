@@ -9,6 +9,7 @@ export type ErrorMessages = Readonly<Record<string, string | ErrorMessageFn>>;
 const DEFAULT_ERROR_MESSAGES: ErrorMessages = {
   required: 'Este campo es obligatorio',
   email: 'Ingresa un correo válido',
+  nit: 'Ingresa un NIT válido (ej. 900.123.456-7)',
   phone: 'Ingresa un teléfono válido (7 a 15 dígitos)',
   minlength: (error) => `Debe tener al menos ${requiredLength(error)} caracteres`,
   maxlength: (error) => `Debe tener máximo ${requiredLength(error)} caracteres`,
