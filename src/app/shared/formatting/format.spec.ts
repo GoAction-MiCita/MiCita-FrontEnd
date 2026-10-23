@@ -1,4 +1,18 @@
-import { EMPTY_VALUE, formatCop, formatDuration, initials } from './format';
+import { EMPTY_VALUE, formatCop, formatDuration, formatThousands, initials } from './format';
+
+describe('formatThousands', () => {
+  it.each([
+    [0, '0'],
+    [999, '999'],
+    [1500, '1.500'],
+    [45000, '45.000'],
+    [1234567, '1.234.567'],
+    [-1500, '-1.500'],
+    [1499.6, '1.500'],
+  ])('formats %s as %s', (value, expected) => {
+    expect(formatThousands(value)).toBe(expected);
+  });
+});
 
 describe('formatCop', () => {
   it.each([

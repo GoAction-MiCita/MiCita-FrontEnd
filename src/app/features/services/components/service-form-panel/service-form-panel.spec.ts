@@ -105,8 +105,6 @@ describe('ServiceFormPanel', () => {
   it.each([
     [{ durationMinutes: '0' }, 'La duración debe ser mayor a 0 minutos'],
     [{ durationMinutes: '12.5' }, 'Ingresa la duración en minutos enteros'],
-    [{ price: '-1' }, 'El precio no puede ser negativo'],
-    [{ price: '1500.50' }, 'Ingresa el precio en pesos, sin decimales'],
   ])('rejects %o', async (values, message) => {
     const { element, fill, submit, submitted } = await render();
 
@@ -115,6 +113,24 @@ describe('ServiceFormPanel', () => {
 
     expect(submitted).toHaveLength(0);
     expect(element.textContent).toContain(message);
+  });
+
+  it('shows the price with thousands separators and emits the number', async () => {
+    const { fill, control, submit, submitted } = await render();
+
+    await fill({ name: 'Tinte', price: '85000' });
+    expect(control('price').value).toBe('85.000');
+    await submit();
+
+    expect(submitted[0]?.price).toBe(85000);
+  });
+
+  it('cannot type a negative or fractional price', async () => {
+    const { fill, control } = await render();
+
+    await fill({ price: '-1500,50' });
+
+    expect(control('price').value).toBe('150.050');
   });
 
   it('accepts a price of 0', async () => {

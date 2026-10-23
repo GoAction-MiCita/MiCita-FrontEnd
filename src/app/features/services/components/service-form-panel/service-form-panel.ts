@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CurrencyInput } from '@shared/directives/currency-input';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { integer } from '@shared/forms/validators/integer.validator';
@@ -53,7 +54,7 @@ const MESSAGES: Readonly<Record<NewServiceField, ErrorMessages>> = {
  */
 @Component({
   selector: 'app-service-form-panel',
-  imports: [ReactiveFormsModule, Alert, Button, FormField, FormFieldControl, Icon],
+  imports: [ReactiveFormsModule, Alert, Button, CurrencyInput, FormField, FormFieldControl, Icon],
   templateUrl: './service-form-panel.html',
   styleUrl: './service-form-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
