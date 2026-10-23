@@ -1,33 +1,57 @@
 @use 'abstracts' as *;
 
+// One DOM, two layouts (the navigation itself is AdminNav):
+// - Mobile: top bar (brand + session), content, and the nav fixed at the bottom with icons only.
+// - Desktop (lg): blue sidebar on the left (brand, nav, session) and the content on the right.
 :host {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'brand session'
+    'main main';
   min-height: 100dvh;
   background-color: var(--color-bg);
+
+  @include respond-to(lg) {
+    grid-template-columns: 15rem 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: 'sidebar main';
+  }
 }
 
 .admin-layout {
-  &__bar {
-    position: sticky;
-    top: 0;
-    z-index: var(--z-sticky);
+  &__sidebar {
+    display: contents;
+
+    @include respond-to(lg) {
+      position: sticky;
+      top: 0;
+      grid-area: sidebar;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      background-color: var(--color-brand-dark);
+      color: var(--color-on-brand);
+    }
+  }
+
+  &__brand,
+  &__session {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
     padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--color-border);
     background-color: var(--color-surface);
 
-    @include respond-to(md) {
-      padding-inline: var(--space-8);
+    @include respond-to(lg) {
+      border-bottom: 0;
+      background-color: transparent;
     }
   }
 
   &__brand {
-    display: inline-flex;
-    align-items: center;
+    grid-area: brand;
     gap: var(--space-3);
     color: var(--color-text);
     font-size: var(--font-size-lg);
@@ -35,6 +59,11 @@
 
     &:hover {
       text-decoration: none;
+    }
+
+    @include respond-to(lg) {
+      padding: var(--space-6) var(--space-5);
+      color: var(--color-on-brand);
     }
   }
 
@@ -46,12 +75,24 @@
     border-radius: var(--radius-md);
     background-color: var(--color-primary-subtle);
     color: var(--color-primary);
+
+    @include respond-to(lg) {
+      background-color: var(--color-surface);
+    }
   }
 
   &__session {
-    display: flex;
-    align-items: center;
+    grid-area: session;
+    justify-content: flex-end;
     gap: var(--space-4);
+
+    @include respond-to(lg) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-5) var(--space-6);
+      border-top: 1px solid var(--color-on-brand-border);
+    }
   }
 
   &__user {
@@ -62,11 +103,19 @@
     @include respond-to(sm) {
       display: inline;
     }
+
+    @include respond-to(lg) {
+      overflow: hidden;
+      color: var(--color-on-brand-muted);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   &__logout {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border: 1px solid var(--color-border-strong);
@@ -85,17 +134,34 @@
       cursor: progress;
       opacity: 0.7;
     }
+
+    @include respond-to(lg) {
+      border-color: var(--color-on-brand-border);
+      background-color: transparent;
+      color: var(--color-on-brand);
+
+      &:hover:not(:disabled) {
+        border-color: var(--color-on-brand);
+        background-color: var(--color-on-brand-hover);
+        color: var(--color-on-brand);
+      }
+    }
   }
 
   &__content {
-    flex: 1;
+    grid-area: main;
     width: 100%;
     max-width: 72rem;
     margin-inline: auto;
-    padding: var(--space-8) var(--space-4);
+    // Room for the fixed bottom navigation on mobile.
+    padding: var(--space-8) var(--space-4) calc(var(--space-16) + var(--space-8));
 
     @include respond-to(md) {
       padding-inline: var(--space-8);
+    }
+
+    @include respond-to(lg) {
+      padding-bottom: var(--space-8);
     }
   }
 }

@@ -25,6 +25,11 @@ describe('resolveErrorMessage', () => {
     );
   });
 
+  it('formats min and integer errors', () => {
+    expect(resolveErrorMessage({ min: { min: 1, actual: 0 } })).toBe('Debe ser mayor o igual a 1');
+    expect(resolveErrorMessage({ integer: true })).toBe('Ingresa un número entero');
+  });
+
   it('shows nothing for password strength (rendered as a checklist)', () => {
     expect(resolveErrorMessage({ passwordStrength: { failed: ['special'] } })).toBeNull();
   });

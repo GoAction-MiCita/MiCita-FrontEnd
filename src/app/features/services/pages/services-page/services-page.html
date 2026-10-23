@@ -1,0 +1,51 @@
+<header class="services-page__header">
+  <div>
+    <h1 class="services-page__title">Gestión de servicios</h1>
+    <p class="services-page__subtitle">Administra los servicios que ofreces a tus clientes.</p>
+  </div>
+  <button appButton type="button" (click)="openPanel()">
+    <app-icon name="plus" />
+    Agregar servicio
+  </button>
+</header>
+
+@if (store.loading()) {
+  <div class="services-page__state" role="status">
+    <span class="services-page__spinner" aria-hidden="true"></span>
+    Cargando servicios…
+  </div>
+} @else if (store.error(); as error) {
+  <div class="services-page__state">
+    <app-alert title="No pudimos mostrar tus servicios">{{ error.message }}</app-alert>
+    @if (error.retryable) {
+      <button class="services-page__retry" type="button" (click)="store.reload()">
+        <app-icon name="refresh" />
+        Reintentar
+      </button>
+    }
+  </div>
+} @else if (store.empty()) {
+  <section class="services-page__state services-page__empty" aria-labelledby="services-empty">
+    <span class="services-page__empty-icon"><app-icon name="layout-grid" /></span>
+    <h2 id="services-empty">Aún no tienes servicios</h2>
+    <p>Crea tu primer servicio para que tus clientes puedan agendar citas.</p>
+    <button appButton type="button" (click)="openPanel()">
+      <app-icon name="plus" />
+      Agregar nuevo servicio
+    </button>
+  </section>
+} @else {
+  <app-services-table [services]="store.services()" />
+  <p class="services-page__note">
+    Editar, activar o desactivar y eliminar servicios estarán disponibles próximamente.
+  </p>
+}
+
+@if (panelOpen()) {
+  <app-service-form-panel
+    [pending]="createStore.pending()"
+    [failure]="createStore.failure()"
+    (submitted)="create($event)"
+    (closed)="closePanel()"
+  />
+}
