@@ -1,0 +1,86 @@
+@use 'abstracts' as *;
+
+:host {
+  display: block;
+}
+
+// Stacked on mobile; one row from md.
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  @include respond-to(md) {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  &__search,
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+
+    &:focus-within {
+      @include focus-ring;
+    }
+
+    input,
+    select {
+      flex: 1;
+      min-width: 0;
+      padding-block: var(--space-2);
+      border: 0;
+      background: none;
+      color: var(--color-text);
+      font: inherit;
+      outline: none;
+    }
+  }
+
+  &__search {
+    --icon-size: 1.125rem;
+
+    @include respond-to(md) {
+      flex: 1;
+      max-width: 24rem;
+    }
+  }
+
+  &__status select {
+    cursor: pointer;
+  }
+
+  &__label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+  }
+
+  &__clear {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-medium);
+    --icon-size: 1rem;
+
+    @include respond-to(md) {
+      align-self: auto;
+    }
+
+    &:hover {
+      background-color: var(--color-primary-subtle);
+    }
+  }
+}

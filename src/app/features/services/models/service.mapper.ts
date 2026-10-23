@@ -1,4 +1,5 @@
 import { FieldErrors } from '@shared/models/field-errors.model';
+import { ServiceFilters } from './service-filters';
 import {
   CreateServiceRequestDto,
   PageDto,
@@ -24,6 +25,20 @@ const FORM_FIELD_BY_DTO_FIELD: Readonly<Record<keyof CreateServiceRequestDto, Ne
   price: 'price',
   status: 'status',
 };
+
+/**
+ * Query params of `GET /api/servicios` (HU-13 Back): `name` (contains, case-insensitive),
+ * `status` and `employeeIds=a,b` (any of them). Empty filters are left out, and no `page` is
+ * sent, so every filter change starts again from the first page (the backend default).
+ */
+export function toServiceListParams(filters: ServiceFilters): Record<string, string> {
+  const name = filters.name.trim();
+  return {
+    ...(name && { name }),
+    ...(filters.status && { status: filters.status }),
+    ...(filters.employeeIds.length > 0 && { employeeIds: filters.employeeIds.join(',') }),
+  };
+}
 
 export function toServicePage(dto: PageDto<ServiceResponseDto>): ServicePage {
   return {

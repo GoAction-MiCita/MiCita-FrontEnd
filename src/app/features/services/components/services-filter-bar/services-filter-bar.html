@@ -1,0 +1,35 @@
+<form
+  class="filter-bar"
+  role="search"
+  aria-label="Filtrar servicios"
+  [formGroup]="form"
+  (submit)="$event.preventDefault()"
+>
+  <label class="filter-bar__search">
+    <span class="u-visually-hidden">Buscar por nombre</span>
+    <app-icon name="search" />
+    <input
+      type="search"
+      formControlName="name"
+      maxlength="100"
+      autocomplete="off"
+      placeholder="Buscar por nombre"
+    />
+  </label>
+
+  <label class="filter-bar__status">
+    <span class="filter-bar__label">Estado</span>
+    <select formControlName="status">
+      <option value="">Todos</option>
+      <option [value]="status.active">Activo</option>
+      <option [value]="status.inactive">Inactivo</option>
+    </select>
+  </label>
+
+  @if (canClear()) {
+    <button class="filter-bar__clear" type="button" (click)="clear()">
+      <app-icon name="x" />
+      Limpiar filtros
+    </button>
+  }
+</form>

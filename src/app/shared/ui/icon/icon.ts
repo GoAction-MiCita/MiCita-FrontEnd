@@ -21,6 +21,7 @@ export type IconName =
   | 'plus'
   | 'power'
   | 'refresh'
+  | 'search'
   | 'settings'
   | 'store'
   | 'trash'

@@ -163,3 +163,31 @@ describe('ServicesApi.remove (HU-14)', () => {
     http.verify();
   });
 });
+
+describe('ServicesApi.list with filters (HU-13)', () => {
+  it('sends the filters as query params', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_URL, useValue: 'http://api.test/api' },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+
+    const result = firstValueFrom(
+      TestBed.inject(ServicesApi).list({ name: 'cor & co', status: 'ACTIVE', employeeIds: ['e1'] }),
+    );
+
+    const req = http.expectOne((r) => r.url === 'http://api.test/api/servicios');
+    expect(req.request.params.get('name')).toBe('cor & co');
+    expect(req.request.params.get('status')).toBe('ACTIVE');
+    expect(req.request.params.get('employeeIds')).toBe('e1');
+    expect(req.request.params.has('page')).toBe(false);
+    expect(req.request.urlWithParams).toContain('name=cor%20%26%20co');
+    req.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+
+    expect((await result).items).toEqual([]);
+    http.verify();
+  });
+});
