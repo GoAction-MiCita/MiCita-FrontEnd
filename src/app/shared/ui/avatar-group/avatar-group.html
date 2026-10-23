@@ -1,0 +1,24 @@
+@if (people().length === 0) {
+  <span class="avatar-group__empty">{{ emptyValue }}</span>
+} @else {
+  <ul class="avatar-group" [attr.aria-label]="label()">
+    @for (person of visible(); track person.id) {
+      <li class="avatar-group__item" [title]="person.name">
+        @if (person.photoUrl) {
+          <img
+            class="avatar-group__photo"
+            [src]="person.photoUrl"
+            alt=""
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+        } @else {
+          <span class="avatar-group__initials" aria-hidden="true">{{ person.initials }}</span>
+        }
+      </li>
+    }
+    @if (hidden() > 0) {
+      <li class="avatar-group__item avatar-group__more" aria-hidden="true">+{{ hidden() }}</li>
+    }
+  </ul>
+}

@@ -102,6 +102,22 @@ export class AuthSession {
     }
   }
 
+  /**
+   * The user just created their business (HU-03). Tries to get a token with the updated
+   * `hasBusiness` claim and, whatever the backend answers, reflects it in the local session so
+   * the onboarding is not shown again.
+   */
+  async markBusinessCreated(): Promise<void> {
+    try {
+      await firstValueFrom(this.refresh());
+    } catch {
+      // Best effort: the next login or refresh will carry the claim anyway.
+    }
+    this.state.update((state) =>
+      state.user ? { ...state, user: { ...state.user, hasBusiness: true } } : state,
+    );
+  }
+
   /** The session can no longer be renewed: forget it and go to the login. */
   async expire(): Promise<void> {
     this.clear();

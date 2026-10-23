@@ -1,0 +1,92 @@
+<dialog
+  #dialog
+  class="service-panel"
+  aria-labelledby="service-panel-title"
+  (cancel)="onCancel($event)"
+  (close)="closed.emit()"
+>
+  <form class="service-panel__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <header class="service-panel__header">
+      <h2 id="service-panel-title" class="service-panel__title">Agregar servicio</h2>
+      <button
+        class="service-panel__close"
+        type="button"
+        aria-label="Cerrar"
+        [disabled]="pending()"
+        (click)="close()"
+      >
+        <app-icon name="x" />
+      </button>
+    </header>
+
+    <div class="service-panel__body">
+      @if (failure(); as failure) {
+        <app-alert [title]="failure.title">{{ failure.summary }}</app-alert>
+      }
+
+      <app-form-field label="Nombre del servicio" [errorMessages]="messages.name">
+        <input appFormFieldControl formControlName="name" placeholder="Ej. Corte de cabello" />
+      </app-form-field>
+
+      <app-form-field
+        label="Descripción"
+        optional
+        [hint]="descriptionCount()"
+        [errorMessages]="messages.description"
+      >
+        <textarea
+          appFormFieldControl
+          formControlName="description"
+          rows="3"
+          maxlength="120"
+          placeholder="Describe brevemente el servicio"
+        ></textarea>
+      </app-form-field>
+
+      <div class="service-panel__row">
+        <app-form-field
+          label="Duración (minutos)"
+          optional
+          [errorMessages]="messages.durationMinutes"
+        >
+          <app-icon appFieldPrefix name="clock" />
+          <input
+            appFormFieldControl
+            formControlName="durationMinutes"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            placeholder="Ej. 45"
+          />
+        </app-form-field>
+
+        <app-form-field label="Precio (COP)" optional [errorMessages]="messages.price">
+          <span appFieldPrefix class="service-panel__currency" aria-hidden="true">$</span>
+          <input
+            appFormFieldControl
+            appCurrencyInput
+            formControlName="price"
+            placeholder="Ej. 45.000"
+          />
+        </app-form-field>
+      </div>
+
+      <app-form-field label="Estado" [errorMessages]="messages.status">
+        <select appFormFieldControl formControlName="status">
+          <option [value]="status.active">Activo</option>
+          <option [value]="status.inactive">Inactivo</option>
+        </select>
+      </app-form-field>
+    </div>
+
+    <footer class="service-panel__actions">
+      <button class="service-panel__cancel" type="button" [disabled]="pending()" (click)="close()">
+        Cancelar
+      </button>
+      <button appButton type="submit" [loading]="pending()">
+        {{ pending() ? 'Guardando…' : 'Guardar' }}
+      </button>
+    </footer>
+  </form>
+</dialog>

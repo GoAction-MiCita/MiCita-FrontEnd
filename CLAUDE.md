@@ -10,6 +10,32 @@ Las tareas (HU) viven en Notion: _Go Action / Proyectos y tareas / Tareas_ (por 
 - `npm run build`, `npm test` (watch), `npm run test:ci`, `npm run lint`, `npm run format` y `npm run format:check`.
 - Antes de dar algo por terminado: `npm run lint`, `npm run test:ci` y `npm run build` en verde.
 
+### Backend simulado (Postman mock en un worktree)
+
+El mock del backend (colección de Postman y servidor simulado) vive en la rama `chore/mock-server`, que **nunca se integra** en `integration`, `staging` ni `main`. Se usa desde un git worktree, sin cambiar de rama:
+
+1. Una vez: `git worktree add ../mi-cita-mock chore/mock-server` (con la carpeta principal en otra rama).
+2. Mock, dentro de `../mi-cita-mock`: `postman mock run ./postman/mocks/micita-backend --port 8080`. El puerto 8080 es el de `environment.development.ts`, y el mock responde con CORS.
+3. App, en la carpeta principal y en cualquier rama: `npm start`.
+4. Colección, dentro de `../mi-cita-mock`: `postman collection run ./postman/collections/micita-backend.postman_collection.json -e ./postman/environments/micita-mock.postman_environment.json --env-var "baseUrl=http://localhost:8080"`.
+
+- Cuentas del mock (contraseña `Abc#12`): `analopez` (sin negocio) y `owner` (con negocio, NIT `900.123.456-7`).
+- Para una HU nueva, los endpoints se añaden al mock dentro del worktree (colección y `frontend.js`; luego `npm run mock:contract`), con commit y push a `chore/mock-server`. La guía detallada está en el CLAUDE.md de esa rama.
+
+#### Detalle del mock (solo en esta rama)
+
+Scripts de npm de esta rama (alternativa al flujo con worktree en el puerto 8080):
+
+1. `npm run mock`: levanta el mock en `http://localhost:4010` (`postman mock run`, requiere Postman CLI).
+2. `npm run start:mock`: `ng serve` con `environment.mock.ts` (`apiUrl: '/api'`) y `proxy.conf.mock.json`, que reenvía `/api` al mock (sin CORS).
+3. `npm run mock:test`: corre los `pm.test` de la colección contra el mock.
+
+- Contrato: `postman/collections/micita-backend.postman_collection.json` (Postman v2.1) y environment `postman/environments/micita-mock.postman_environment.json`.
+- Mock: `postman/mocks/micita-backend/`. El escenario por defecto `frontend` (`frontend.js`) está escrito a mano y tiene estado (lee el body y valida el Bearer en rutas privadas). El escenario `contract` (`default.js`) responde los ejemplos fijos de la colección y se elige con el header `x-mock-scenario: contract`.
+- Al añadir o cambiar endpoints: edita la colección, implementa el endpoint en `frontend.js` y regenera `contract` con `npm run mock:contract`. **Nunca uses `postman mock generate --update`** sobre este mock: reescribe el escenario predeterminado (`frontend.js`) y no añade endpoints nuevos.
+- Endpoints simulados: `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/negocios/onboarding` (HU-03) y `GET /api/servicios` (HU-08: listado paginado del negocio del usuario; 401 sin token, 403 sin negocio; `owner` tiene servicios de ejemplo y los negocios nuevos empiezan vacíos).
+- Cuentas del mock (contraseña `Abc#12`): `analopez` / `ana@correo.com` (sin negocio) y `owner` / `owner@correo.com` (con el negocio "Barbería Central", NIT `900.123.456-7`). El estado se reinicia al parar el mock.
+
 ## Idioma
 
 - **Código en inglés**: archivos, clases, variables y rutas internas.
@@ -157,7 +183,7 @@ src/styles/
 ## Git y GitHub
 
 - **Nunca hacer push, merge ni PR a `main` salvo que el usuario lo pida explícitamente nombrando `main`.** Flujo de ramas: `integration` → `staging` → `main`. Los PR de trabajo van a `integration`.
-- **Trabajo sobre una HU de Notion:** primero se confirma el tipo de trabajo (nueva funcionalidad → `feat`, ajuste o corrección de bug → `fix`, actualización de una funcionalidad → `feat`/`refactor`). Luego, partiendo de `integration`, se trabaja y se hace push en una única rama por HU con su código: "E01 · HU-02" → `E01-HU-02`. Excepciones: `chore/<slug>` desde `integration` y `hotfix/<slug>` desde `main`, este último solo cuando haya un incidente en producción.
+- **Trabajo sobre una HU de Notion:** primero se confirma el tipo de trabajo (nueva funcionalidad → `feat`, ajuste o corrección de bug → `fix`, actualización de una funcionalidad → `feat`/`refactor`). Luego, partiendo de `integration`, se trabaja y se hace push en una única rama por HU con su código: "E01 · HU-02" → `E01-HU-02`. Excepciones: `chore/<slug>` desde `integration` y `hotfix/<slug>` desde `main`, este último solo cuando haya un incidente en producción. `chore/mock-server` es una rama de herramientas que nunca se integra (ver "Backend simulado").
 - Las tareas de repositorio (ramas, commits, push, PRs, hotfixes, rollbacks, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`). Ahí están las convenciones de ramas y commits (Conventional Commits en español, incluidos `hotfix` y `revert`), el protocolo de rollback y la ejecución rigurosa de pruebas obligatoria antes de commit, push y PR.
 - Remoto: `GoAction-MiCita/MiCita-FrontEnd`.
 

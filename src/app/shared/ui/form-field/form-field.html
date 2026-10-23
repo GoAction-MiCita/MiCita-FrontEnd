@@ -2,6 +2,8 @@
   {{ label() }}
   @if (required()) {
     <span class="form-field__required" aria-hidden="true">*</span>
+  } @else if (optional()) {
+    <span class="form-field__optional">(opcional)</span>
   }
 </label>
 

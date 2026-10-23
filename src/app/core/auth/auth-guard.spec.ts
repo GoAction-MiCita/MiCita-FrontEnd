@@ -33,9 +33,9 @@ describe('authGuard', () => {
   it('redirects to login keeping the requested url', async () => {
     setup(false);
 
-    const result = await run(authGuard, '/onboarding?step=2');
+    const result = await run(authGuard, '/settings?tab=2');
 
-    expect(String(result)).toBe('/auth/login?returnUrl=%2Fonboarding%3Fstep%3D2');
+    expect(String(result)).toBe('/auth/login?returnUrl=%2Fsettings%3Ftab%3D2');
   });
 
   it('does not keep the default home as returnUrl', async () => {

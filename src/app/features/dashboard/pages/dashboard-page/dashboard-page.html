@@ -1,0 +1,11 @@
+<h1>Hola, {{ greetingName() }}</h1>
+<p>Tu panel de administración estará disponible próximamente.</p>
+
+@if (needsOnboarding()) {
+  <app-business-onboarding-dialog
+    [pending]="onboarding.pending()"
+    [failure]="onboarding.failure()"
+    (submitted)="createBusiness($event)"
+    (logoutRequested)="logout()"
+  />
+}

@@ -5,18 +5,28 @@ export type IconName =
   | 'at-sign'
   | 'calendar'
   | 'check-circle'
+  | 'clock'
   | 'eye'
   | 'eye-off'
+  | 'home'
+  | 'id-card'
   | 'layout-grid'
   | 'lock'
   | 'log-out'
   | 'logo'
   | 'mail'
   | 'map-pin'
+  | 'pencil'
   | 'phone'
+  | 'plus'
+  | 'power'
+  | 'refresh'
   | 'settings'
+  | 'store'
+  | 'trash'
   | 'user'
-  | 'users';
+  | 'users'
+  | 'x';
 
 /**
  * Decorative stroke icon (Lucide-style, 24×24). Inherits `color`; size with `font-size`.

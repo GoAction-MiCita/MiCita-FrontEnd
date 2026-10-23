@@ -69,24 +69,24 @@ describe('LoginPage', () => {
     expect(navigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('goes to onboarding when the user has no business', async () => {
+  it('also goes to the dashboard when the user has no business (onboarding dialog)', async () => {
     const { fill, submit, navigate } = await render(() => of(newcomer));
 
     await fill('ana', 'Abc#12');
     await submit();
 
-    expect(navigate).toHaveBeenCalledWith('/onboarding');
+    expect(navigate).toHaveBeenCalledWith('/dashboard');
   });
 
   it('returns to the private page the user tried to open', async () => {
     const { fill, submit, navigate } = await render(() => of(owner), {
-      returnUrl: '/onboarding?step=2',
+      returnUrl: '/settings?tab=2',
     });
 
     await fill('ana', 'Abc#12');
     await submit();
 
-    expect(navigate).toHaveBeenCalledWith('/onboarding?step=2');
+    expect(navigate).toHaveBeenCalledWith('/settings?tab=2');
   });
 
   it.each(['//evil.com', 'https://evil.com', '/auth/register'])(

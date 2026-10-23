@@ -24,3 +24,12 @@
     outline: none;
   }
 }
+
+textarea.form-field-control {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+select.form-field-control {
+  cursor: pointer;
+}
