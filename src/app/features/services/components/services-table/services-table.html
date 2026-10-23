@@ -1,0 +1,57 @@
+<table class="services-table">
+  <caption class="u-visually-hidden">
+    Servicios del negocio
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Servicio</th>
+      <th scope="col">Duración</th>
+      <th scope="col">Precio</th>
+      <th scope="col">Empleados</th>
+      <th scope="col">Estado</th>
+      <th scope="col">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td class="services-table__service">
+          <span class="services-table__icon"><app-icon name="layout-grid" /></span>
+          <div>
+            <p class="services-table__name">{{ row.name }}</p>
+            @if (row.description) {
+              <p class="services-table__description">{{ row.description }}</p>
+            }
+          </div>
+        </td>
+        <td>
+          <span class="services-table__duration"><app-icon name="clock" />{{ row.duration }}</span>
+        </td>
+        <td>{{ row.price }}</td>
+        <td><app-avatar-group [people]="row.employees" /></td>
+        <td>
+          <span class="services-table__badge" [class.services-table__badge--active]="row.active">
+            {{ row.statusLabel }}
+          </span>
+        </td>
+        <td class="services-table__actions">
+          <button type="button" disabled title="Próximamente" [attr.aria-label]="row.editLabel">
+            <app-icon name="pencil" />
+          </button>
+          <button type="button" disabled title="Próximamente" [attr.aria-label]="row.toggleLabel">
+            <app-icon name="power" />
+          </button>
+          <button
+            class="services-table__danger"
+            type="button"
+            disabled
+            title="Próximamente"
+            [attr.aria-label]="row.deleteLabel"
+          >
+            <app-icon name="trash" />
+          </button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

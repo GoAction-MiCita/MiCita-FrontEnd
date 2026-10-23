@@ -4,6 +4,27 @@
     Mi Cita
   </a>
 
+  <nav class="admin-layout__nav" aria-label="Principal">
+    <a
+      class="admin-layout__link"
+      routerLink="/dashboard"
+      routerLinkActive="admin-layout__link--active"
+      ariaCurrentWhenActive="page"
+    >
+      <app-icon name="home" />
+      Inicio
+    </a>
+    <a
+      class="admin-layout__link"
+      routerLink="/servicios"
+      routerLinkActive="admin-layout__link--active"
+      ariaCurrentWhenActive="page"
+    >
+      <app-icon name="layout-grid" />
+      Servicios
+    </a>
+  </nav>
+
   <div class="admin-layout__session">
     @if (session.user()?.username; as username) {
       <span class="admin-layout__user">{{ username }}</span>

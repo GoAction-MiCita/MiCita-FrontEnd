@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthSession } from '@core/auth/auth-session';
 import { Icon } from '@shared/ui/icon/icon';
 
-/** Shell for private pages: top bar with the user and logout. */
+/** Shell for private pages: top bar with the main navigation, the user and logout. */
 @Component({
   selector: 'app-admin-layout',
-  imports: [RouterOutlet, RouterLink, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
   templateUrl: './admin-layout.html',
   styleUrl: './admin-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
