@@ -31,6 +31,14 @@ export interface CreateServiceRequestDto {
   readonly status: string;
 }
 
+/**
+ * Body of `PUT /api/servicios/{id}` (HU-10 Back); the 200 response is a ServiceResponseDto.
+ * `employeeIds` replaces the whole association (an empty list removes everyone).
+ */
+export interface UpdateServiceRequestDto extends CreateServiceRequestDto {
+  readonly employeeIds: readonly string[];
+}
+
 /** Pagination envelope shared by list endpoints (HU-15 Back). */
 export interface PageDto<T> {
   readonly content: readonly T[];

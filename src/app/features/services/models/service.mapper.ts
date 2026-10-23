@@ -4,6 +4,7 @@ import {
   PageDto,
   ServiceEmployeeDto,
   ServiceResponseDto,
+  UpdateServiceRequestDto,
 } from './service.dto';
 import {
   NewService,
@@ -54,6 +55,14 @@ export function toCreateServiceRequestDto(service: NewService): CreateServiceReq
     price: service.price,
     status: service.status,
   };
+}
+
+/** HU-10: the form has no employee picker yet (HU-12), so the current ids are sent back unchanged. */
+export function toUpdateServiceRequestDto(
+  service: NewService,
+  employeeIds: readonly string[],
+): UpdateServiceRequestDto {
+  return { ...toCreateServiceRequestDto(service), employeeIds: [...employeeIds] };
 }
 
 /** Renames server field errors to form field names; unknown fields keep their original key. */

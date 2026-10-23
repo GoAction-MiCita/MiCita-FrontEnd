@@ -32,6 +32,14 @@ describe('toServiceFormFailure', () => {
     expect(failure.fieldErrors).toEqual({});
   });
 
+  it('uses the title of the action that failed (HU-10)', () => {
+    const failure = toServiceFormFailure(error('conflict'), SERVICE_FORM_MESSAGES.updateTitle);
+
+    expect(failure.title).toBe(SERVICE_FORM_MESSAGES.updateTitle);
+    expect(failure.fieldErrors).toEqual({ name: SERVICE_FORM_MESSAGES.duplicateName });
+    expect(toServiceFormFailure(error('server')).title).toBe(SERVICE_FORM_MESSAGES.title);
+  });
+
   it('never shows server details', () => {
     expect(JSON.stringify(toServiceFormFailure(error('server')))).not.toContain('internal details');
   });

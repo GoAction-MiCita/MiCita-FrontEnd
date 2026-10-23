@@ -7,7 +7,7 @@ import { SERVICE_FORM_MESSAGES } from '@features/services/models/service-form-fa
 import { Service, ServicePage } from '@features/services/models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '@features/services/models/services-error';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import ServicesPage from './services-page';
+import ServicesPage, { SERVICES_PAGE_MESSAGES } from './services-page';
 
 const page: ServicePage = {
   items: [
@@ -29,14 +29,24 @@ const page: ServicePage = {
 
 async function render(
   list: () => Observable<ServicePage>,
-  { waitForData = true, create = (): Observable<Service> => of(page.items[0]) } = {},
+  {
+    waitForData = true,
+    create = (): Observable<Service> => of(page.items[0]),
+    get = (): Observable<Service> => of(page.items[0]),
+    update = (): Observable<Service> => of(page.items[0]),
+  } = {},
 ) {
   const spy = vi.fn(list);
   const createSpy = vi.fn(create);
+  const getSpy = vi.fn(get);
+  const updateSpy = vi.fn(update);
   const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
-      { provide: ServicesApi, useValue: { list: spy, create: createSpy } },
+      {
+        provide: ServicesApi,
+        useValue: { list: spy, create: createSpy, get: getSpy, update: updateSpy },
+      },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
       { provide: Notifier, useValue: notifier },
     ],
@@ -55,6 +65,8 @@ async function render(
     element: fixture.nativeElement as HTMLElement,
     list: spy,
     create: createSpy,
+    get: getSpy,
+    update: updateSpy,
     notifier,
   };
 }
@@ -197,5 +209,135 @@ describe('ServicesPage', () => {
     button(element, 'Agregar servicio').click();
     await fixture.whenStable();
     expect(element.textContent).not.toContain(SERVICE_FORM_MESSAGES.unexpected);
+  });
+});
+
+describe('ServicesPage · editar servicio (HU-10)', () => {
+  const barba = page.items[0];
+
+  async function openEdit(rendered: Awaited<ReturnType<typeof render>>) {
+    rendered.element.querySelector<HTMLButtonElement>('button[aria-label="Editar Barba"]')!.click();
+    await rendered.fixture.whenStable();
+  }
+
+  it('opens the panel with the current data from GET', async () => {
+    const rendered = await render(() => of(page), {
+      get: () => of({ ...barba, price: 22000 }),
+    });
+
+    await openEdit(rendered);
+
+    expect(rendered.get).toHaveBeenCalledWith('s1');
+    expect(rendered.element.querySelector('app-service-form-panel h2')?.textContent).toContain(
+      'Editar servicio',
+    );
+    const price = rendered.element.querySelector<HTMLInputElement>('[formcontrolname="price"]');
+    expect(price?.value).toBe('22.000');
+  });
+
+  it('saves with PUT, closes the panel, reloads the list and confirms', async () => {
+    const rendered = await render(() => of(page));
+    await openEdit(rendered);
+
+    fillName(rendered.element, 'Barba clásica');
+    button(rendered.element, 'Guardar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.update).toHaveBeenCalledWith(
+      's1',
+      expect.objectContaining({ name: 'Barba clásica' }),
+      [],
+    );
+    expect(rendered.create).not.toHaveBeenCalled();
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeNull();
+    expect(rendered.list).toHaveBeenCalledTimes(2);
+    expect(rendered.notifier.success).toHaveBeenCalledWith(SERVICES_PAGE_MESSAGES.updated);
+  });
+
+  it('keeps the panel open with the errors after a 409', async () => {
+    const rendered = await render(() => of(page), {
+      update: () => throwError(() => apiError('conflict')),
+    });
+    await openEdit(rendered);
+
+    button(rendered.element, 'Guardar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeTruthy();
+    expect(rendered.element.textContent).toContain(SERVICE_FORM_MESSAGES.updateTitle);
+    expect(rendered.element.textContent).toContain(SERVICE_FORM_MESSAGES.duplicateName);
+    expect(rendered.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the panel open with the field errors after a 400', async () => {
+    const rendered = await render(() => of(page), {
+      update: () =>
+        throwError(() => ({ ...apiError('validation'), fieldErrors: { name: 'Nombre inválido' } })),
+    });
+    await openEdit(rendered);
+
+    button(rendered.element, 'Guardar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeTruthy();
+    expect(rendered.element.textContent).toContain('Nombre inválido');
+  });
+
+  it.each([
+    ['opening', { get: () => throwError(() => apiError('not-found')) }],
+    ['saving', { update: () => throwError(() => apiError('not-found')) }],
+  ])('on a 404 while %s: closes, says it no longer exists and reloads', async (_when, api) => {
+    const rendered = await render(() => of(page), api);
+    await openEdit(rendered);
+    if (rendered.element.querySelector('app-service-form-panel')) {
+      button(rendered.element, 'Guardar').click();
+      await rendered.fixture.whenStable();
+    }
+
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeNull();
+    expect(rendered.notifier.error).toHaveBeenCalledWith(SERVICES_PAGE_MESSAGES.gone);
+    expect(rendered.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends nothing when closed without saving', async () => {
+    const rendered = await render(() => of(page));
+    await openEdit(rendered);
+
+    button(rendered.element, 'Cancelar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeNull();
+    expect(rendered.update).not.toHaveBeenCalled();
+    expect(rendered.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a GET that answers after the panel was closed', async () => {
+    const response = new Subject<Service>();
+    const rendered = await render(() => of(page), { get: () => response.asObservable() });
+    await openEdit(rendered);
+
+    button(rendered.element, 'Cancelar').click();
+    rendered.fixture.detectChanges();
+    response.error(apiError('not-found'));
+    await rendered.fixture.whenStable();
+
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeNull();
+    expect(rendered.notifier.error).not.toHaveBeenCalled();
+  });
+
+  it('opens a clean create panel after editing', async () => {
+    const rendered = await render(() => of(page));
+    await openEdit(rendered);
+    button(rendered.element, 'Cancelar').click();
+    await rendered.fixture.whenStable();
+
+    button(rendered.element, 'Agregar servicio').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.element.querySelector('app-service-form-panel h2')?.textContent).toContain(
+      'Agregar servicio',
+    );
+    const name = rendered.element.querySelector<HTMLInputElement>('[formcontrolname="name"]');
+    expect(name?.value).toBe('');
   });
 });

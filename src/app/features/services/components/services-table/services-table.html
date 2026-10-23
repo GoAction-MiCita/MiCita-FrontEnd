@@ -35,7 +35,7 @@
           </span>
         </td>
         <td class="services-table__actions">
-          <button type="button" disabled title="Próximamente" [attr.aria-label]="row.editLabel">
+          <button type="button" [attr.aria-label]="row.editLabel" (click)="edit.emit(row.service)">
             <app-icon name="pencil" />
           </button>
           <button type="button" disabled title="Próximamente" [attr.aria-label]="row.toggleLabel">

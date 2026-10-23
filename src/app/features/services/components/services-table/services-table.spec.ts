@@ -32,7 +32,7 @@ async function render(services: Service[]) {
   fixture.componentRef.setInput('services', services);
   await fixture.whenStable();
   const element = fixture.nativeElement as HTMLElement;
-  return { element, rows: Array.from(element.querySelectorAll('tbody tr')) };
+  return { fixture, element, rows: Array.from(element.querySelectorAll('tbody tr')) };
 }
 
 describe('ServicesTable', () => {
@@ -66,7 +66,7 @@ describe('ServicesTable', () => {
     expect(cells[4]).toBe('Inactivo');
   });
 
-  it('renders the row actions disabled with accessible names', async () => {
+  it('renders the row actions with accessible names; toggle and delete stay disabled', async () => {
     const { rows } = await render([haircut, facial]);
     const buttons = Array.from(rows[0].querySelectorAll('button'));
 
@@ -75,10 +75,22 @@ describe('ServicesTable', () => {
       'Desactivar Corte de cabello',
       'Eliminar Corte de cabello',
     ]);
-    expect(buttons.every((b) => b.disabled)).toBe(true);
+    expect(buttons.map((b) => b.disabled)).toEqual([false, true, true]);
     expect(rows[1].querySelectorAll('button')[1].getAttribute('aria-label')).toBe(
       'Activar Limpieza facial',
     );
+  });
+
+  it('emits the service of the row when "Editar" is clicked (HU-10)', async () => {
+    const { fixture, rows } = await render([haircut, facial]);
+    const edited: Service[] = [];
+    fixture.componentInstance.edit.subscribe((service) => edited.push(service));
+
+    rows[1]
+      .querySelector<HTMLButtonElement>('button[aria-label="Editar Limpieza facial"]')!
+      .click();
+
+    expect(edited).toEqual([facial]);
   });
 
   it('renders malicious names and descriptions as plain text', async () => {

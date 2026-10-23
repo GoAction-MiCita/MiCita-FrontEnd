@@ -2,7 +2,7 @@ import { API_ERROR_KIND, ApiError } from '@core/http/api-error.model';
 import { FieldErrors } from '@shared/models/field-errors.model';
 import { toNewServiceFieldErrors } from './service.mapper';
 
-/** What the "Agregar servicio" panel shows after a failed `POST /servicios`. */
+/** What the service panel shows after a failed `POST /servicios`, `GET` or `PUT /servicios/{id}`. */
 export interface ServiceFormFailure {
   readonly title: string;
   readonly summary: string;
@@ -12,6 +12,8 @@ export interface ServiceFormFailure {
 
 export const SERVICE_FORM_MESSAGES = {
   title: 'No pudimos crear el servicio',
+  updateTitle: 'No pudimos guardar los cambios',
+  loadTitle: 'No pudimos cargar el servicio',
   checkFields: 'Revisa los campos marcados e inténtalo de nuevo.',
   duplicate: 'Ya tienes un servicio con ese nombre. Usa un nombre diferente.',
   duplicateName: 'Ya existe un servicio con ese nombre',
@@ -20,8 +22,10 @@ export const SERVICE_FORM_MESSAGES = {
   unexpected: 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.',
 } as const;
 
-export function toServiceFormFailure(error: ApiError): ServiceFormFailure {
-  const title = SERVICE_FORM_MESSAGES.title;
+export function toServiceFormFailure(
+  error: ApiError,
+  title: string = SERVICE_FORM_MESSAGES.title,
+): ServiceFormFailure {
   switch (error.kind) {
     case API_ERROR_KIND.validation:
       return {
@@ -30,7 +34,7 @@ export function toServiceFormFailure(error: ApiError): ServiceFormFailure {
         fieldErrors: toNewServiceFieldErrors(error.fieldErrors),
       };
     case API_ERROR_KIND.conflict:
-      // HU-09 Back: the only 409 is a duplicate name within the business.
+      // HU-09/HU-10 Back: the only 409 is a duplicate name within the business.
       return {
         title,
         summary: SERVICE_FORM_MESSAGES.duplicate,

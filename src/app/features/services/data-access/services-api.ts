@@ -3,7 +3,12 @@ import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
 import { map, Observable } from 'rxjs';
 import { PageDto, ServiceResponseDto } from '../models/service.dto';
-import { toCreateServiceRequestDto, toService, toServicePage } from '../models/service.mapper';
+import {
+  toCreateServiceRequestDto,
+  toService,
+  toServicePage,
+  toUpdateServiceRequestDto,
+} from '../models/service.mapper';
 import { NewService, Service, ServicePage } from '../models/service.model';
 
 @Injectable({ providedIn: 'root' })
@@ -23,5 +28,21 @@ export class ServicesApi {
     return this.http
       .post<ServiceResponseDto>(`${this.apiUrl}/servicios`, toCreateServiceRequestDto(service))
       .pipe(map(toService));
+  }
+
+  /** HU-10: current data of one service with its employees. 404 if it no longer exists. */
+  get(id: string): Observable<Service> {
+    return this.http.get<ServiceResponseDto>(this.serviceUrl(id)).pipe(map(toService));
+  }
+
+  /** HU-10: updates a service; `employeeIds` replaces its whole employee list. */
+  update(id: string, service: NewService, employeeIds: readonly string[]): Observable<Service> {
+    return this.http
+      .put<ServiceResponseDto>(this.serviceUrl(id), toUpdateServiceRequestDto(service, employeeIds))
+      .pipe(map(toService));
+  }
+
+  private serviceUrl(id: string): string {
+    return `${this.apiUrl}/servicios/${encodeURIComponent(id)}`;
   }
 }
