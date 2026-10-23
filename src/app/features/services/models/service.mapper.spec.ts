@@ -1,4 +1,9 @@
-import { toService, toServicePage } from './service.mapper';
+import {
+  toCreateServiceRequestDto,
+  toNewServiceFieldErrors,
+  toService,
+  toServicePage,
+} from './service.mapper';
 
 describe('service.mapper', () => {
   it('maps a full service', () => {
@@ -60,5 +65,47 @@ describe('service.mapper', () => {
         totalPages: 1,
       }),
     ).toMatchObject({ page: 0, size: 20, totalElements: 1, totalPages: 1, items: [{ id: 's1' }] });
+  });
+});
+
+describe('toCreateServiceRequestDto', () => {
+  it('trims the name and turns an empty description into null', () => {
+    expect(
+      toCreateServiceRequestDto({
+        name: '  Corte  ',
+        description: '   ',
+        durationMinutes: 45,
+        price: 45000,
+        status: 'ACTIVE',
+      }),
+    ).toEqual({
+      name: 'Corte',
+      description: null,
+      durationMinutes: 45,
+      price: 45000,
+      status: 'ACTIVE',
+    });
+  });
+
+  it('keeps optional numbers as null and never sends employees', () => {
+    const dto = toCreateServiceRequestDto({
+      name: 'Barba',
+      description: ' Arreglo ',
+      durationMinutes: null,
+      price: null,
+      status: 'INACTIVE',
+    });
+
+    expect(dto).toMatchObject({ description: 'Arreglo', durationMinutes: null, price: null });
+    expect(dto).not.toHaveProperty('employeeIds');
+  });
+});
+
+describe('toNewServiceFieldErrors', () => {
+  it('keeps known fields and passes unknown ones through', () => {
+    expect(toNewServiceFieldErrors({ durationMinutes: 'Debe ser mayor a 0', other: 'x' })).toEqual({
+      durationMinutes: 'Debe ser mayor a 0',
+      other: 'x',
+    });
   });
 });

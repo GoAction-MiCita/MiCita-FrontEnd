@@ -13,6 +13,8 @@ const DEFAULT_ERROR_MESSAGES: ErrorMessages = {
   phone: 'Ingresa un teléfono válido (7 a 15 dígitos)',
   minlength: (error) => `Debe tener al menos ${requiredLength(error)} caracteres`,
   maxlength: (error) => `Debe tener máximo ${requiredLength(error)} caracteres`,
+  min: (error) => `Debe ser mayor o igual a ${minimum(error)}`,
+  integer: 'Ingresa un número entero',
   // Server messages arrive already written for the user.
   server: (error) => (typeof error === 'string' ? error : null),
   // Shown as a rules checklist next to the field instead of a single message.
@@ -44,6 +46,10 @@ export function resolveErrorMessage(
 function priorityOf(key: string): number {
   const index = PRIORITY.indexOf(key);
   return index === -1 ? PRIORITY.length : index;
+}
+
+function minimum(error: unknown): number | string {
+  return typeof error === 'object' && error !== null && 'min' in error ? Number(error.min) : '';
 }
 
 function requiredLength(error: unknown): number | string {

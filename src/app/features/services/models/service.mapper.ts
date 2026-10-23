@@ -1,11 +1,28 @@
-import { PageDto, ServiceEmployeeDto, ServiceResponseDto } from './service.dto';
+import { FieldErrors } from '@shared/models/field-errors.model';
 import {
+  CreateServiceRequestDto,
+  PageDto,
+  ServiceEmployeeDto,
+  ServiceResponseDto,
+} from './service.dto';
+import {
+  NewService,
+  NewServiceField,
   SERVICE_STATUS,
   Service,
   ServiceEmployee,
   ServicePage,
   ServiceStatus,
 } from './service.model';
+
+/** Backend field name → form field name. Keep in sync with CreateServiceRequestDto. */
+const FORM_FIELD_BY_DTO_FIELD: Readonly<Record<keyof CreateServiceRequestDto, NewServiceField>> = {
+  name: 'name',
+  description: 'description',
+  durationMinutes: 'durationMinutes',
+  price: 'price',
+  status: 'status',
+};
 
 export function toServicePage(dto: PageDto<ServiceResponseDto>): ServicePage {
   return {
@@ -27,6 +44,25 @@ export function toService(dto: ServiceResponseDto): Service {
     status: toStatus(dto.status),
     employees: (dto.employees ?? []).map(toEmployee),
   };
+}
+
+export function toCreateServiceRequestDto(service: NewService): CreateServiceRequestDto {
+  return {
+    name: service.name.trim(),
+    description: emptyToNull(service.description),
+    durationMinutes: service.durationMinutes,
+    price: service.price,
+    status: service.status,
+  };
+}
+
+/** Renames server field errors to form field names; unknown fields keep their original key. */
+export function toNewServiceFieldErrors(fieldErrors: FieldErrors): FieldErrors {
+  const entries = Object.entries(fieldErrors).map(([field, message]) => {
+    const formField = FORM_FIELD_BY_DTO_FIELD[field as keyof CreateServiceRequestDto];
+    return [formField ?? field, message] as const;
+  });
+  return Object.fromEntries(entries);
 }
 
 function toEmployee(dto: ServiceEmployeeDto): ServiceEmployee {

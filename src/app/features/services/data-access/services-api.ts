@@ -3,8 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
 import { map, Observable } from 'rxjs';
 import { PageDto, ServiceResponseDto } from '../models/service.dto';
-import { toServicePage } from '../models/service.mapper';
-import { ServicePage } from '../models/service.model';
+import { toCreateServiceRequestDto, toService, toServicePage } from '../models/service.mapper';
+import { NewService, Service, ServicePage } from '../models/service.model';
 
 @Injectable({ providedIn: 'root' })
 export class ServicesApi {
@@ -16,5 +16,12 @@ export class ServicesApi {
     return this.http
       .get<PageDto<ServiceResponseDto>>(`${this.apiUrl}/servicios`)
       .pipe(map(toServicePage));
+  }
+
+  /** HU-09: creates a service in the business of the authenticated user (taken from the token). */
+  create(service: NewService): Observable<Service> {
+    return this.http
+      .post<ServiceResponseDto>(`${this.apiUrl}/servicios`, toCreateServiceRequestDto(service))
+      .pipe(map(toService));
   }
 }
