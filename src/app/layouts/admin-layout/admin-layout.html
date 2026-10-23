@@ -1,29 +1,11 @@
-<header class="admin-layout__bar">
+<!-- Desktop: blue sidebar. Mobile: `display: contents` spreads it into the top and bottom bars. -->
+<aside class="admin-layout__sidebar">
   <a class="admin-layout__brand" routerLink="/dashboard">
     <span class="admin-layout__logo"><app-icon name="logo" /></span>
     Mi Cita
   </a>
 
-  <nav class="admin-layout__nav" aria-label="Principal">
-    <a
-      class="admin-layout__link"
-      routerLink="/dashboard"
-      routerLinkActive="admin-layout__link--active"
-      ariaCurrentWhenActive="page"
-    >
-      <app-icon name="home" />
-      Inicio
-    </a>
-    <a
-      class="admin-layout__link"
-      routerLink="/servicios"
-      routerLinkActive="admin-layout__link--active"
-      ariaCurrentWhenActive="page"
-    >
-      <app-icon name="layout-grid" />
-      Servicios
-    </a>
-  </nav>
+  <app-admin-nav [items]="navItems" />
 
   <div class="admin-layout__session">
     @if (session.user()?.username; as username) {
@@ -34,7 +16,7 @@
       Cerrar sesión
     </button>
   </div>
-</header>
+</aside>
 
 <main class="admin-layout__content">
   <router-outlet />

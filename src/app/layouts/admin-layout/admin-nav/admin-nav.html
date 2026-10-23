@@ -1,0 +1,14 @@
+<nav class="admin-nav" aria-label="Principal">
+  @for (item of items(); track item.path) {
+    <a
+      class="admin-nav__link"
+      [routerLink]="item.path"
+      routerLinkActive="admin-nav__link--active"
+      ariaCurrentWhenActive="page"
+      [title]="item.label"
+    >
+      <app-icon [name]="item.icon" />
+      <span class="admin-nav__label">{{ item.label }}</span>
+    </a>
+  }
+</nav>

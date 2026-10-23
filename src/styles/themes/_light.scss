@@ -11,6 +11,11 @@
   --color-brand-dark: #{c.$navy-800};
   --color-brand-darker: #{c.$navy-900};
   --color-brand-glow: #{c.$navy-700};
+  // Text and states on top of the brand (navy) surfaces, e.g. the admin sidebar.
+  --color-on-brand: #{c.$white};
+  --color-on-brand-muted: #{rgba(c.$white, 0.72)};
+  --color-on-brand-hover: #{rgba(c.$white, 0.1)};
+  --color-on-brand-border: #{rgba(c.$white, 0.16)};
 
   --color-bg: #{c.$slate-50};
   --color-surface: #{c.$white};
