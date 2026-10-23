@@ -66,7 +66,7 @@ describe('ServicesTable', () => {
     expect(cells[4]).toBe('Inactivo');
   });
 
-  it('renders the row actions with accessible names; toggle and delete stay disabled', async () => {
+  it('renders the row actions with accessible names; only the toggle stays disabled', async () => {
     const { rows } = await render([haircut, facial]);
     const buttons = Array.from(rows[0].querySelectorAll('button'));
 
@@ -75,7 +75,7 @@ describe('ServicesTable', () => {
       'Desactivar Corte de cabello',
       'Eliminar Corte de cabello',
     ]);
-    expect(buttons.map((b) => b.disabled)).toEqual([false, true, true]);
+    expect(buttons.map((b) => b.disabled)).toEqual([false, true, false]);
     expect(rows[1].querySelectorAll('button')[1].getAttribute('aria-label')).toBe(
       'Activar Limpieza facial',
     );
@@ -91,6 +91,18 @@ describe('ServicesTable', () => {
       .click();
 
     expect(edited).toEqual([facial]);
+  });
+
+  it('emits the service of the row when "Eliminar" is clicked (HU-14)', async () => {
+    const { fixture, rows } = await render([haircut, facial]);
+    const removed: Service[] = [];
+    fixture.componentInstance.remove.subscribe((service) => removed.push(service));
+
+    rows[0]
+      .querySelector<HTMLButtonElement>('button[aria-label="Eliminar Corte de cabello"]')!
+      .click();
+
+    expect(removed).toEqual([haircut]);
   });
 
   it('renders malicious names and descriptions as plain text', async () => {

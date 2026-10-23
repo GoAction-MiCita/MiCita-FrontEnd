@@ -42,6 +42,11 @@ export class ServicesApi {
       .pipe(map(toService));
   }
 
+  /** HU-14: logical delete (status DELETED). 204 on success, 409 with future appointments. */
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(this.serviceUrl(id));
+  }
+
   private serviceUrl(id: string): string {
     return `${this.apiUrl}/servicios/${encodeURIComponent(id)}`;
   }

@@ -6,7 +6,7 @@ import { Icon } from '@shared/ui/icon/icon';
 
 /**
  * Services table (HU-08). Becomes a list of cards on small screens.
- * "Editar" emits `edit` (HU-10); toggle and delete stay disabled until HU-11 and HU-14.
+ * "Editar" emits `edit` (HU-10) and "Eliminar" emits `remove` (HU-14); toggle waits for HU-11.
  */
 @Component({
   selector: 'app-services-table',
@@ -18,6 +18,7 @@ import { Icon } from '@shared/ui/icon/icon';
 export class ServicesTable {
   readonly services = input.required<readonly Service[]>();
   readonly edit = output<Service>();
+  readonly remove = output<Service>();
 
   protected readonly rows = computed(() =>
     this.services().map((service) => {

@@ -3,6 +3,10 @@ import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
 import { Notifier } from '@core/notifications/notifier';
 import { ServicesApi } from '@features/services/data-access/services-api';
+import {
+  DELETE_SERVICE_MESSAGES,
+  futureAppointmentsMessage,
+} from '@features/services/models/delete-service-failure';
 import { SERVICE_FORM_MESSAGES } from '@features/services/models/service-form-failure';
 import { Service, ServicePage } from '@features/services/models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '@features/services/models/services-error';
@@ -34,18 +38,26 @@ async function render(
     create = (): Observable<Service> => of(page.items[0]),
     get = (): Observable<Service> => of(page.items[0]),
     update = (): Observable<Service> => of(page.items[0]),
+    remove = (): Observable<void> => of(undefined),
   } = {},
 ) {
   const spy = vi.fn(list);
   const createSpy = vi.fn(create);
   const getSpy = vi.fn(get);
   const updateSpy = vi.fn(update);
+  const removeSpy = vi.fn(remove);
   const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
       {
         provide: ServicesApi,
-        useValue: { list: spy, create: createSpy, get: getSpy, update: updateSpy },
+        useValue: {
+          list: spy,
+          create: createSpy,
+          get: getSpy,
+          update: updateSpy,
+          remove: removeSpy,
+        },
       },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
       { provide: Notifier, useValue: notifier },
@@ -67,6 +79,7 @@ async function render(
     create: createSpy,
     get: getSpy,
     update: updateSpy,
+    remove: removeSpy,
     notifier,
   };
 }
@@ -339,5 +352,85 @@ describe('ServicesPage · editar servicio (HU-10)', () => {
     );
     const name = rendered.element.querySelector<HTMLInputElement>('[formcontrolname="name"]');
     expect(name?.value).toBe('');
+  });
+});
+
+describe('ServicesPage · eliminar servicio (HU-14)', () => {
+  async function openDelete(rendered: Awaited<ReturnType<typeof render>>) {
+    rendered.element
+      .querySelector<HTMLButtonElement>('button[aria-label="Eliminar Barba"]')!
+      .click();
+    await rendered.fixture.whenStable();
+  }
+
+  const dialog = (element: HTMLElement) => element.querySelector('app-delete-service-dialog');
+
+  it('asks for confirmation with the service name and sends nothing yet', async () => {
+    const rendered = await render(() => of(page));
+
+    await openDelete(rendered);
+
+    expect(dialog(rendered.element)?.textContent).toContain('«Barba»');
+    expect(rendered.remove).not.toHaveBeenCalled();
+  });
+
+  it('does not call the API when cancelled', async () => {
+    const rendered = await render(() => of(page));
+    await openDelete(rendered);
+
+    button(rendered.element, 'Cancelar').click();
+    await rendered.fixture.whenStable();
+
+    expect(dialog(rendered.element)).toBeNull();
+    expect(rendered.remove).not.toHaveBeenCalled();
+    expect(rendered.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('on 204: closes, reloads the list and confirms', async () => {
+    const rendered = await render(() => of(page));
+    await openDelete(rendered);
+
+    button(rendered.element, 'Eliminar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.remove).toHaveBeenCalledWith('s1');
+    expect(dialog(rendered.element)).toBeNull();
+    expect(rendered.list).toHaveBeenCalledTimes(2);
+    expect(rendered.notifier.success).toHaveBeenCalledWith(SERVICES_PAGE_MESSAGES.deleted);
+  });
+
+  it('on 409: keeps the dialog with the future appointments message and only "Cerrar"', async () => {
+    const rendered = await render(() => of(page), {
+      remove: () => throwError(() => apiError('conflict')),
+    });
+    await openDelete(rendered);
+
+    button(rendered.element, 'Eliminar').click();
+    await rendered.fixture.whenStable();
+
+    const text = dialog(rendered.element)?.textContent ?? '';
+    expect(text).toContain(DELETE_SERVICE_MESSAGES.blockedTitle);
+    expect(text).toContain(futureAppointmentsMessage('Barba'));
+    expect(text).not.toContain('internal details');
+    const actions = Array.from(
+      dialog(rendered.element)!.querySelectorAll('.delete-dialog__actions button'),
+    ).map((b) => b.textContent?.trim());
+    expect(actions).toEqual(['Cerrar']);
+    expect(rendered.list).toHaveBeenCalledTimes(1);
+    expect(rendered.notifier.success).not.toHaveBeenCalled();
+  });
+
+  it('on 404: closes, says it no longer exists and reloads', async () => {
+    const rendered = await render(() => of(page), {
+      remove: () => throwError(() => apiError('not-found')),
+    });
+    await openDelete(rendered);
+
+    button(rendered.element, 'Eliminar').click();
+    await rendered.fixture.whenStable();
+
+    expect(dialog(rendered.element)).toBeNull();
+    expect(rendered.notifier.error).toHaveBeenCalledWith(SERVICES_PAGE_MESSAGES.gone);
+    expect(rendered.list).toHaveBeenCalledTimes(2);
   });
 });

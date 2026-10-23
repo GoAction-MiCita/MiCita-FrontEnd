@@ -35,10 +35,12 @@
     </button>
   </section>
 } @else {
-  <app-services-table [services]="store.services()" (edit)="openEdit($event)" />
-  <p class="services-page__note">
-    Activar o desactivar y eliminar servicios estarán disponibles próximamente.
-  </p>
+  <app-services-table
+    [services]="store.services()"
+    (edit)="openEdit($event)"
+    (remove)="deleteStore.open($event)"
+  />
+  <p class="services-page__note">Activar o desactivar servicios estará disponible próximamente.</p>
 }
 
 @if (panelMode(); as mode) {
@@ -50,5 +52,15 @@
     [failure]="formFailure()"
     (submitted)="submit($event)"
     (closed)="closePanel()"
+  />
+}
+
+@if (deleteStore.service(); as service) {
+  <app-delete-service-dialog
+    [service]="service"
+    [pending]="deleteStore.pending()"
+    [failure]="deleteStore.failure()"
+    (confirmed)="confirmDelete()"
+    (closed)="deleteStore.close()"
   />
 }
