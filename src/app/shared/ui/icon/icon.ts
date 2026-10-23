@@ -25,7 +25,8 @@ export type IconName =
   | 'store'
   | 'trash'
   | 'user'
-  | 'users';
+  | 'users'
+  | 'x';
 
 /**
  * Decorative stroke icon (Lucide-style, 24×24). Inherits `color`; size with `font-size`.

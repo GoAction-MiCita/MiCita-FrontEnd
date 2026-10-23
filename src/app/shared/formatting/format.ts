@@ -1,13 +1,21 @@
 /** Placeholder shown for an empty value in tables (HU-08: "vacío como —"). */
 export const EMPTY_VALUE = '—';
 
-const COP = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+/**
+ * Whole number with a dot every 3 digits: `45000` → `45.000`, `1500` → `1.500`.
+ * Not Intl: Spanish CLDR data skips grouping for 4-digit numbers in some browsers (`1500`).
+ */
+export function formatThousands(value: number): string {
+  const sign = value < 0 ? '-' : '';
+  const digits = String(Math.abs(Math.round(value)));
+  return sign + digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 
 /** Colombian pesos without decimals: `45000` → `$ 45.000`. */
 export function formatCop(value: number | null | undefined): string {
   return value === null || value === undefined || !Number.isFinite(value)
     ? EMPTY_VALUE
-    : `$ ${COP.format(value)}`;
+    : `$ ${formatThousands(value)}`;
 }
 
 /** Minutes as `45 min`, `1 h` or `1 h 30 min`. Non-positive or missing values render `—`. */

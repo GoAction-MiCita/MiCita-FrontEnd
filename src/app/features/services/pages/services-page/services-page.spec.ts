@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
+import { Notifier } from '@core/notifications/notifier';
 import { ServicesApi } from '@features/services/data-access/services-api';
-import { ServicePage } from '@features/services/models/service.model';
+import { SERVICE_FORM_MESSAGES } from '@features/services/models/service-form-failure';
+import { Service, ServicePage } from '@features/services/models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '@features/services/models/services-error';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import ServicesPage from './services-page';
@@ -24,10 +27,19 @@ const page: ServicePage = {
   totalPages: 1,
 };
 
-async function render(list: () => Observable<ServicePage>, { waitForData = true } = {}) {
+async function render(
+  list: () => Observable<ServicePage>,
+  { waitForData = true, create = (): Observable<Service> => of(page.items[0]) } = {},
+) {
   const spy = vi.fn(list);
+  const createSpy = vi.fn(create);
+  const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
-    providers: [{ provide: ServicesApi, useValue: { list: spy } }],
+    providers: [
+      { provide: ServicesApi, useValue: { list: spy, create: createSpy } },
+      { provide: AuthSession, useValue: { expire: vi.fn() } },
+      { provide: Notifier, useValue: notifier },
+    ],
   });
   const fixture = TestBed.createComponent(ServicesPage);
   if (waitForData) {
@@ -38,11 +50,27 @@ async function render(list: () => Observable<ServicePage>, { waitForData = true 
     await Promise.resolve();
     fixture.detectChanges();
   }
-  return { fixture, element: fixture.nativeElement as HTMLElement, list: spy };
+  return {
+    fixture,
+    element: fixture.nativeElement as HTMLElement,
+    list: spy,
+    create: createSpy,
+    notifier,
+  };
 }
 
 function apiError(kind: ApiError['kind']): ApiError {
   return { kind, status: 0, message: 'internal details', fieldErrors: {} };
+}
+
+function button(element: HTMLElement, text: string): HTMLButtonElement {
+  return Array.from(element.querySelectorAll('button')).find((b) => b.textContent?.includes(text))!;
+}
+
+function fillName(element: HTMLElement, value: string): void {
+  const input = element.querySelector<HTMLInputElement>('[formcontrolname="name"]')!;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
 }
 
 describe('ServicesPage', () => {
@@ -77,8 +105,7 @@ describe('ServicesPage', () => {
     const add = Array.from(element.querySelectorAll('button')).find((b) =>
       b.textContent?.includes('Agregar nuevo servicio'),
     );
-    expect(add).toBeTruthy();
-    expect(add?.disabled).toBe(true);
+    expect(add?.disabled).toBe(false);
   });
 
   it('shows the server error with a retry that reloads the list', async () => {
@@ -108,12 +135,67 @@ describe('ServicesPage', () => {
     expect(element.textContent).not.toContain('Reintentar');
   });
 
-  it('keeps the add button disabled until HU-09', async () => {
-    const { element } = await render(() => of(page));
+  it('opens the panel from the empty state', async () => {
+    const { fixture, element } = await render(() => of({ ...page, items: [], totalElements: 0 }));
 
-    const add = Array.from(element.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Agregar servicio'),
+    button(element, 'Agregar nuevo servicio').click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('app-service-form-panel dialog')).toBeTruthy();
+  });
+
+  it('creates a service: closes the panel, reloads the list and confirms', async () => {
+    const { fixture, element, list, create, notifier } = await render(() => of(page));
+
+    button(element, 'Agregar servicio').click();
+    await fixture.whenStable();
+    fillName(element, 'Corte');
+    button(element, 'Guardar').click();
+    await fixture.whenStable();
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Corte', status: 'ACTIVE' }),
     );
-    expect(add?.disabled).toBe(true);
+    expect(element.querySelector('app-service-form-panel')).toBeNull();
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(notifier.success).toHaveBeenCalledWith('Servicio creado');
+  });
+
+  it('keeps the panel open with the error on the name after a 409', async () => {
+    const { fixture, element, list, notifier } = await render(() => of(page), {
+      create: () => throwError(() => apiError('conflict')),
+    });
+
+    button(element, 'Agregar servicio').click();
+    await fixture.whenStable();
+    fillName(element, 'Barba');
+    button(element, 'Guardar').click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('app-service-form-panel')).toBeTruthy();
+    expect(element.textContent).toContain(SERVICE_FORM_MESSAGES.duplicateName);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(notifier.success).not.toHaveBeenCalled();
+  });
+
+  it('opens a clean panel after closing one with an error', async () => {
+    const { fixture, element } = await render(() => of(page), {
+      create: () => throwError(() => apiError('server')),
+    });
+
+    button(element, 'Agregar servicio').click();
+    await fixture.whenStable();
+    fillName(element, 'Corte');
+    button(element, 'Guardar').click();
+    await fixture.whenStable();
+    expect(element.textContent).toContain(SERVICE_FORM_MESSAGES.unexpected);
+
+    button(element, 'Cancelar').click();
+    await fixture.whenStable();
+    expect(element.querySelector('app-service-form-panel')).toBeNull();
+
+    button(element, 'Agregar servicio').click();
+    await fixture.whenStable();
+    expect(element.textContent).not.toContain(SERVICE_FORM_MESSAGES.unexpected);
   });
 });

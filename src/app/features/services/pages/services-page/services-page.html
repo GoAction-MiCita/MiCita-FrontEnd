@@ -3,12 +3,11 @@
     <h1 class="services-page__title">Gestión de servicios</h1>
     <p class="services-page__subtitle">Administra los servicios que ofreces a tus clientes.</p>
   </div>
-  <button appButton type="button" disabled aria-describedby="services-soon">
+  <button appButton type="button" (click)="openPanel()">
     <app-icon name="plus" />
     Agregar servicio
   </button>
 </header>
-<p id="services-soon" class="u-visually-hidden">Disponible próximamente.</p>
 
 @if (store.loading()) {
   <div class="services-page__state" role="status">
@@ -30,7 +29,7 @@
     <span class="services-page__empty-icon"><app-icon name="layout-grid" /></span>
     <h2 id="services-empty">Aún no tienes servicios</h2>
     <p>Crea tu primer servicio para que tus clientes puedan agendar citas.</p>
-    <button appButton type="button" disabled aria-describedby="services-soon">
+    <button appButton type="button" (click)="openPanel()">
       <app-icon name="plus" />
       Agregar nuevo servicio
     </button>
@@ -38,6 +37,15 @@
 } @else {
   <app-services-table [services]="store.services()" />
   <p class="services-page__note">
-    Agregar, editar, activar o desactivar y eliminar servicios estarán disponibles próximamente.
+    Editar, activar o desactivar y eliminar servicios estarán disponibles próximamente.
   </p>
+}
+
+@if (panelOpen()) {
+  <app-service-form-panel
+    [pending]="createStore.pending()"
+    [failure]="createStore.failure()"
+    (submitted)="create($event)"
+    (closed)="closePanel()"
+  />
 }

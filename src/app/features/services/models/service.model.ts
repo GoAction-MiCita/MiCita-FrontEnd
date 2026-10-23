@@ -23,6 +23,18 @@ export interface Service {
   readonly employees: readonly ServiceEmployee[];
 }
 
+/** Data captured by the "Agregar servicio" form (HU-09). Optional fields are `null` when empty. */
+export interface NewService {
+  readonly name: string;
+  readonly description: string | null;
+  readonly durationMinutes: number | null;
+  /** Whole Colombian pesos. */
+  readonly price: number | null;
+  readonly status: ServiceStatus;
+}
+
+export type NewServiceField = keyof NewService;
+
 /** One page of services (pagination contract of HU-15). */
 export interface ServicePage {
   readonly items: readonly Service[];

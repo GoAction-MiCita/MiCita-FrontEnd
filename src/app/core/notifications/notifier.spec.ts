@@ -15,6 +15,15 @@ describe('Notifier', () => {
     expect(notifier.notice()).toBeNull();
   });
 
+  it('shows a success message', () => {
+    const notifier = TestBed.inject(Notifier);
+
+    notifier.success('Servicio creado');
+
+    expect(notifier.notice()).toMatchObject({ message: 'Servicio creado', variant: 'success' });
+    notifier.dismiss();
+  });
+
   it('can be dismissed', () => {
     const notifier = TestBed.inject(Notifier);
 

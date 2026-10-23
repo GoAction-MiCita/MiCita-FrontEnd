@@ -10,7 +10,7 @@ export interface Notice {
 
 const AUTO_DISMISS_MS = 6000;
 
-/** App-wide transient message (e.g. 403). Rendered once by the root component. */
+/** App-wide transient message (e.g. 403, "Servicio creado"). Rendered once by the root component. */
 @Injectable({ providedIn: 'root' })
 export class Notifier {
   private readonly current = signal<Notice | null>(null);
@@ -21,6 +21,11 @@ export class Notifier {
 
   error(message: string): void {
     this.show(message, 'danger');
+  }
+
+  /** Confirmation after an action that closes its own UI (e.g. "Servicio creado"). */
+  success(message: string): void {
+    this.show(message, 'success');
   }
 
   dismiss(): void {

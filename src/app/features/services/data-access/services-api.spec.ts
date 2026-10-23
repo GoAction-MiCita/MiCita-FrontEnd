@@ -35,3 +35,40 @@ describe('ServicesApi', () => {
     http.verify();
   });
 });
+
+describe('ServicesApi.create', () => {
+  it('posts the mapped request to /servicios and maps the created service', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_URL, useValue: 'http://api.test/api' },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+
+    const result = firstValueFrom(
+      TestBed.inject(ServicesApi).create({
+        name: ' Corte ',
+        description: null,
+        durationMinutes: 45,
+        price: 45000,
+        status: 'ACTIVE',
+      }),
+    );
+
+    const req = http.expectOne('http://api.test/api/servicios');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      name: 'Corte',
+      description: null,
+      durationMinutes: 45,
+      price: 45000,
+      status: 'ACTIVE',
+    });
+    req.flush({ id: 's9', name: 'Corte', durationMinutes: 45, price: 45000, status: 'ACTIVE' });
+
+    expect(await result).toMatchObject({ id: 's9', name: 'Corte', employees: [] });
+    http.verify();
+  });
+});
