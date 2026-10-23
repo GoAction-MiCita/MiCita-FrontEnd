@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Mi Cita Backend",
-    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true), dueño de \"Barbería Central\" con NIT `900.123.456-7`\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\nFlujo de la colección: Register crea un usuario único, Login inicia sesión con él (`{{username}}`) Negocios › Onboarding le crea el negocio (HU-03) y Servicios › Listar servicios consulta el listado de ese negocio, que empieza vacío (HU-08). Cada ejecución pasa completa. El usuario `owner` tiene servicios de ejemplo.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
+    "description": "Contrato simulado del backend de Mi Cita (Spring, errores ProblemDetail RFC 9457) para desarrollar y probar el frontend sin el backend real.\n\nCuentas del mock:\n- `analopez` / `ana@correo.com` · `Abc#12` → usuario sin negocio (hasBusiness=false)\n- `owner` / `owner@correo.com` · `Abc#12` → usuario con negocio (hasBusiness=true), dueño de \"Barbería Central\" con NIT `900.123.456-7`\n\nCualquier otra contraseña devuelve 401. Registrar `analopez` o `ana@correo.com` devuelve 409.\n\nFlujo de la colección: Register crea un usuario único, Login inicia sesión con él (`{{username}}`), Negocios › Onboarding le crea el negocio (HU-03) y Servicios › Listar servicios consulta el listado de ese negocio, que empieza vacío (HU-08). Cada ejecución pasa completa. El usuario `owner` tiene servicios de ejemplo.\n\n⚠️ Supuestos pendientes de confirmar con HU-02 Back: nombres de campos (`username`, `accessToken`, `refreshToken`), que el login acepte usuario o correo y que `hasBusiness` viaje como claim del access token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -842,7 +842,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "servicios"]
             },
-            "description": "Lista paginada de los servicios del negocio del usuario autenticado (HU-08), ordenada por nombre y sin los DELETED. Contrato de paginación de HU-15: `content`, `page`, `size`, `totalElements` y `totalPages`. 401 sin token válido; 403 si el usuario no tiene negocio. `employees` va vacío hasta HU-12 y `photoUrl` es null hasta E03."
+            "description": "Lista paginada de los servicios del negocio del usuario autenticado (HU-08), ordenada por nombre y sin los DELETED. Contrato de paginación de HU-15: `content`, `page`, `size`, `totalElements` y `totalPages`. 401 sin token válido; 403 si el usuario no tiene negocio. `employees` lista los empleados asociados (en el backend real llega vacío hasta HU-12; el mock trae datos de ejemplo para `owner`) y `photoUrl` es null hasta E03."
           },
           "event": [
             {
