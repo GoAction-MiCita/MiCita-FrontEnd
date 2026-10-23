@@ -27,4 +27,28 @@ describe('AdminLayout', () => {
 
     expect(logout).toHaveBeenCalledTimes(1);
   });
+
+  it('links to Inicio and Servicios in the main navigation', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthSession,
+          useValue: { user: signal({ username: 'ana', hasBusiness: true }), logout: vi.fn() },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(AdminLayout);
+    await fixture.whenStable();
+    const nav = (fixture.nativeElement as HTMLElement).querySelector('nav[aria-label="Principal"]');
+
+    const links = Array.from(nav?.querySelectorAll('a') ?? []).map((a) => ({
+      text: a.textContent?.trim(),
+      href: a.getAttribute('href'),
+    }));
+    expect(links).toEqual([
+      { text: 'Inicio', href: '/dashboard' },
+      { text: 'Servicios', href: '/servicios' },
+    ]);
+  });
 });
