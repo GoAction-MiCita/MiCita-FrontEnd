@@ -34,6 +34,8 @@ import { NewService, Service } from '@features/services/models/service.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { Icon } from '@shared/ui/icon/icon';
+import { Paginator } from '@shared/ui/paginator/paginator';
+import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
 
 export const SERVICES_PAGE_MESSAGES = {
   created: 'Servicio creado',
@@ -44,8 +46,8 @@ export const SERVICES_PAGE_MESSAGES = {
 
 /**
  * HU-08 listado, HU-09 registrar, HU-10 editar, HU-11 activar/desactivar, HU-12 empleados,
- * HU-13 filtrar and HU-14 eliminar servicio
- * (private). The filters live in the query params (`?name=&status=&employeeIds=`).
+ * HU-13 filtrar, HU-14 eliminar and HU-15 paginar (private). Filters and page live in the query
+ * params (`?name=&status=&employeeIds=&page=&size=`, page 1-based).
  */
 @Component({
   selector: 'app-services-page',
@@ -54,6 +56,7 @@ export const SERVICES_PAGE_MESSAGES = {
     Button,
     DeleteServiceDialog,
     Icon,
+    Paginator,
     ServiceFormPanel,
     ServicesFilterBar,
     ServicesTable,
@@ -85,10 +88,13 @@ export default class ServicesPage {
   readonly name = input<string>();
   readonly status = input<string>();
   readonly employeeIds = input<string>();
+  readonly page = input<string>();
+  readonly size = input<string>();
 
   private readonly urlFilters = computed(() =>
     toServiceFilters({ name: this.name(), status: this.status(), employeeIds: this.employeeIds() }),
   );
+  private readonly urlPaging = computed(() => toPaging({ page: this.page(), size: this.size() }));
 
   /** `null` while the panel is closed. */
   protected readonly panelMode = signal<ServiceFormMode | null>(null);
@@ -108,24 +114,53 @@ export default class ServicesPage {
   constructor() {
     // Before the first fetch, so a reload with filters in the URL asks only once.
     const { queryParamMap } = this.route.snapshot;
-    this.store.setFilters(
+    this.store.setQuery(
       toServiceFilters({
         name: queryParamMap.get('name'),
         status: queryParamMap.get('status'),
         employeeIds: queryParamMap.get('employeeIds'),
       }),
+      toPaging({ page: queryParamMap.get('page'), size: queryParamMap.get('size') }),
     );
     effect(() => {
       const filters = this.urlFilters();
-      untracked(() => this.store.setFilters(filters));
+      const paging = this.urlPaging();
+      untracked(() => this.store.setQuery(filters, paging));
+    });
+
+    // An empty page past the end (deleting the last row of the last page): go to the last one.
+    effect(() => {
+      const last = this.store.lastPageIfOutOfRange();
+      if (last !== null) {
+        untracked(() => this.goToPage(last));
+      }
     });
   }
 
-  /** Writes the filters to the URL (no new history entry); the list follows the URL. */
+  /** Writes the filters to the URL and goes back to page 1; the list follows the URL. */
   protected applyFilters(filters: ServiceFilters): void {
+    this.navigate({ ...toServiceFilterParams(filters), page: null });
+  }
+
+  /** HU-15: keeps the filters (they stay in the URL). */
+  protected goToPage(page: number): void {
+    this.applyPaging({ page, size: this.store.paging().size });
+  }
+
+  /** HU-15: a new page size starts again from page 1. */
+  protected changePageSize(size: PageSize): void {
+    this.applyPaging({ page: 0, size });
+  }
+
+  private applyPaging(paging: Paging): void {
+    this.navigate(toPagingParams(paging));
+  }
+
+  // No new history entry per filter or page: the back button leaves the list.
+  private navigate(queryParams: Record<string, string | null>): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: toServiceFilterParams(filters),
+      queryParams,
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });

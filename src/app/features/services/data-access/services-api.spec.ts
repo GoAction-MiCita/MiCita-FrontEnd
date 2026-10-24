@@ -18,7 +18,7 @@ describe('ServicesApi', () => {
 
     const result = firstValueFrom(TestBed.inject(ServicesApi).list());
 
-    const req = http.expectOne('http://api.test/api/servicios');
+    const req = http.expectOne('http://api.test/api/servicios?page=0&size=20');
     expect(req.request.method).toBe('GET');
     req.flush({
       content: [{ id: 's1', name: 'Barba', durationMinutes: 20, price: 20000, status: 'ACTIVE' }],
@@ -182,7 +182,8 @@ describe('ServicesApi.list with filters (HU-13)', () => {
     expect(req.request.params.get('name')).toBe('cor & co');
     expect(req.request.params.get('status')).toBe('ACTIVE');
     expect(req.request.params.get('employeeIds')).toBe('e1');
-    expect(req.request.params.has('page')).toBe(false);
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('20');
     expect(req.request.urlWithParams).toContain('name=cor%20%26%20co');
     req.flush({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
 

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
+import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
 import { map, Observable } from 'rxjs';
 import { NO_SERVICE_FILTERS, ServiceFilters } from '../models/service-filters';
 import { PageDto, ServiceResponseDto, UpdateServiceStatusRequestDto } from '../models/service.dto';
@@ -19,14 +20,14 @@ export class ServicesApi {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = inject(API_URL);
 
-  /**
-   * HU-08/HU-13: first page of the business services, ordered by name and filtered
-   * (paging: HU-15).
-   */
-  list(filters: ServiceFilters = NO_SERVICE_FILTERS): Observable<ServicePage> {
+  /** HU-08/HU-13/HU-15: one page of the business services, ordered by name and filtered. */
+  list(
+    filters: ServiceFilters = NO_SERVICE_FILTERS,
+    paging: Paging = FIRST_PAGE,
+  ): Observable<ServicePage> {
     return this.http
       .get<PageDto<ServiceResponseDto>>(`${this.apiUrl}/servicios`, {
-        params: toServiceListParams(filters),
+        params: toServiceListParams(filters, paging),
       })
       .pipe(map(toServicePage));
   }

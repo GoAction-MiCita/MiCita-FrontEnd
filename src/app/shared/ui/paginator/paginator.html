@@ -1,0 +1,55 @@
+@if (totalElements() > 0) {
+  <div class="paginator">
+    <p class="paginator__summary" aria-live="polite">{{ summary() }}</p>
+
+    <div class="paginator__size">
+      <label [for]="sizeId">Por página</label>
+      <select [id]="sizeId" (change)="changeSize($event)">
+        @for (option of sizes; track option) {
+          <option [value]="option" [selected]="option === size()">{{ option }}</option>
+        }
+      </select>
+    </div>
+
+    <nav class="paginator__nav" aria-label="Paginación">
+      <button
+        class="paginator__step"
+        type="button"
+        aria-label="Página anterior"
+        [disabled]="isFirst()"
+        (click)="go(page() - 1)"
+      >
+        ‹ <span class="paginator__step-text">Anterior</span>
+      </button>
+      <ul class="paginator__pages">
+        @for (link of links(); track $index) {
+          <li>
+            @if (link.kind === 'page') {
+              <button
+                class="paginator__page"
+                type="button"
+                [class.paginator__page--current]="link.current"
+                [attr.aria-current]="link.current ? 'page' : null"
+                [attr.aria-label]="link.ariaLabel"
+                (click)="go(link.page)"
+              >
+                {{ link.label }}
+              </button>
+            } @else {
+              <span class="paginator__gap" aria-hidden="true">…</span>
+            }
+          </li>
+        }
+      </ul>
+      <button
+        class="paginator__step"
+        type="button"
+        aria-label="Página siguiente"
+        [disabled]="isLast()"
+        (click)="go(page() + 1)"
+      >
+        <span class="paginator__step-text">Siguiente</span> ›
+      </button>
+    </nav>
+  </div>
+}

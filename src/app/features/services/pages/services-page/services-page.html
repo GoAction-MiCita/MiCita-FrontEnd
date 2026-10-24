@@ -62,6 +62,15 @@
     (toggleStatus)="toggleStatus($event)"
     (remove)="deleteStore.open($event)"
   />
+  <app-paginator
+    itemsLabel="servicios"
+    [page]="store.paging().page"
+    [size]="store.paging().size"
+    [totalElements]="store.totals().totalElements"
+    [totalPages]="store.totals().totalPages"
+    (pageChange)="goToPage($event)"
+    (sizeChange)="changePageSize($event)"
+  />
 }
 
 @if (panelMode(); as mode) {
