@@ -26,6 +26,7 @@ const changes: NewService = {
   durationMinutes: 30,
   price: 25000,
   status: 'INACTIVE',
+  employeeIds: ['e1'],
 };
 
 function setup({
@@ -97,12 +98,12 @@ describe('EditServiceStore', () => {
     expect(store.loading()).toBe(false);
   });
 
-  it('saves the changes keeping the current employees', async () => {
+  it('saves the changes with the employees chosen in the form', async () => {
     const { store, api } = setup();
     await store.load('s1');
 
     expect(await store.save(changes)).toBe('saved');
-    expect(api.update).toHaveBeenCalledWith('s1', changes, ['e1', 'e2']);
+    expect(api.update).toHaveBeenCalledWith('s1', changes);
     expect(store.pending()).toBe(false);
     expect(store.failure()).toBeNull();
   });

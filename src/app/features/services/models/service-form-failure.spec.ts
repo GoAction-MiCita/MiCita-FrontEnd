@@ -44,3 +44,18 @@ describe('toServiceFormFailure', () => {
     expect(JSON.stringify(toServiceFormFailure(error('server')))).not.toContain('internal details');
   });
 });
+
+describe('toServiceFormFailure with employees (HU-12)', () => {
+  it('reports the rejected employees of a 400 using the ids sent', () => {
+    const failure = toServiceFormFailure(
+      error('validation', { 'employeeIds[1]': 'No pertenece al negocio' }),
+      undefined,
+      ['e1', 'e2'],
+    );
+
+    expect(failure.rejectedEmployeeIds).toEqual(['e2']);
+    expect(failure.fieldErrors).toEqual({
+      employeeIds: 'Algunos empleados ya no están disponibles. Quítalos e inténtalo de nuevo.',
+    });
+  });
+});

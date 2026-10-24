@@ -10,7 +10,13 @@
 </header>
 
 @if (!store.empty()) {
-  <app-services-filter-bar [filters]="store.filters()" (filtersChange)="applyFilters($event)" />
+  <app-services-filter-bar
+    [filters]="store.filters()"
+    [employees]="employeesStore.employees()"
+    [employeesLoading]="employeesStore.loading()"
+    [employeesFailed]="employeesStore.failed()"
+    (filtersChange)="applyFilters($event)"
+  />
 }
 
 @if (store.loading()) {
@@ -65,6 +71,9 @@
     [loading]="formLoading()"
     [pending]="formPending()"
     [failure]="formFailure()"
+    [employees]="employeesStore.employees()"
+    [employeesLoading]="employeesStore.loading()"
+    [employeesFailed]="employeesStore.failed()"
     (submitted)="submit($event)"
     (closed)="closePanel()"
   />

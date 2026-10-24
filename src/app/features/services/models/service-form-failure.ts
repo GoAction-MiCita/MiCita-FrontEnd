@@ -1,6 +1,6 @@
 import { API_ERROR_KIND, ApiError } from '@core/http/api-error.model';
 import { FieldErrors } from '@shared/models/field-errors.model';
-import { toNewServiceFieldErrors } from './service.mapper';
+import { toNewServiceFieldErrors, toRejectedEmployeeIds } from './service.mapper';
 
 /** What the service panel shows after a failed `POST /servicios`, `GET` or `PUT /servicios/{id}`. */
 export interface ServiceFormFailure {
@@ -8,6 +8,8 @@ export interface ServiceFormFailure {
   readonly summary: string;
   /** Errors to attach to form controls (form field → message). */
   readonly fieldErrors: FieldErrors;
+  /** HU-12: employees the backend rejected (400), marked in the picker. */
+  readonly rejectedEmployeeIds?: readonly string[];
 }
 
 export const SERVICE_FORM_MESSAGES = {
@@ -22,9 +24,11 @@ export const SERVICE_FORM_MESSAGES = {
   unexpected: 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.',
 } as const;
 
+/** `sentEmployeeIds`: the list sent, to turn `employeeIds[i]` errors into employee ids. */
 export function toServiceFormFailure(
   error: ApiError,
   title: string = SERVICE_FORM_MESSAGES.title,
+  sentEmployeeIds: readonly string[] = [],
 ): ServiceFormFailure {
   switch (error.kind) {
     case API_ERROR_KIND.validation:
@@ -32,6 +36,7 @@ export function toServiceFormFailure(
         title,
         summary: SERVICE_FORM_MESSAGES.checkFields,
         fieldErrors: toNewServiceFieldErrors(error.fieldErrors),
+        rejectedEmployeeIds: toRejectedEmployeeIds(error.fieldErrors, sentEmployeeIds),
       };
     case API_ERROR_KIND.conflict:
       // HU-09/HU-10 Back: the only 409 is a duplicate name within the business.

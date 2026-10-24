@@ -13,6 +13,7 @@ const newService: NewService = {
   durationMinutes: 45,
   price: 45000,
   status: 'ACTIVE',
+  employeeIds: [],
 };
 const service: Service = { id: 's9', ...newService, employees: [] };
 

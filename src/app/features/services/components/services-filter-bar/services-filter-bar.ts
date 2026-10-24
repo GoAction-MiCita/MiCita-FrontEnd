@@ -10,13 +10,18 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { EmployeePicker } from '@features/services/components/employee-picker/employee-picker';
 import {
   hasServiceFilters,
   NO_SERVICE_FILTERS,
   sameServiceFilters,
   ServiceFilters,
 } from '@features/services/models/service-filters';
-import { SERVICE_STATUS, ServiceStatus } from '@features/services/models/service.model';
+import {
+  SERVICE_STATUS,
+  ServiceEmployee,
+  ServiceStatus,
+} from '@features/services/models/service.model';
 import { Icon } from '@shared/ui/icon/icon';
 import { map, Subject, switchMap, takeUntil, timer } from 'rxjs';
 
@@ -24,12 +29,12 @@ import { map, Subject, switchMap, takeUntil, timer } from 'rxjs';
 export const NAME_FILTER_DEBOUNCE_MS = 300;
 
 /**
- * Filter bar of the services list (HU-13): name and status. `filters` is the source of truth
- * (the URL); the bar only emits `filtersChange`. Employees filter: with the HU-12 selector.
+ * Filter bar of the services list (HU-13): name, status and employees (HU-12 picker). `filters`
+ * is the source of truth (the URL); the bar only emits `filtersChange`.
  */
 @Component({
   selector: 'app-services-filter-bar',
-  imports: [ReactiveFormsModule, Icon],
+  imports: [ReactiveFormsModule, EmployeePicker, Icon],
   templateUrl: './services-filter-bar.html',
   styleUrl: './services-filter-bar.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +42,9 @@ export const NAME_FILTER_DEBOUNCE_MS = 300;
 export class ServicesFilterBar {
   readonly filters = input.required<ServiceFilters>();
   readonly filtersChange = output<ServiceFilters>();
+  readonly employees = input<readonly ServiceEmployee[]>([]);
+  readonly employeesLoading = input(false);
+  readonly employeesFailed = input(false);
 
   protected readonly status = SERVICE_STATUS;
   protected readonly canClear = computed(() => hasServiceFilters(this.filters()));
@@ -44,6 +52,7 @@ export class ServicesFilterBar {
   protected readonly form = inject(NonNullableFormBuilder).group({
     name: [''],
     status: ['' as ServiceStatus | ''],
+    employeeIds: [[] as readonly string[]],
   });
 
   private readonly cancelName = new Subject<void>();
@@ -51,13 +60,14 @@ export class ServicesFilterBar {
   constructor() {
     // Follow the URL (reload, back/forward, "Limpiar filtros") without emitting again.
     effect(() => {
-      const { name, status } = this.filters();
+      const { name, status, employeeIds } = this.filters();
       untracked(() => {
         const controls = this.form.controls;
         if (controls.name.value.trim() !== name) {
           controls.name.setValue(name, { emitEvent: false });
         }
         controls.status.setValue(status ?? '', { emitEvent: false });
+        controls.employeeIds.setValue(employeeIds, { emitEvent: false });
       });
     });
 
@@ -77,12 +87,17 @@ export class ServicesFilterBar {
     this.form.controls.status.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((status) => this.emit({ status: status || null }));
+
+    this.form.controls.employeeIds.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((employeeIds) => this.emit({ employeeIds }));
   }
 
   protected clear(): void {
     this.cancelName.next();
     this.form.controls.name.setValue('', { emitEvent: false });
     this.form.controls.status.setValue('', { emitEvent: false });
+    this.form.controls.employeeIds.setValue([], { emitEvent: false });
     this.filtersChange.emit(NO_SERVICE_FILTERS);
   }
 

@@ -4,6 +4,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
 import { Notifier } from '@core/notifications/notifier';
+import { EmployeesApi } from '@features/services/data-access/employees-api';
 import { ServicesApi } from '@features/services/data-access/services-api';
 import {
   DELETE_SERVICE_MESSAGES,
@@ -34,6 +35,11 @@ const page: ServicePage = {
   totalElements: 1,
   totalPages: 1,
 };
+
+const employees = [
+  { id: 'e1', name: 'Ana López', photoUrl: null },
+  { id: 'e2', name: 'Juan Pérez', photoUrl: null },
+];
 
 async function render(
   list: () => Observable<ServicePage>,
@@ -67,6 +73,7 @@ async function render(
         },
       },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
+      { provide: EmployeesApi, useValue: { list: () => of(employees) } },
       provideRouter([]),
       { provide: Notifier, useValue: notifier },
     ],
@@ -269,8 +276,7 @@ describe('ServicesPage · editar servicio (HU-10)', () => {
 
     expect(rendered.update).toHaveBeenCalledWith(
       's1',
-      expect.objectContaining({ name: 'Barba clásica' }),
-      [],
+      expect.objectContaining({ name: 'Barba clásica', employeeIds: [] }),
     );
     expect(rendered.create).not.toHaveBeenCalled();
     expect(rendered.element.querySelector('app-service-form-panel')).toBeNull();
@@ -458,6 +464,7 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
       providers: [
         { provide: ServicesApi, useValue: { list: listSpy } },
         { provide: AuthSession, useValue: { expire: vi.fn() } },
+        { provide: EmployeesApi, useValue: { list: () => of(employees) } },
         { provide: Notifier, useValue: { success: vi.fn(), error: vi.fn() } },
         provideRouter(
           [{ path: 'servicios', component: ServicesPage }],
@@ -601,5 +608,58 @@ describe('ServicesPage · activar o desactivar (HU-11)', () => {
     expect(rendered.notifier.error).toHaveBeenCalledWith(message);
     expect(rendered.notifier.success).not.toHaveBeenCalled();
     expect(toggleButton(rendered.element, 'Desactivar Barba').disabled).toBe(false);
+  });
+});
+
+describe('ServicesPage · asociar empleados (HU-12)', () => {
+  const picker = (element: HTMLElement) =>
+    element.querySelector<HTMLElement>('app-service-form-panel app-employee-picker')!;
+
+  async function choose(rendered: Awaited<ReturnType<typeof render>>, name: string) {
+    picker(rendered.element).querySelector<HTMLButtonElement>('.picker__trigger')!.click();
+    await rendered.fixture.whenStable();
+    const option = Array.from(
+      picker(rendered.element).querySelectorAll<HTMLLabelElement>('.picker__option'),
+    ).find((label) => label.textContent?.includes(name))!;
+    option.querySelector<HTMLInputElement>('input')!.click();
+    await rendered.fixture.whenStable();
+  }
+
+  it('creates a service with the chosen employees', async () => {
+    const rendered = await render(() => of(page));
+    button(rendered.element, 'Agregar servicio').click();
+    await rendered.fixture.whenStable();
+
+    fillName(rendered.element, 'Corte');
+    await choose(rendered, 'Juan Pérez');
+    button(rendered.element, 'Guardar').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Corte', employeeIds: ['e2'] }),
+    );
+  });
+
+  it('marks the employees a 400 rejected and keeps the panel open', async () => {
+    const rendered = await render(() => of(page), {
+      create: () =>
+        throwError(() => ({
+          ...apiError('validation'),
+          fieldErrors: { 'employeeIds[0]': 'El empleado no pertenece al negocio' },
+        })),
+    });
+    button(rendered.element, 'Agregar servicio').click();
+    await rendered.fixture.whenStable();
+
+    fillName(rendered.element, 'Corte');
+    await choose(rendered, 'Ana López');
+    button(rendered.element, 'Guardar').click();
+    await rendered.fixture.whenStable();
+
+    const element = picker(rendered.element);
+    expect(rendered.element.querySelector('app-service-form-panel')).toBeTruthy();
+    expect(element.querySelector('.picker__chip--rejected')?.textContent).toContain('Ana López');
+    expect(element.textContent).toContain('Algunos empleados ya no están disponibles');
+    expect(rendered.element.textContent).not.toContain('El empleado no pertenece al negocio');
   });
 });

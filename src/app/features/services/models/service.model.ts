@@ -23,7 +23,7 @@ export interface Service {
   readonly employees: readonly ServiceEmployee[];
 }
 
-/** Data captured by the "Agregar servicio" form (HU-09). Optional fields are `null` when empty. */
+/** Data captured by the service form (HU-09/HU-10). Optional fields are `null` when empty. */
 export interface NewService {
   readonly name: string;
   readonly description: string | null;
@@ -31,6 +31,8 @@ export interface NewService {
   /** Whole Colombian pesos. */
   readonly price: number | null;
   readonly status: ServiceStatus;
+  /** HU-12: employees who can provide the service (empty: none). */
+  readonly employeeIds: readonly string[];
 }
 
 export type NewServiceField = keyof NewService;

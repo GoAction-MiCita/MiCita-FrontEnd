@@ -1,0 +1,100 @@
+<div class="picker">
+  <span class="picker__label" [id]="ids.label" [class.u-visually-hidden]="hideLabel()">
+    {{ label() }}
+    @if (optional()) {
+      <span class="picker__optional">(opcional)</span>
+    }
+  </span>
+
+  @if (showChips() && chips().length > 0) {
+    <ul class="picker__chips" aria-label="Empleados seleccionados">
+      @for (chip of chips(); track chip.id) {
+        <li class="picker__chip" [class.picker__chip--rejected]="chip.rejected">
+          {{ chip.name }}
+          <button
+            type="button"
+            [attr.aria-label]="chip.removeLabel"
+            [disabled]="disabled()"
+            (click)="remove(chip.id)"
+          >
+            <app-icon name="x" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <button
+    class="picker__trigger"
+    type="button"
+    [id]="ids.trigger"
+    [class.picker__trigger--invalid]="invalid()"
+    [attr.aria-labelledby]="ids.label + ' ' + ids.trigger"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="ids.list"
+    [attr.aria-invalid]="invalid() || null"
+    [attr.aria-describedby]="error() ? ids.error : null"
+    [disabled]="disabled()"
+    (click)="toggleOpen()"
+  >
+    <app-icon name="users" />
+    <span class="picker__summary">{{ triggerText() }}</span>
+  </button>
+
+  @if (open()) {
+    <div class="picker__popup" [id]="ids.list">
+      <label class="picker__search">
+        <span class="u-visually-hidden">Buscar empleado</span>
+        <app-icon name="search" />
+        <input
+          type="search"
+          autocomplete="off"
+          placeholder="Buscar por nombre"
+          [value]="query()"
+          (input)="search($event)"
+        />
+      </label>
+
+      @if (loading()) {
+        <p class="picker__message" role="status">Cargando empleados…</p>
+      } @else if (failed()) {
+        <p class="picker__message">
+          No pudimos cargar los empleados. Inténtalo de nuevo más tarde.
+        </p>
+      } @else if (employees().length === 0) {
+        <p class="picker__message">
+          Tu negocio aún no tiene empleados registrados. Puedes guardar el servicio sin empleados.
+        </p>
+      } @else if (options().length === 0) {
+        <p class="picker__message">No hay empleados con ese nombre.</p>
+      } @else {
+        <ul class="picker__options" role="group" [attr.aria-labelledby]="ids.label">
+          @for (option of options(); track option.id) {
+            <li>
+              <label class="picker__option" [class.picker__option--rejected]="option.rejected">
+                <input
+                  type="checkbox"
+                  [checked]="option.checked"
+                  [attr.aria-invalid]="option.rejected || null"
+                  (change)="toggle(option.id)"
+                />
+                <app-avatar-group [people]="option.people" [max]="1" />
+                <span class="picker__name">{{ option.name }}</span>
+                @if (option.rejected) {
+                  <span class="picker__flag">No disponible</span>
+                }
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (error(); as message) {
+    <p class="picker__error" [id]="ids.error">
+      <app-icon name="alert-circle" />
+      {{ message }}
+    </p>
+  }
+</div>
