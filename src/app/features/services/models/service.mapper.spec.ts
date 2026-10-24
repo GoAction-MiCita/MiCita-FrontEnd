@@ -157,14 +157,17 @@ describe('toNewServiceFieldErrors', () => {
 });
 
 describe('toServiceListParams (HU-13)', () => {
-  it('sends no params without filters', () => {
-    expect(toServiceListParams({ name: '', status: null, employeeIds: [] })).toEqual({});
+  it('sends only the first page without filters', () => {
+    expect(toServiceListParams({ name: '', status: null, employeeIds: [] })).toEqual({
+      page: '0',
+      size: '20',
+    });
   });
 
   it('sends the filters in use with the backend names', () => {
     expect(
       toServiceListParams({ name: ' cor ', status: 'ACTIVE', employeeIds: ['e1', 'e2'] }),
-    ).toEqual({ name: 'cor', status: 'ACTIVE', employeeIds: 'e1,e2' });
+    ).toEqual({ page: '0', size: '20', name: 'cor', status: 'ACTIVE', employeeIds: 'e1,e2' });
   });
 });
 

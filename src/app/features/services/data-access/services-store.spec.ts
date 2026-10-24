@@ -2,6 +2,7 @@ import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ApiError } from '@core/http/api-error.model';
 import { Observable, of, Subject, throwError } from 'rxjs';
+import { FIRST_PAGE } from '@shared/ui/paginator/paging';
 import { NO_SERVICE_FILTERS } from '../models/service-filters';
 import { ServicePage } from '../models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '../models/services-error';
@@ -103,7 +104,7 @@ describe('ServicesStore filters (HU-13)', () => {
     await settle();
 
     expect(store.filtered()).toBe(false);
-    expect(list).toHaveBeenCalledWith(NO_SERVICE_FILTERS);
+    expect(list).toHaveBeenCalledWith(NO_SERVICE_FILTERS, FIRST_PAGE);
   });
 
   it('fetches again with the new filters', async () => {
@@ -114,7 +115,7 @@ describe('ServicesStore filters (HU-13)', () => {
     await settle();
 
     expect(store.filtered()).toBe(true);
-    expect(list).toHaveBeenLastCalledWith(active);
+    expect(list).toHaveBeenLastCalledWith(active, FIRST_PAGE);
     expect(list).toHaveBeenCalledTimes(2);
   });
 
@@ -149,7 +150,7 @@ describe('ServicesStore filters (HU-13)', () => {
     store.reload();
     await settle();
 
-    expect(list).toHaveBeenLastCalledWith(active);
+    expect(list).toHaveBeenLastCalledWith(active, FIRST_PAGE);
   });
 });
 
@@ -171,5 +172,74 @@ describe('ServicesStore.setStatus (HU-11)', () => {
     store.setStatus('nope', 'INACTIVE');
 
     expect(store.services()).toEqual(page.items);
+  });
+});
+
+describe('ServicesStore paging (HU-15)', () => {
+  const pageOf = (totalElements: number, page = 0, size = 20, items = page0Items): ServicePage => ({
+    items,
+    page,
+    size,
+    totalElements,
+    totalPages: Math.ceil(totalElements / size),
+  });
+  const page0Items = page.items;
+
+  it('asks for the requested page with the same filters', async () => {
+    const { store, list } = setup(() => of(pageOf(57)));
+    store.setFilters({ name: 'cor', status: null, employeeIds: [] });
+    await settle();
+
+    store.setPaging({ page: 2, size: 20 });
+    await settle();
+
+    expect(list).toHaveBeenLastCalledWith(
+      { name: 'cor', status: null, employeeIds: [] },
+      { page: 2, size: 20 },
+    );
+    expect(store.totals()).toEqual({ totalElements: 57, totalPages: 3 });
+  });
+
+  it('goes back to the first page when the filters change, keeping the size', async () => {
+    const { store, list } = setup(() => of(pageOf(57)));
+    store.setPaging({ page: 2, size: 50 });
+    await settle();
+
+    store.setFilters({ name: '', status: 'ACTIVE', employeeIds: [] });
+    await settle();
+
+    expect(list).toHaveBeenLastCalledWith(
+      { name: '', status: 'ACTIVE', employeeIds: [] },
+      { page: 0, size: 50 },
+    );
+  });
+
+  it('applies filters and page from the URL in one request', async () => {
+    const { store, list } = setup(() => of(pageOf(57)));
+    await settle();
+    const before = list.mock.calls.length;
+
+    store.setQuery({ name: 'a', status: null, employeeIds: [] }, { page: 1, size: 100 });
+    store.setQuery({ name: 'a', status: null, employeeIds: [] }, { page: 1, size: 100 });
+    await settle();
+
+    expect(list.mock.calls.length - before).toBe(1);
+  });
+
+  it('points to the last page when the requested one is past the end', async () => {
+    const { store } = setup(() => of(pageOf(41, 3, 20, [])));
+    store.setPaging({ page: 3, size: 20 });
+    await settle();
+
+    expect(store.lastPageIfOutOfRange()).toBe(2);
+    expect(store.empty()).toBe(false);
+    expect(store.noResults()).toBe(false);
+  });
+
+  it('does not point anywhere for a normal page', async () => {
+    const { store } = setup(() => of(pageOf(41)));
+    await settle();
+
+    expect(store.lastPageIfOutOfRange()).toBeNull();
   });
 });

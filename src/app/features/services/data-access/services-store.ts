@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { API_ERROR_KIND, ApiError, isApiError } from '@core/http/api-error.model';
+import { FIRST_PAGE, Paging, samePaging } from '@shared/ui/paginator/paging';
 import { firstValueFrom } from 'rxjs';
 import {
   hasServiceFilters,
@@ -18,19 +19,31 @@ const UNKNOWN_ERROR: ApiError = {
   fieldErrors: {},
 };
 
-/** State of the services list (HU-08) and its filters (HU-13). Provided by ServicesPage. */
+interface ServicesQuery {
+  readonly filters: ServiceFilters;
+  readonly paging: Paging;
+}
+
+/**
+ * State of the services list (HU-08), its filters (HU-13) and its page (HU-15).
+ * Provided by ServicesPage.
+ */
 @Injectable()
 export class ServicesStore {
   private readonly api = inject(ServicesApi);
-  private readonly currentFilters = signal<ServiceFilters>(NO_SERVICE_FILTERS);
+  private readonly query = signal<ServicesQuery>({
+    filters: NO_SERVICE_FILTERS,
+    paging: FIRST_PAGE,
+  });
 
-  readonly filters = this.currentFilters.asReadonly();
+  readonly filters = computed(() => this.query().filters);
+  readonly paging = computed(() => this.query().paging);
   readonly filtered = computed(() => hasServiceFilters(this.filters()));
 
-  // A new filters value fetches the list again from the first page.
+  // Every query change (filters, page or size) fetches that page with those filters.
   private readonly page = resource({
-    params: () => this.filters(),
-    loader: ({ params }) => firstValueFrom(this.api.list(params)),
+    params: () => this.query(),
+    loader: ({ params }) => firstValueFrom(this.api.list(params.filters, params.paging)),
   });
 
   readonly loading = computed(() => this.page.isLoading());
@@ -38,6 +51,12 @@ export class ServicesStore {
   readonly services = computed<readonly Service[]>(() =>
     this.page.hasValue() ? this.page.value().items : [],
   );
+
+  /** Totals of the last page received, for the paginator. */
+  readonly totals = computed(() => {
+    const page = this.page.hasValue() ? this.page.value() : null;
+    return { totalElements: page?.totalElements ?? 0, totalPages: page?.totalPages ?? 0 };
+  });
 
   readonly error = computed<ServicesLoadError | null>(() => {
     const error = this.page.error();
@@ -49,15 +68,45 @@ export class ServicesStore {
   );
 
   /** The business has no services at all ("Aún no tienes servicios"). */
-  readonly empty = computed(() => this.noItems() && !this.filtered());
+  readonly empty = computed(
+    () => this.noItems() && !this.filtered() && this.totals().totalElements === 0,
+  );
 
   /** Services exist, but none match the filters (a different empty state). */
-  readonly noResults = computed(() => this.noItems() && this.filtered());
+  readonly noResults = computed(
+    () => this.noItems() && this.filtered() && this.totals().totalElements === 0,
+  );
 
-  /** Ignores values equal to the current ones, so the URL round trip does not refetch. */
+  /**
+   * A page past the end that came back empty while there are results (after deleting the
+   * last row of the last page, or a tampered URL): the last page that exists, else `null`.
+   */
+  readonly lastPageIfOutOfRange = computed(() => {
+    const { totalElements, totalPages } = this.totals();
+    return this.noItems() && totalElements > 0 && this.paging().page >= totalPages
+      ? totalPages - 1
+      : null;
+  });
+
+  /** New filters go back to the first page; equal values (URL round trip) do not refetch. */
   setFilters(filters: ServiceFilters): void {
-    if (!sameServiceFilters(filters, this.currentFilters())) {
-      this.currentFilters.set(filters);
+    const { filters: current, paging } = this.query();
+    if (!sameServiceFilters(filters, current)) {
+      this.query.set({ filters, paging: { ...paging, page: 0 } });
+    }
+  }
+
+  setPaging(paging: Paging): void {
+    if (!samePaging(paging, this.paging())) {
+      this.query.update((query) => ({ ...query, paging }));
+    }
+  }
+
+  /** Both at once, as read from the URL, so a link with filters and page fetches only once. */
+  setQuery(filters: ServiceFilters, paging: Paging): void {
+    const current = this.query();
+    if (!sameServiceFilters(filters, current.filters) || !samePaging(paging, current.paging)) {
+      this.query.set({ filters, paging });
     }
   }
 
@@ -72,7 +121,7 @@ export class ServicesStore {
     );
   }
 
-  /** Reloads the list with the same filters (retry, or after creating, editing or deleting). */
+  /** Reloads the current page with the same filters (retry, or after creating, editing or deleting). */
   reload(): void {
     this.page.reload();
   }

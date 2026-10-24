@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { FIRST_PAGE } from '@shared/ui/paginator/paging';
 import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
 import { Notifier } from '@core/notifications/notifier';
@@ -492,11 +493,10 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
       () => of(page),
     );
 
-    expect(list).toHaveBeenLastCalledWith({
-      name: 'bar',
-      status: 'INACTIVE',
-      employeeIds: ['e1', 'e2'],
-    });
+    expect(list).toHaveBeenLastCalledWith(
+      { name: 'bar', status: 'INACTIVE', employeeIds: ['e1', 'e2'] },
+      FIRST_PAGE,
+    );
     expect(element.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('bar');
     expect(element.querySelector<HTMLSelectElement>('select')?.value).toBe('INACTIVE');
   });
@@ -504,7 +504,7 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
   it('ignores an invalid status in the URL', async () => {
     const { list } = await renderAt('/servicios?status=DELETED', () => of(page));
 
-    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS);
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS, FIRST_PAGE);
   });
 
   it('writes the chosen status to the URL and filters the list', async () => {
@@ -516,7 +516,10 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
     await harness.fixture.whenStable();
 
     expect(url()).toBe('/servicios?status=ACTIVE');
-    expect(list).toHaveBeenLastCalledWith({ name: '', status: 'ACTIVE', employeeIds: [] });
+    expect(list).toHaveBeenLastCalledWith(
+      { name: '', status: 'ACTIVE', employeeIds: [] },
+      FIRST_PAGE,
+    );
   });
 
   it('shows a filtered empty state with "Limpiar filtros" that reloads everything', async () => {
@@ -531,7 +534,7 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
     await harness.fixture.whenStable();
 
     expect(url()).toBe('/servicios');
-    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS);
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS, FIRST_PAGE);
     expect(element.textContent).toContain('Barba');
   });
 
@@ -661,5 +664,105 @@ describe('ServicesPage · asociar empleados (HU-12)', () => {
     expect(element.querySelector('.picker__chip--rejected')?.textContent).toContain('Ana López');
     expect(element.textContent).toContain('Algunos empleados ya no están disponibles');
     expect(rendered.element.textContent).not.toContain('El empleado no pertenece al negocio');
+  });
+});
+
+describe('ServicesPage · paginación (HU-15)', () => {
+  // 57 services: pages of 20 → 3 pages; the page asked for comes back with its totals.
+  const paged = (_filters?: ServiceFilters, paging = FIRST_PAGE) =>
+    of({
+      items: paging.page < 3 ? page.items : [],
+      page: paging.page,
+      size: paging.size,
+      totalElements: 57,
+      totalPages: Math.ceil(57 / paging.size),
+    } satisfies ServicePage);
+
+  async function renderAt(url: string, list = paged) {
+    const listSpy = vi.fn(list);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ServicesApi, useValue: { list: listSpy } },
+        { provide: AuthSession, useValue: { expire: vi.fn() } },
+        { provide: EmployeesApi, useValue: { list: () => of(employees) } },
+        { provide: Notifier, useValue: { success: vi.fn(), error: vi.fn() } },
+        provideRouter(
+          [{ path: 'servicios', component: ServicesPage }],
+          withComponentInputBinding(),
+        ),
+      ],
+    });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    await harness.fixture.whenStable();
+    const router = TestBed.inject(Router);
+    const element = harness.routeNativeElement as HTMLElement;
+    const pageButton = (label: string) =>
+      element.querySelector<HTMLButtonElement>(`app-paginator button[aria-label="${label}"]`)!;
+    return { harness, element, list: listSpy, url: () => router.url, pageButton };
+  }
+
+  it('shows the paginator with the current page and the total', async () => {
+    const { element } = await renderAt('/servicios');
+
+    expect(element.querySelector('app-paginator')?.textContent).toContain(
+      'Mostrando 1–20 de 57 servicios',
+    );
+  });
+
+  it('reads page and size from the URL (1-based) and asks for them (0-based)', async () => {
+    const { list, element } = await renderAt('/servicios?page=2&size=50');
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS, { page: 1, size: 50 });
+    expect(element.querySelector('app-paginator')?.textContent).toContain('Mostrando 51–57 de 57');
+  });
+
+  it('changes page keeping the filters', async () => {
+    const { harness, list, url, pageButton } = await renderAt('/servicios?status=ACTIVE');
+
+    pageButton('Página siguiente').click();
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios?status=ACTIVE&page=2');
+    expect(list).toHaveBeenLastCalledWith(
+      { name: '', status: 'ACTIVE', employeeIds: [] },
+      { page: 1, size: 20 },
+    );
+  });
+
+  it('goes back to the first page when the page size changes', async () => {
+    const { harness, element, list, url } = await renderAt('/servicios?page=3');
+
+    const select = element.querySelector<HTMLSelectElement>('app-paginator select')!;
+    select.value = '50';
+    select.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios?size=50');
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS, { page: 0, size: 50 });
+  });
+
+  it('goes back to the first page when the filters change', async () => {
+    const { harness, element, list, url } = await renderAt('/servicios?page=3&size=50');
+
+    const status = element.querySelector<HTMLSelectElement>('app-services-filter-bar select')!;
+    status.value = 'INACTIVE';
+    status.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios?size=50&status=INACTIVE');
+    expect(list).toHaveBeenLastCalledWith(
+      { name: '', status: 'INACTIVE', employeeIds: [] },
+      { page: 0, size: 50 },
+    );
+  });
+
+  it('moves to the last page when the requested one is past the end', async () => {
+    const { harness, url, list } = await renderAt('/servicios?page=9');
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/servicios?page=3');
+    expect(list).toHaveBeenLastCalledWith(NO_SERVICE_FILTERS, { page: 2, size: 20 });
   });
 });
