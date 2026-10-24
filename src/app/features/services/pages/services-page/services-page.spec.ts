@@ -11,7 +11,8 @@ import {
 } from '@features/services/models/delete-service-failure';
 import { SERVICE_FORM_MESSAGES } from '@features/services/models/service-form-failure';
 import { NO_SERVICE_FILTERS, ServiceFilters } from '@features/services/models/service-filters';
-import { Service, ServicePage } from '@features/services/models/service.model';
+import { SERVICE_STATUS_MESSAGES } from '@features/services/models/service-status-messages';
+import { Service, ServicePage, ServiceStatus } from '@features/services/models/service.model';
 import { SERVICES_ERROR_MESSAGES } from '@features/services/models/services-error';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import ServicesPage, { SERVICES_PAGE_MESSAGES } from './services-page';
@@ -42,6 +43,7 @@ async function render(
     get = (): Observable<Service> => of(page.items[0]),
     update = (): Observable<Service> => of(page.items[0]),
     remove = (): Observable<void> => of(undefined),
+    changeStatus = (_id: string, status: ServiceStatus): Observable<ServiceStatus> => of(status),
   } = {},
 ) {
   const spy = vi.fn(list);
@@ -49,6 +51,7 @@ async function render(
   const getSpy = vi.fn(get);
   const updateSpy = vi.fn(update);
   const removeSpy = vi.fn(remove);
+  const changeStatusSpy = vi.fn(changeStatus);
   const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
@@ -60,6 +63,7 @@ async function render(
           get: getSpy,
           update: updateSpy,
           remove: removeSpy,
+          changeStatus: changeStatusSpy,
         },
       },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
@@ -84,6 +88,7 @@ async function render(
     get: getSpy,
     update: updateSpy,
     remove: removeSpy,
+    changeStatus: changeStatusSpy,
     notifier,
   };
 }
@@ -528,5 +533,73 @@ describe('ServicesPage · filtrar servicios (HU-13)', () => {
 
     expect(element.textContent).toContain('Aún no tienes servicios');
     expect(element.querySelector('app-services-filter-bar')).toBeNull();
+  });
+});
+
+describe('ServicesPage · activar o desactivar (HU-11)', () => {
+  const badge = (element: HTMLElement) =>
+    element
+      .querySelector('app-services-table tbody tr .services-table__badge')
+      ?.textContent?.trim();
+  const toggleButton = (element: HTMLElement, label: string) =>
+    element.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+
+  it('deactivates without confirmation: badge Inactivo and the appointments notice', async () => {
+    const rendered = await render(() => of(page));
+
+    toggleButton(rendered.element, 'Desactivar Barba').click();
+    await rendered.fixture.whenStable();
+
+    expect(rendered.changeStatus).toHaveBeenCalledWith('s1', 'INACTIVE');
+    expect(badge(rendered.element)).toBe('Inactivo');
+    expect(rendered.notifier.success).toHaveBeenCalledWith(SERVICE_STATUS_MESSAGES.deactivated);
+    expect(rendered.element.querySelector('dialog')).toBeNull();
+    expect(rendered.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('activates an inactive service', async () => {
+    const rendered = await render(() =>
+      of({ ...page, items: [{ ...page.items[0], status: 'INACTIVE' as const }] }),
+    );
+
+    toggleButton(rendered.element, 'Activar Barba').click();
+    await rendered.fixture.whenStable();
+
+    expect(badge(rendered.element)).toBe('Activo');
+    expect(rendered.notifier.success).toHaveBeenCalledWith(SERVICE_STATUS_MESSAGES.activated);
+  });
+
+  it('keeps the old badge until the answer arrives and disables the toggle meanwhile', async () => {
+    const response = new Subject<ServiceStatus>();
+    const rendered = await render(() => of(page), { changeStatus: () => response.asObservable() });
+
+    toggleButton(rendered.element, 'Desactivar Barba').click();
+    rendered.fixture.detectChanges();
+
+    expect(badge(rendered.element)).toBe('Activo');
+    expect(toggleButton(rendered.element, 'Desactivar Barba').disabled).toBe(true);
+
+    response.next('INACTIVE');
+    response.complete();
+    // The click handler awaits the store; whenStable() does not track that promise.
+    await vi.waitFor(() => expect(badge(rendered.element)).toBe('Inactivo'));
+    expect(toggleButton(rendered.element, 'Activar Barba').disabled).toBe(false);
+  });
+
+  it.each([
+    ['not-found', SERVICE_STATUS_MESSAGES.notFound],
+    ['server', SERVICE_STATUS_MESSAGES.unexpected],
+  ] as const)('on %s: shows the message and keeps the previous status', async (kind, message) => {
+    const rendered = await render(() => of(page), {
+      changeStatus: () => throwError(() => apiError(kind)),
+    });
+
+    toggleButton(rendered.element, 'Desactivar Barba').click();
+    await rendered.fixture.whenStable();
+
+    expect(badge(rendered.element)).toBe('Activo');
+    expect(rendered.notifier.error).toHaveBeenCalledWith(message);
+    expect(rendered.notifier.success).not.toHaveBeenCalled();
+    expect(toggleButton(rendered.element, 'Desactivar Barba').disabled).toBe(false);
   });
 });

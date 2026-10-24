@@ -3,15 +3,16 @@ import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
 import { map, Observable } from 'rxjs';
 import { NO_SERVICE_FILTERS, ServiceFilters } from '../models/service-filters';
-import { PageDto, ServiceResponseDto } from '../models/service.dto';
+import { PageDto, ServiceResponseDto, UpdateServiceStatusRequestDto } from '../models/service.dto';
 import {
   toCreateServiceRequestDto,
   toService,
   toServiceListParams,
   toServicePage,
+  toServiceStatus,
   toUpdateServiceRequestDto,
 } from '../models/service.mapper';
-import { NewService, Service, ServicePage } from '../models/service.model';
+import { NewService, Service, ServicePage, ServiceStatus } from '../models/service.model';
 
 @Injectable({ providedIn: 'root' })
 export class ServicesApi {
@@ -52,6 +53,14 @@ export class ServicesApi {
   /** HU-14: logical delete (status DELETED). 204 on success, 409 with future appointments. */
   remove(id: string): Observable<void> {
     return this.http.delete<void>(this.serviceUrl(id));
+  }
+
+  /** HU-11: ACTIVE ↔ INACTIVE; the answer carries the status now stored. */
+  changeStatus(id: string, status: ServiceStatus): Observable<ServiceStatus> {
+    const body: UpdateServiceStatusRequestDto = { status };
+    return this.http
+      .patch<ServiceResponseDto>(`${this.serviceUrl(id)}/estado`, body)
+      .pipe(map(toServiceStatus));
   }
 
   private serviceUrl(id: string): string {

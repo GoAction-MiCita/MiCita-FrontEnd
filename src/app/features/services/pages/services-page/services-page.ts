@@ -20,6 +20,7 @@ import { DeleteServiceDialog } from '@features/services/components/delete-servic
 import { CreateServiceStore } from '@features/services/data-access/create-service-store';
 import { DeleteServiceStore } from '@features/services/data-access/delete-service-store';
 import { EditServiceStore } from '@features/services/data-access/edit-service-store';
+import { ServiceStatusStore } from '@features/services/data-access/service-status-store';
 import { ServicesStore } from '@features/services/data-access/services-store';
 import {
   NO_SERVICE_FILTERS,
@@ -27,6 +28,7 @@ import {
   toServiceFilterParams,
   toServiceFilters,
 } from '@features/services/models/service-filters';
+import { statusChangedMessage } from '@features/services/models/service-status-messages';
 import { NewService, Service } from '@features/services/models/service.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
@@ -40,7 +42,8 @@ export const SERVICES_PAGE_MESSAGES = {
 } as const;
 
 /**
- * HU-08 listado, HU-09 registrar, HU-10 editar, HU-13 filtrar and HU-14 eliminar servicio
+ * HU-08 listado, HU-09 registrar, HU-10 editar, HU-11 activar/desactivar, HU-13 filtrar and
+ * HU-14 eliminar servicio
  * (private). The filters live in the query params (`?name=&status=&employeeIds=`).
  */
 @Component({
@@ -54,7 +57,13 @@ export const SERVICES_PAGE_MESSAGES = {
     ServicesFilterBar,
     ServicesTable,
   ],
-  providers: [ServicesStore, CreateServiceStore, EditServiceStore, DeleteServiceStore],
+  providers: [
+    ServicesStore,
+    CreateServiceStore,
+    EditServiceStore,
+    DeleteServiceStore,
+    ServiceStatusStore,
+  ],
   templateUrl: './services-page.html',
   styleUrl: './services-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +73,7 @@ export default class ServicesPage {
   private readonly createStore = inject(CreateServiceStore);
   private readonly editStore = inject(EditServiceStore);
   protected readonly deleteStore = inject(DeleteServiceStore);
+  protected readonly statusStore = inject(ServiceStatusStore);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -120,6 +130,17 @@ export default class ServicesPage {
 
   protected clearFilters(): void {
     this.applyFilters(NO_SERVICE_FILTERS);
+  }
+
+  /** HU-11: no confirmation; the badge changes only with the 200, errors keep the old status. */
+  protected async toggleStatus(service: Service): Promise<void> {
+    const change = await this.statusStore.toggle(service);
+    if (change.kind === 'changed') {
+      this.store.setStatus(service.id, change.status);
+      this.notifier.success(statusChangedMessage(change.status));
+    } else if (change.kind === 'failed') {
+      this.notifier.error(change.message);
+    }
   }
 
   protected openPanel(): void {

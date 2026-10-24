@@ -51,10 +51,11 @@
 } @else {
   <app-services-table
     [services]="store.services()"
+    [busyIds]="statusStore.pendingIds()"
     (edit)="openEdit($event)"
+    (toggleStatus)="toggleStatus($event)"
     (remove)="deleteStore.open($event)"
   />
-  <p class="services-page__note">Activar o desactivar servicios estará disponible próximamente.</p>
 }
 
 @if (panelMode(); as mode) {

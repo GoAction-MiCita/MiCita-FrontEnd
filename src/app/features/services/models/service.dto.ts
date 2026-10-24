@@ -39,6 +39,11 @@ export interface UpdateServiceRequestDto extends CreateServiceRequestDto {
   readonly employeeIds: readonly string[];
 }
 
+/** Body of `PATCH /api/servicios/{id}/estado` (HU-11 Back): `ACTIVE` or `INACTIVE`. */
+export interface UpdateServiceStatusRequestDto {
+  readonly status: string;
+}
+
 /** Pagination envelope shared by list endpoints (HU-15 Back). */
 export interface PageDto<T> {
   readonly content: readonly T[];

@@ -27,9 +27,10 @@ const facial: Service = {
   employees: [],
 };
 
-async function render(services: Service[]) {
+async function render(services: Service[], busyIds: ReadonlySet<string> = new Set()) {
   const fixture = TestBed.createComponent(ServicesTable);
   fixture.componentRef.setInput('services', services);
+  fixture.componentRef.setInput('busyIds', busyIds);
   await fixture.whenStable();
   const element = fixture.nativeElement as HTMLElement;
   return { fixture, element, rows: Array.from(element.querySelectorAll('tbody tr')) };
@@ -66,7 +67,7 @@ describe('ServicesTable', () => {
     expect(cells[4]).toBe('Inactivo');
   });
 
-  it('renders the row actions with accessible names; only the toggle stays disabled', async () => {
+  it('renders the row actions enabled with accessible names', async () => {
     const { rows } = await render([haircut, facial]);
     const buttons = Array.from(rows[0].querySelectorAll('button'));
 
@@ -75,7 +76,7 @@ describe('ServicesTable', () => {
       'Desactivar Corte de cabello',
       'Eliminar Corte de cabello',
     ]);
-    expect(buttons.map((b) => b.disabled)).toEqual([false, true, false]);
+    expect(buttons.map((b) => b.disabled)).toEqual([false, false, false]);
     expect(rows[1].querySelectorAll('button')[1].getAttribute('aria-label')).toBe(
       'Activar Limpieza facial',
     );
@@ -117,5 +118,31 @@ describe('ServicesTable', () => {
     expect(element.querySelector('img')).toBeNull();
     expect(element.querySelector('script')).toBeNull();
     expect(element.textContent).toContain('<script>alert(1)</script>');
+  });
+
+  it('emits the row to toggle its status (HU-11)', async () => {
+    const { fixture, rows } = await render([haircut, facial]);
+    const toggled: Service[] = [];
+    fixture.componentInstance.toggleStatus.subscribe((service) => toggled.push(service));
+
+    rows[1]
+      .querySelector<HTMLButtonElement>('button[aria-label="Activar Limpieza facial"]')!
+      .click();
+
+    expect(toggled).toEqual([facial]);
+  });
+
+  it('disables only the toggle of the rows whose change is in flight', async () => {
+    const { rows } = await render([haircut, facial], new Set(['s1']));
+
+    const busy = rows[0].querySelector<HTMLButtonElement>('button[aria-label^="Desactivar"]')!;
+    expect(busy.disabled).toBe(true);
+    expect(busy.getAttribute('aria-busy')).toBe('true');
+    expect(rows[0].querySelector<HTMLButtonElement>('button[aria-label^="Editar"]')!.disabled).toBe(
+      false,
+    );
+    expect(
+      rows[1].querySelector<HTMLButtonElement>('button[aria-label^="Activar"]')!.disabled,
+    ).toBe(false);
   });
 });
