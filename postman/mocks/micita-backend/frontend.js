@@ -12,7 +12,8 @@
  *   owner    / owner@correo.com  → hasBusiness=true  (owns "Barbería Central", NIT 900.123.456-7)
  *
  * GET /api/servicios (HU-08) lists the services of the user's business: owner has sample data,
- * new businesses start empty, users without business get 403. HU-13 filters: `name` (contains,
+ * new businesses start empty, users without business get 403. HU-15 paging: page (0-based) and
+ * size (default 10, 1..100, else 400), stable order by name and id. HU-13 filters: `name` (contains,
  * case-insensitive), `status` (ACTIVE/INACTIVE, anything else 400) and `employeeIds=a,b` (any). POST /api/servicios (HU-09) adds
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
@@ -112,6 +113,25 @@ const services = [
   ['Limpieza facial', 'Limpieza profunda del rostro.', 90, 60000, 'INACTIVE', []],
   ['Asesoría de imagen', null, null, null, 'ACTIVE', []],
   ['Peinado para evento', 'Peinado para bodas y grados.', 75, 70000, 'DELETED', ['maria']],
+  // HU-15: enough services for owner to page through with 20 per page.
+  ['Alisado', 'Alisado con keratina.', 120, 150000, 'ACTIVE', ['maria']],
+  ['Balayage', 'Iluminación degradada.', 150, 180000, 'ACTIVE', ['ana', 'maria']],
+  ['Cejas', 'Diseño y depilación de cejas.', 20, 15000, 'ACTIVE', ['luisa']],
+  ['Corte infantil', 'Corte para niños hasta 12 años.', 25, 25000, 'ACTIVE', ['juan']],
+  ['Depilación con cera', 'Piernas o brazos.', 40, 40000, 'INACTIVE', ['luisa']],
+  ['Diseño de barba', 'Perfilado con navaja.', 30, 25000, 'ACTIVE', ['pedro']],
+  ['Hidratación capilar', 'Tratamiento de hidratación profunda.', 45, 55000, 'ACTIVE', ['ana']],
+  ['Lavado y secado', null, 30, 20000, 'ACTIVE', ['ana', 'juan']],
+  ['Maquillaje social', 'Maquillaje para eventos.', 60, 90000, 'ACTIVE', ['maria']],
+  ['Masaje capilar', 'Masaje relajante de cuero cabelludo.', 15, 15000, 'INACTIVE', []],
+  ['Mechas', 'Mechas tradicionales.', 120, 120000, 'ACTIVE', ['maria']],
+  ['Pedicure', 'Cuidado de pies y uñas.', 50, 40000, 'ACTIVE', ['luisa']],
+  ['Permanente de pestañas', null, 60, 70000, 'ACTIVE', ['luisa']],
+  ['Planchado', 'Planchado de cabello.', 40, 35000, 'ACTIVE', ['ana']],
+  ['Recorte de puntas', null, 15, 15000, 'ACTIVE', ['juan', 'pedro']],
+  ['Semipermanente de uñas', 'Esmaltado semipermanente.', 60, 50000, 'ACTIVE', ['luisa']],
+  ['Tinte de raíz', 'Retoque de raíz.', 60, 60000, 'ACTIVE', ['maria']],
+  ['Uñas acrílicas', 'Aplicación completa.', 90, 110000, 'INACTIVE', ['luisa']],
 ].map(([name, description, durationMinutes, price, status, staff], index) => ({
   id: `svc-${String(index + 1).padStart(2, '0')}`,
   businessId: OWNER_BUSINESS_ID,
@@ -262,8 +282,19 @@ const routes = {
       return problem(403, 'Forbidden', 'Business required', instance);
     }
     const query = new URL(req.url || '', 'http://localhost').searchParams;
-    const page = Math.max(Number.parseInt(query.get('page') ?? '0', 10) || 0, 0);
-    const size = Math.min(Math.max(Number.parseInt(query.get('size') ?? '20', 10) || 20, 1), 100);
+    // HU-15: 0-based page, default page 0 and size 10. The Front offers 20/50/100, so the mock
+    // accepts up to 100 (HU-15 Back says 50: pending to align).
+    const page = Number(query.get('page') ?? '0');
+    const size = Number(query.get('size') ?? '10');
+    const pagingErrors = {
+      ...(!Number.isInteger(page) || page < 0 ? { page: 'page debe ser un entero >= 0' } : {}),
+      ...(!Number.isInteger(size) || size < 1 || size > 100
+        ? { size: 'size debe estar entre 1 y 100' }
+        : {}),
+    };
+    if (Object.keys(pagingErrors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, pagingErrors);
+    }
     // HU-13 filters, combined with AND: name contains (case-insensitive), status, any employee.
     const name = (query.get('name') ?? '').trim().toLowerCase();
     const status = query.get('status');
@@ -281,7 +312,8 @@ const routes = {
       .filter((s) => !name || s.name.toLowerCase().includes(name))
       .filter((s) => !status || s.status === status)
       .filter((s) => !employeeIds.length || s.employees.some((e) => employeeIds.includes(e.id)))
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      // Stable order across pages: name, then id (HU-15 Back).
+      .sort((a, b) => a.name.localeCompare(b.name, 'es') || a.id.localeCompare(b.id));
     const content = visible
       .slice(page * size, page * size + size)
       .map(({ businessId, ...service }) => service);

@@ -113,6 +113,26 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({"content":[{"id":"svc-04","name":"Barba","description":"Arreglo y perfilado de barba.","durationMinutes":20,"price":20000,"status":"ACTIVE","employees":[{"id":"e-juan","name":"Juan Pérez","photoUrl":null},{"id":"e-pedro","name":"Pedro Ruiz","photoUrl":null}]},{"id":"svc-05","name":"Limpieza facial","description":"Limpieza profunda del rostro.","durationMinutes":90,"price":60000,"status":"INACTIVE","employees":[]}],"page":0,"size":20,"totalElements":2,"totalPages":1}));
   }
 
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    res.writeHead(400, {"Content-Type":"application/problem+json"});
+    return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/servicios","errors":{"size":"size debe estar entre 1 y 100"}}));
+  }
+
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/servicios
+  if (req.method === 'GET' && pathname === '/api/servicios') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
   // @endpoint POST /api/servicios
   if (req.method === 'POST' && pathname === '/api/servicios') {
     const requestedStatusCode = req.headers['x-mock-response-code'];

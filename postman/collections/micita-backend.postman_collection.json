@@ -977,6 +977,182 @@
           ]
         },
         {
+          "name": "Listar servicios paginados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?page=0&size=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Paginación de HU-15: `page` en base 0 y `size`. Sin parámetros se usan page=0 y size=10. El Front ofrece 20, 50 y 100 por página (HU-15 Back dice máximo 50: pendiente de alinear). Orden estable por nombre e id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde la primera página de 1 elemento con los totales', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.include({ page: 0, size: 1 });",
+                  "  pm.expect(body.content.length).to.be.at.most(1);",
+                  "  pm.expect(body.totalPages).to.eql(body.totalElements);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "400 Tamaño inválido",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "400"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios?page=0&size=500",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "500"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/servicios\",\n  \"errors\": {\n    \"size\": \"size debe estar entre 1 y 100\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Listar servicios fuera de rango",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?page=99&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "99"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Una página fuera de rango responde 200 con `content` vacío y los totales correctos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 vacío con los totales', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content).to.eql([]);",
+                  "  pm.expect(body.totalElements).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Listar servicios con tamaño inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?page=-1&size=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "-1"
+                },
+                {
+                  "key": "size",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "`size` fuera de 1..100 o `page` negativa responde 400 con el error por parámetro."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con errores en page y size', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('page', 'size');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Crear servicio",
           "request": {
             "method": "POST",
