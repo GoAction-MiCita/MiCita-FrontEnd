@@ -20,7 +20,8 @@ export interface ServiceResponseDto {
 
 /**
  * Body of `POST /api/servicios` (HU-09 Back); the 201 response is a ServiceResponseDto.
- * `employeeIds` is left out until HU-12.
+ * `employeeIds` (HU-12) is the whole association; a 400 for rejected employees reports each one
+ * as `errors["employeeIds[i]"]`, i being its position in this list (assumed, Spring style).
  */
 export interface CreateServiceRequestDto {
   readonly name: string;
@@ -29,19 +30,25 @@ export interface CreateServiceRequestDto {
   readonly price: number | null;
   /** `ACTIVE` or `INACTIVE`. */
   readonly status: string;
+  readonly employeeIds: readonly string[];
 }
 
 /**
  * Body of `PUT /api/servicios/{id}` (HU-10 Back); the 200 response is a ServiceResponseDto.
  * `employeeIds` replaces the whole association (an empty list removes everyone).
  */
-export interface UpdateServiceRequestDto extends CreateServiceRequestDto {
-  readonly employeeIds: readonly string[];
-}
+export type UpdateServiceRequestDto = CreateServiceRequestDto;
 
 /** Body of `PATCH /api/servicios/{id}/estado` (HU-11 Back): `ACTIVE` or `INACTIVE`. */
 export interface UpdateServiceStatusRequestDto {
   readonly status: string;
+}
+
+/** Item of `GET /api/empleados` (E03, HU-16 Back, not built yet): only what the picker needs. */
+export interface EmployeeResponseDto {
+  readonly id: string;
+  readonly name: string;
+  readonly photoUrl?: string | null;
 }
 
 /** Pagination envelope shared by list endpoints (HU-15 Back). */

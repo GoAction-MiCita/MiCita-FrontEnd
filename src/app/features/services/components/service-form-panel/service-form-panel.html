@@ -85,22 +85,16 @@
           </select>
         </app-form-field>
 
-        @if (editing()) {
-          <section class="service-panel__employees" aria-labelledby="service-panel-employees">
-            <h3 id="service-panel-employees" class="service-panel__label">Empleados asociados</h3>
-            @if (employees().length > 0) {
-              <div class="service-panel__people">
-                <app-avatar-group [people]="employees()" [max]="5" />
-                <p>{{ employeeNames() }}</p>
-              </div>
-            } @else {
-              <p>Sin empleados asignados.</p>
-            }
-            <p class="service-panel__hint">
-              Podrás cambiar los empleados del servicio próximamente.
-            </p>
-          </section>
-        }
+        <app-employee-picker
+          formControlName="employeeIds"
+          label="Empleados que prestan el servicio"
+          optional
+          [employees]="employeeOptions()"
+          [loading]="employeesLoading()"
+          [failed]="employeesFailed()"
+          [rejectedIds]="rejectedEmployeeIds()"
+          [error]="employeesError()"
+        />
       }
     </div>
 

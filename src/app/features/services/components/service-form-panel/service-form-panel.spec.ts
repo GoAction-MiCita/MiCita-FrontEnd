@@ -46,7 +46,7 @@ async function render() {
 }
 
 describe('ServiceFormPanel', () => {
-  it('opens as a modal with the HU-09 fields, without employees', async () => {
+  it('opens as a modal with the HU-09 fields and the optional employees picker', async () => {
     const { element, control } = await render();
 
     expect(element.querySelector('dialog')?.hasAttribute('open')).toBe(true);
@@ -55,8 +55,10 @@ describe('ServiceFormPanel', () => {
       expect(control(name)).toBeTruthy();
     }
     expect(control('status').value).toBe('ACTIVE');
-    expect(element.textContent).not.toContain('Empleados');
     expect(element.querySelectorAll('.form-field__optional')).toHaveLength(3);
+    expect(element.querySelector('app-employee-picker')?.textContent).toContain(
+      'Empleados que prestan el servicio',
+    );
   });
 
   it('requires the name and does not submit when it is empty', async () => {
@@ -75,7 +77,14 @@ describe('ServiceFormPanel', () => {
     await submit();
 
     expect(submitted).toEqual([
-      { name: 'Corte', description: null, durationMinutes: null, price: null, status: 'ACTIVE' },
+      {
+        name: 'Corte',
+        description: null,
+        durationMinutes: null,
+        price: null,
+        status: 'ACTIVE',
+        employeeIds: [],
+      },
     ]);
   });
 
@@ -98,6 +107,7 @@ describe('ServiceFormPanel', () => {
         durationMinutes: 30,
         price: 20000,
         status: 'INACTIVE',
+        employeeIds: [],
       },
     ]);
   });
@@ -265,7 +275,7 @@ describe('ServiceFormPanel in edit mode (HU-10)', () => {
     expect(submitted).toHaveLength(0);
   });
 
-  it('prefills the form with the current data and shows the employees read-only', async () => {
+  it('prefills the form with the current data and its employees selected (HU-12)', async () => {
     const { element, control } = await renderEdit({ service });
 
     expect(control('name').value).toBe('Barba');
@@ -274,15 +284,17 @@ describe('ServiceFormPanel in edit mode (HU-10)', () => {
     expect(control('price').value).toBe('20.000');
     expect(control('status').value).toBe('INACTIVE');
     expect(element.textContent).toContain('16/120');
-    expect(element.textContent).toContain('Empleados asociados');
-    expect(element.textContent).toContain('Juan Pérez, Pedro Ruiz');
-    expect(element.querySelector('select[multiple], input[type="checkbox"]')).toBeNull();
+    const chips = Array.from(element.querySelectorAll('.picker__chip')).map((chip) =>
+      chip.textContent?.trim(),
+    );
+    expect(chips).toEqual(['Juan Pérez', 'Pedro Ruiz']);
+    expect(element.textContent).toContain('2 empleados seleccionados');
   });
 
-  it('says when the service has no employees', async () => {
+  it('says when the business has no employees', async () => {
     const { element } = await renderEdit({ service: { ...service, employees: [] } });
 
-    expect(element.textContent).toContain('Sin empleados asignados');
+    expect(element.textContent).toContain('Sin empleados registrados');
   });
 
   it('emits the edited values', async () => {
@@ -298,6 +310,7 @@ describe('ServiceFormPanel in edit mode (HU-10)', () => {
         durationMinutes: 20,
         price: 25000,
         status: 'ACTIVE',
+        employeeIds: ['e1', 'e2'],
       },
     ]);
   });

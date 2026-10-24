@@ -114,3 +114,30 @@ describe('ServicesFilterBar', () => {
     expect(changes).toHaveLength(0);
   });
 });
+
+describe('ServicesFilterBar employees filter (HU-12)', () => {
+  it('filters by the employees chosen in the picker right away', async () => {
+    const { fixture, element, changes } = await render({ ...NO_SERVICE_FILTERS, name: 'cor' });
+    fixture.componentRef.setInput('employees', [
+      { id: 'e1', name: 'Ana López', photoUrl: null },
+      { id: 'e2', name: 'Juan Pérez', photoUrl: null },
+    ]);
+    await fixture.whenStable();
+
+    element.querySelector<HTMLButtonElement>('.picker__trigger')!.click();
+    await fixture.whenStable();
+    element.querySelector<HTMLInputElement>('.picker__option input')!.click();
+
+    expect(changes).toEqual([{ name: 'cor', status: null, employeeIds: ['e1'] }]);
+    expect(element.querySelector('.picker__label')?.classList).toContain('u-visually-hidden');
+  });
+
+  it('shows the employees from the URL as selected', async () => {
+    const { fixture, element } = await render({ ...NO_SERVICE_FILTERS, employeeIds: ['e1', 'e2'] });
+    await fixture.whenStable();
+
+    expect(element.querySelector('.picker__trigger')?.textContent).toContain(
+      '2 empleados seleccionados',
+    );
+  });
+});

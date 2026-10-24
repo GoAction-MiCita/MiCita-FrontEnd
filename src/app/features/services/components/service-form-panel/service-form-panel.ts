@@ -14,23 +14,25 @@ import {
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CurrencyInput } from '@shared/directives/currency-input';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { integer } from '@shared/forms/validators/integer.validator';
 import { Alert } from '@shared/ui/alert/alert';
-import { AvatarGroup } from '@shared/ui/avatar-group/avatar-group';
 import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
+import { EmployeePicker } from '@features/services/components/employee-picker/employee-picker';
 import { ServiceFormFailure } from '@features/services/models/service-form-failure';
 import {
   NewService,
   NewServiceField,
   SERVICE_STATUS,
   Service,
+  ServiceEmployee,
   ServiceStatus,
 } from '@features/services/models/service.model';
 
@@ -48,6 +50,7 @@ const MESSAGES: Readonly<Record<NewServiceField, ErrorMessages>> = {
     integer: 'Ingresa el precio en pesos, sin decimales',
   },
   status: { required: 'Selecciona el estado' },
+  employeeIds: {},
 };
 
 export type ServiceFormMode = 'create' | 'edit';
@@ -55,16 +58,16 @@ export type ServiceFormMode = 'create' | 'edit';
 /**
  * HU-09 "Agregar servicio" and HU-10 "Editar servicio": side panel on desktop, full screen on
  * mobile. Closes with Esc, the X or "Cancelar" (emits `closed`); the parent removes it.
- * In edit mode the form waits for `service` and shows its employees read-only (picker: HU-12).
+ * In edit mode the form waits for `service`. Employees are chosen with the HU-12 picker.
  */
 @Component({
   selector: 'app-service-form-panel',
   imports: [
     ReactiveFormsModule,
     Alert,
-    AvatarGroup,
     Button,
     CurrencyInput,
+    EmployeePicker,
     FormField,
     FormFieldControl,
     Icon,
@@ -80,6 +83,10 @@ export class ServiceFormPanel {
   readonly loading = input(false);
   readonly pending = input(false);
   readonly failure = input<ServiceFormFailure | null>(null);
+  /** HU-12: employees of the business offered by the picker. */
+  readonly employees = input<readonly ServiceEmployee[]>([]);
+  readonly employeesLoading = input(false);
+  readonly employeesFailed = input(false);
 
   readonly submitted = output<NewService>();
   readonly closed = output();
@@ -94,6 +101,7 @@ export class ServiceFormPanel {
     durationMinutes: [null as number | null, [Validators.min(1), integer()]],
     price: [null as number | null, [Validators.min(0), integer()]],
     status: [SERVICE_STATUS.active as ServiceStatus, Validators.required],
+    employeeIds: [[] as readonly string[]],
   });
 
   private readonly description = toSignal(this.form.controls.description.valueChanges, {
@@ -109,11 +117,23 @@ export class ServiceFormPanel {
   );
   /** In edit mode there is nothing to show or save until the service arrives. */
   protected readonly ready = computed(() => !this.editing() || this.service() !== null);
-  protected readonly employees = computed(() => this.service()?.employees ?? []);
-  protected readonly employeeNames = computed(() =>
-    this.employees()
-      .map((employee) => employee.name)
-      .join(', '),
+  /** The business list plus employees already in the service but missing from it (e.g. removed). */
+  protected readonly employeeOptions = computed(() => {
+    const listed = this.employees();
+    const known = new Set(listed.map((employee) => employee.id));
+    const extra = (this.service()?.employees ?? []).filter((employee) => !known.has(employee.id));
+    return [...listed, ...extra];
+  });
+
+  // The server error stays on the control until the selection changes (Angular revalidates).
+  protected readonly employeesError = toSignal(
+    this.form.controls.employeeIds.events.pipe(
+      map(() => (this.form.controls.employeeIds.errors?.['server'] as string | undefined) ?? null),
+    ),
+    { initialValue: null },
+  );
+  protected readonly rejectedEmployeeIds = computed(() =>
+    this.employeesError() ? (this.failure()?.rejectedEmployeeIds ?? []) : [],
   );
 
   constructor() {
@@ -137,6 +157,7 @@ export class ServiceFormPanel {
             durationMinutes: service.durationMinutes,
             price: service.price,
             status: service.status,
+            employeeIds: service.employees.map((employee) => employee.id),
           }),
         );
       }

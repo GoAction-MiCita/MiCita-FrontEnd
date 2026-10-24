@@ -43,10 +43,10 @@ export class ServicesApi {
     return this.http.get<ServiceResponseDto>(this.serviceUrl(id)).pipe(map(toService));
   }
 
-  /** HU-10: updates a service; `employeeIds` replaces its whole employee list. */
-  update(id: string, service: NewService, employeeIds: readonly string[]): Observable<Service> {
+  /** HU-10: updates a service; its `employeeIds` replace the whole employee list (HU-12). */
+  update(id: string, service: NewService): Observable<Service> {
     return this.http
-      .put<ServiceResponseDto>(this.serviceUrl(id), toUpdateServiceRequestDto(service, employeeIds))
+      .put<ServiceResponseDto>(this.serviceUrl(id), toUpdateServiceRequestDto(service))
       .pipe(map(toService));
   }
 

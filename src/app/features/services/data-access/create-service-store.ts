@@ -50,7 +50,10 @@ export class CreateServiceStore {
         await this.session.expire();
         return false;
       }
-      this.state.set({ pending: false, failure: toServiceFormFailure(apiError) });
+      this.state.set({
+        pending: false,
+        failure: toServiceFormFailure(apiError, undefined, service.employeeIds),
+      });
       return false;
     }
   }

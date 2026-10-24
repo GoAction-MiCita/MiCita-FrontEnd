@@ -20,6 +20,7 @@ import { DeleteServiceDialog } from '@features/services/components/delete-servic
 import { CreateServiceStore } from '@features/services/data-access/create-service-store';
 import { DeleteServiceStore } from '@features/services/data-access/delete-service-store';
 import { EditServiceStore } from '@features/services/data-access/edit-service-store';
+import { EmployeesStore } from '@features/services/data-access/employees-store';
 import { ServiceStatusStore } from '@features/services/data-access/service-status-store';
 import { ServicesStore } from '@features/services/data-access/services-store';
 import {
@@ -42,8 +43,8 @@ export const SERVICES_PAGE_MESSAGES = {
 } as const;
 
 /**
- * HU-08 listado, HU-09 registrar, HU-10 editar, HU-11 activar/desactivar, HU-13 filtrar and
- * HU-14 eliminar servicio
+ * HU-08 listado, HU-09 registrar, HU-10 editar, HU-11 activar/desactivar, HU-12 empleados,
+ * HU-13 filtrar and HU-14 eliminar servicio
  * (private). The filters live in the query params (`?name=&status=&employeeIds=`).
  */
 @Component({
@@ -63,6 +64,7 @@ export const SERVICES_PAGE_MESSAGES = {
     EditServiceStore,
     DeleteServiceStore,
     ServiceStatusStore,
+    EmployeesStore,
   ],
   templateUrl: './services-page.html',
   styleUrl: './services-page.scss',
@@ -74,6 +76,7 @@ export default class ServicesPage {
   private readonly editStore = inject(EditServiceStore);
   protected readonly deleteStore = inject(DeleteServiceStore);
   protected readonly statusStore = inject(ServiceStatusStore);
+  protected readonly employeesStore = inject(EmployeesStore);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);

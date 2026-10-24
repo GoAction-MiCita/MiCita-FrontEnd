@@ -54,6 +54,7 @@ describe('ServicesApi.create', () => {
         durationMinutes: 45,
         price: 45000,
         status: 'ACTIVE',
+        employeeIds: ['e1', 'e1', 'e2'],
       }),
     );
 
@@ -65,6 +66,7 @@ describe('ServicesApi.create', () => {
       durationMinutes: 45,
       price: 45000,
       status: 'ACTIVE',
+      employeeIds: ['e1', 'e2'],
     });
     req.flush({ id: 's9', name: 'Corte', durationMinutes: 45, price: 45000, status: 'ACTIVE' });
 
@@ -110,17 +112,14 @@ describe('ServicesApi edit (HU-10)', () => {
     const { api, http } = setup();
 
     const result = firstValueFrom(
-      api.update(
-        's1',
-        {
-          name: ' Barba ',
-          description: null,
-          durationMinutes: 30,
-          price: 25000,
-          status: 'INACTIVE',
-        },
-        ['e1'],
-      ),
+      api.update('s1', {
+        name: ' Barba ',
+        description: null,
+        durationMinutes: 30,
+        price: 25000,
+        status: 'INACTIVE',
+        employeeIds: ['e1'],
+      }),
     );
 
     const req = http.expectOne('http://api.test/api/servicios/s1');

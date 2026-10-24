@@ -62,20 +62,19 @@ export class EditServiceStore {
     }
   }
 
-  /** Sends the form with the employees the service already had (no picker until HU-12). */
+  /** Sends the form, including the employees chosen in the picker (HU-12). */
   async save(changes: NewService): Promise<SaveServiceResult> {
     const { service, pending } = this.state();
     if (!service || pending) {
       return 'failed';
     }
     this.state.set({ ...IDLE, service, pending: true });
-    const employeeIds = service.employees.map((employee) => employee.id);
     try {
-      await firstValueFrom(this.api.update(service.id, changes, employeeIds));
+      await firstValueFrom(this.api.update(service.id, changes));
       this.state.set({ ...IDLE, service });
       return 'saved';
     } catch (error: unknown) {
-      return this.fail(error, SERVICE_FORM_MESSAGES.updateTitle, { ...IDLE, service });
+      return this.fail(error, SERVICE_FORM_MESSAGES.updateTitle, { ...IDLE, service }, changes);
     }
   }
 
@@ -90,6 +89,7 @@ export class EditServiceStore {
     error: unknown,
     title: string,
     next: EditServiceState,
+    sent?: NewService,
   ): Promise<'not-found' | 'failed'> {
     const apiError = isApiError(error) ? error : UNKNOWN_ERROR;
     if (apiError.kind === API_ERROR_KIND.notFound) {
@@ -101,7 +101,10 @@ export class EditServiceStore {
       await this.session.expire();
       return 'failed';
     }
-    this.state.set({ ...next, failure: toServiceFormFailure(apiError, title) });
+    this.state.set({
+      ...next,
+      failure: toServiceFormFailure(apiError, title, sent?.employeeIds),
+    });
     return 'failed';
   }
 }

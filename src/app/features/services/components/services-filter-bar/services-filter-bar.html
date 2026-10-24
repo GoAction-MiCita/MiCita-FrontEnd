@@ -26,6 +26,17 @@
     </select>
   </label>
 
+  <app-employee-picker
+    class="filter-bar__employees"
+    formControlName="employeeIds"
+    label="Filtrar por empleados"
+    hideLabel
+    [showChips]="false"
+    [employees]="employees()"
+    [loading]="employeesLoading()"
+    [failed]="employeesFailed()"
+  />
+
   @if (canClear()) {
     <button class="filter-bar__clear" type="button" (click)="clear()">
       <app-icon name="x" />

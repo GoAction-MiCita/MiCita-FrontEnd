@@ -1,4 +1,7 @@
 import {
+  REJECTED_EMPLOYEES_MESSAGE,
+  toEmployees,
+  toRejectedEmployeeIds,
   toServiceStatus,
   toServiceListParams,
   toUpdateServiceRequestDto,
@@ -80,6 +83,7 @@ describe('toCreateServiceRequestDto', () => {
         durationMinutes: 45,
         price: 45000,
         status: 'ACTIVE',
+        employeeIds: [],
       }),
     ).toEqual({
       name: 'Corte',
@@ -87,30 +91,36 @@ describe('toCreateServiceRequestDto', () => {
       durationMinutes: 45,
       price: 45000,
       status: 'ACTIVE',
+      employeeIds: [],
     });
   });
 
-  it('keeps optional numbers as null and never sends employees', () => {
+  it('keeps optional numbers as null and sends each employee once (HU-12)', () => {
     const dto = toCreateServiceRequestDto({
       name: 'Barba',
       description: ' Arreglo ',
       durationMinutes: null,
       price: null,
       status: 'INACTIVE',
+      employeeIds: ['e1', 'e2', 'e1'],
     });
 
     expect(dto).toMatchObject({ description: 'Arreglo', durationMinutes: null, price: null });
-    expect(dto).not.toHaveProperty('employeeIds');
+    expect(dto.employeeIds).toEqual(['e1', 'e2']);
   });
 });
 
 describe('toUpdateServiceRequestDto', () => {
-  it('sends the same fields as the create request plus the employee ids', () => {
+  it('sends the same fields as the create request, employee ids included', () => {
     const employeeIds = ['e1', 'e2'];
-    const dto = toUpdateServiceRequestDto(
-      { name: ' Barba ', description: '', durationMinutes: 20, price: 0, status: 'ACTIVE' },
+    const dto = toUpdateServiceRequestDto({
+      name: ' Barba ',
+      description: '',
+      durationMinutes: 20,
+      price: 0,
+      status: 'ACTIVE',
       employeeIds,
-    );
+    });
 
     expect(dto).toEqual({
       name: 'Barba',
@@ -124,10 +134,14 @@ describe('toUpdateServiceRequestDto', () => {
   });
 
   it('sends an empty list when the service has no employees', () => {
-    const dto = toUpdateServiceRequestDto(
-      { name: 'Barba', description: null, durationMinutes: null, price: null, status: 'INACTIVE' },
-      [],
-    );
+    const dto = toUpdateServiceRequestDto({
+      name: 'Barba',
+      description: null,
+      durationMinutes: null,
+      price: null,
+      status: 'INACTIVE',
+      employeeIds: [],
+    });
 
     expect(dto.employeeIds).toEqual([]);
   });
@@ -158,5 +172,38 @@ describe('toServiceStatus (HU-11)', () => {
   it('reads the status of the answer, whatever else it carries', () => {
     expect(toServiceStatus({ status: 'ACTIVE' })).toBe('ACTIVE');
     expect(toServiceStatus({ status: 'INACTIVE' })).toBe('INACTIVE');
+  });
+});
+
+describe('employees (HU-12)', () => {
+  it('maps the employees page', () => {
+    expect(
+      toEmployees({
+        content: [{ id: 'e1', name: 'Ana López' }],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    ).toEqual([{ id: 'e1', name: 'Ana López', photoUrl: null }]);
+  });
+
+  it('finds the rejected employees from employeeIds[i] errors', () => {
+    expect(
+      toRejectedEmployeeIds(
+        { 'employeeIds[2]': 'x', 'employeeIds[0]': 'y', name: 'z', 'employeeIds[9]': 'out' },
+        ['e1', 'e2', 'e3'],
+      ),
+    ).toEqual(['e3', 'e1']);
+    expect(toRejectedEmployeeIds({}, ['e1'])).toEqual([]);
+  });
+
+  it('collapses per-employee errors into one message on the employees field', () => {
+    expect(
+      toNewServiceFieldErrors({ 'employeeIds[0]': 'internal', 'employeeIds[1]': 'internal' }),
+    ).toEqual({ employeeIds: REJECTED_EMPLOYEES_MESSAGE });
+    expect(toNewServiceFieldErrors({ employeeIds: 'Lista inválida' })).toEqual({
+      employeeIds: 'Lista inválida',
+    });
   });
 });
