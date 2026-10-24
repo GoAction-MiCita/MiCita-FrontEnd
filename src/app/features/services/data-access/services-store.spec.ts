@@ -152,3 +152,24 @@ describe('ServicesStore filters (HU-13)', () => {
     expect(list).toHaveBeenLastCalledWith(active);
   });
 });
+
+describe('ServicesStore.setStatus (HU-11)', () => {
+  it('changes the status of one service without fetching again', async () => {
+    const { store, list } = setup(() => of(page));
+    await settle();
+
+    store.setStatus('s1', 'INACTIVE');
+
+    expect(store.services()[0].status).toBe('INACTIVE');
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores unknown ids', async () => {
+    const { store } = setup(() => of(page));
+    await settle();
+
+    store.setStatus('nope', 'INACTIVE');
+
+    expect(store.services()).toEqual(page.items);
+  });
+});

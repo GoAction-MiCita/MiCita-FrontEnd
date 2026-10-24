@@ -6,7 +6,8 @@ import { Icon } from '@shared/ui/icon/icon';
 
 /**
  * Services table (HU-08). Becomes a list of cards on small screens.
- * "Editar" emits `edit` (HU-10) and "Eliminar" emits `remove` (HU-14); toggle waits for HU-11.
+ * Row actions only emit: `edit` (HU-10), `toggleStatus` (HU-11, disabled while `busyIds` has the row)
+ * and `remove` (HU-14).
  */
 @Component({
   selector: 'app-services-table',
@@ -17,7 +18,10 @@ import { Icon } from '@shared/ui/icon/icon';
 })
 export class ServicesTable {
   readonly services = input.required<readonly Service[]>();
+  /** Services whose status change is in flight. */
+  readonly busyIds = input<ReadonlySet<string>>(new Set());
   readonly edit = output<Service>();
+  readonly toggleStatus = output<Service>();
   readonly remove = output<Service>();
 
   protected readonly rows = computed(() =>
@@ -32,6 +36,7 @@ export class ServicesTable {
         price: formatCop(service.price),
         employees: service.employees,
         active,
+        busy: this.busyIds().has(service.id),
         statusLabel: active ? 'Activo' : 'Inactivo',
         editLabel: `Editar ${service.name}`,
         toggleLabel: `${active ? 'Desactivar' : 'Activar'} ${service.name}`,

@@ -7,7 +7,7 @@ import {
   sameServiceFilters,
   ServiceFilters,
 } from '../models/service-filters';
-import { Service } from '../models/service.model';
+import { Service, ServiceStatus } from '../models/service.model';
 import { ServicesLoadError, toServicesLoadError } from '../models/services-error';
 import { ServicesApi } from './services-api';
 
@@ -59,6 +59,17 @@ export class ServicesStore {
     if (!sameServiceFilters(filters, this.currentFilters())) {
       this.currentFilters.set(filters);
     }
+  }
+
+  /** HU-11: shows the status the backend answered, without fetching the list again. */
+  setStatus(id: string, status: ServiceStatus): void {
+    this.page.update(
+      (page) =>
+        page && {
+          ...page,
+          items: page.items.map((item) => (item.id === id ? { ...item, status } : item)),
+        },
+    );
   }
 
   /** Reloads the list with the same filters (retry, or after creating, editing or deleting). */

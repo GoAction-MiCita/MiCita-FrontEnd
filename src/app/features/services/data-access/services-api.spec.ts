@@ -191,3 +191,26 @@ describe('ServicesApi.list with filters (HU-13)', () => {
     http.verify();
   });
 });
+
+describe('ServicesApi.changeStatus (HU-11)', () => {
+  it('patches /servicios/{id}/estado with the new status and returns the stored one', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_URL, useValue: 'http://api.test/api' },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+
+    const result = firstValueFrom(TestBed.inject(ServicesApi).changeStatus('a/b', 'INACTIVE'));
+
+    const req = http.expectOne('http://api.test/api/servicios/a%2Fb/estado');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ status: 'INACTIVE' });
+    req.flush({ id: 'a/b', name: 'Barba', status: 'INACTIVE' });
+
+    expect(await result).toBe('INACTIVE');
+    http.verify();
+  });
+});

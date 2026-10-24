@@ -1,4 +1,5 @@
 import {
+  toServiceStatus,
   toServiceListParams,
   toUpdateServiceRequestDto,
   toCreateServiceRequestDto,
@@ -150,5 +151,12 @@ describe('toServiceListParams (HU-13)', () => {
     expect(
       toServiceListParams({ name: ' cor ', status: 'ACTIVE', employeeIds: ['e1', 'e2'] }),
     ).toEqual({ name: 'cor', status: 'ACTIVE', employeeIds: 'e1,e2' });
+  });
+});
+
+describe('toServiceStatus (HU-11)', () => {
+  it('reads the status of the answer, whatever else it carries', () => {
+    expect(toServiceStatus({ status: 'ACTIVE' })).toBe('ACTIVE');
+    expect(toServiceStatus({ status: 'INACTIVE' })).toBe('INACTIVE');
   });
 });

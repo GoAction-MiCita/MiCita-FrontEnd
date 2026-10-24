@@ -38,7 +38,13 @@
           <button type="button" [attr.aria-label]="row.editLabel" (click)="edit.emit(row.service)">
             <app-icon name="pencil" />
           </button>
-          <button type="button" disabled title="Próximamente" [attr.aria-label]="row.toggleLabel">
+          <button
+            type="button"
+            [attr.aria-label]="row.toggleLabel"
+            [attr.aria-busy]="row.busy || null"
+            [disabled]="row.busy"
+            (click)="toggleStatus.emit(row.service)"
+          >
             <app-icon name="power" />
           </button>
           <button

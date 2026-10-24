@@ -80,6 +80,11 @@ export function toUpdateServiceRequestDto(
   return { ...toCreateServiceRequestDto(service), employeeIds: [...employeeIds] };
 }
 
+/** HU-11: only the new status of the answer is used, whatever else it carries. */
+export function toServiceStatus(dto: Pick<ServiceResponseDto, 'status'>): ServiceStatus {
+  return toStatus(dto.status);
+}
+
 /** Renames server field errors to form field names; unknown fields keep their original key. */
 export function toNewServiceFieldErrors(fieldErrors: FieldErrors): FieldErrors {
   const entries = Object.entries(fieldErrors).map(([field, message]) => {
