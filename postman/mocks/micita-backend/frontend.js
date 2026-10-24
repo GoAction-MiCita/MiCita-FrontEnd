@@ -17,6 +17,8 @@
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
  * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
+ * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
+ * or another value answers 400.
  * DELETE /api/servicios/{id} (HU-14) marks it DELETED (204); owner's "Corte de cabello" (svc-01)
  * has future appointments and answers 409.
  *
@@ -442,6 +444,32 @@ const routes = {
     return { status: 204, headers: {}, body: '' };
   },
 
+  'PATCH /api/servicios/{id}/estado': (body, req, params) => {
+    const instance = `/api/servicios/${params.id}/estado`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    // DELETED is not a valid target here: deleting is HU-14.
+    if (body.status !== 'ACTIVE' && body.status !== 'INACTIVE') {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, {
+        status: 'El estado debe ser ACTIVE o INACTIVE',
+      });
+    }
+    const service = findService(business, params.id);
+    if (!service) {
+      return problem(404, 'Not Found', 'Service not found', instance);
+    }
+    // Idempotent: the same status answers 200 without changes. Appointments are never touched.
+    service.status = body.status;
+    const { businessId, ...response } = service;
+    return json(200, response);
+  },
+
   'POST /api/negocios/onboarding': (body, req) => {
     const instance = '/api/negocios/onboarding';
     const user = authenticatedUser(req);
@@ -490,14 +518,14 @@ function findService(business, id) {
   );
 }
 
-/** Exact route first, then routes with an `{id}` path parameter. */
+/** Exact route first, then routes with an `{id}` path parameter (optionally `/{id}/estado`). */
 function resolveRoute(method, pathname) {
   const exact = routes[`${method} ${pathname}`];
   if (exact) {
     return { handler: exact, params: {} };
   }
-  const match = /^(\/api\/servicios)\/([^/]+)$/.exec(pathname);
-  const handler = match && routes[`${method} ${match[1]}/{id}`];
+  const match = /^(\/api\/servicios)\/([^/]+)(\/estado)?$/.exec(pathname);
+  const handler = match && routes[`${method} ${match[1]}/{id}${match[3] ?? ''}`];
   return handler ? { handler, params: { id: decodeURIComponent(match[2]) } } : null;
 }
 
