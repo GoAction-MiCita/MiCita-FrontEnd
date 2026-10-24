@@ -17,6 +17,8 @@
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
  * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
+ * GET /api/empleados stands in for E03 (HU-16): owner has 5 employees, new businesses none.
+ * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
  * DELETE /api/servicios/{id} (HU-14) marks it DELETED (204); owner's "Corte de cabello" (svc-01)
@@ -308,6 +310,7 @@ const routes = {
         errors[field] = message;
       }
     }
+    Object.assign(errors, employeeErrors(business, body.employeeIds));
     if (Object.keys(errors).length > 0) {
       return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
     }
@@ -329,11 +332,32 @@ const routes = {
       durationMinutes: body.durationMinutes ?? null,
       price: body.price ?? null,
       status: body.status,
-      employees: [], // employeeIds arrive with HU-12
+      employees: pickStaff(business, body.employeeIds ?? []),
     };
     services.push(service);
     const { businessId, ...response } = service;
     return json(201, response);
+  },
+
+  // Stand-in for E03 (HU-16 Back) so the HU-12 picker has data: one page with every employee.
+  'GET /api/empleados': (_body, req) => {
+    const instance = '/api/empleados';
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const content = [...businessStaff(business)].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    return json(200, {
+      content,
+      page: 0,
+      size: content.length || 20,
+      totalElements: content.length,
+      totalPages: content.length ? 1 : 0,
+    });
   },
 
   'GET /api/servicios/{id}': (_body, req, params) => {
@@ -374,15 +398,8 @@ const routes = {
         errors[field] = message;
       }
     }
-    const staff = Object.values(employees);
     const employeeIds = body.employeeIds;
-    if (
-      employeeIds !== undefined &&
-      employeeIds !== null &&
-      (!Array.isArray(employeeIds) || employeeIds.some((id) => !staff.some((e) => e.id === id)))
-    ) {
-      errors.employeeIds = 'Hay empleados que no pertenecen al negocio';
-    }
+    Object.assign(errors, employeeErrors(business, employeeIds));
     if (Object.keys(errors).length > 0) {
       return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
     }
@@ -407,7 +424,7 @@ const routes = {
     });
     // employeeIds replaces the whole association; an empty list removes everyone.
     if (Array.isArray(employeeIds)) {
-      service.employees = staff.filter((e) => employeeIds.includes(e.id));
+      service.employees = pickStaff(business, employeeIds);
     }
     const { businessId, ...response } = service;
     return json(200, response);
@@ -509,6 +526,34 @@ const routes = {
     return json(201, response);
   },
 };
+
+/** Employees of a business (E03 does not exist yet): owner has the sample team, others none. */
+function businessStaff(business) {
+  return business.id === OWNER_BUSINESS_ID ? Object.values(employees) : [];
+}
+
+/** HU-12: each unknown employee is reported by its position, `employeeIds[i]`, Spring style. */
+function employeeErrors(business, employeeIds) {
+  if (employeeIds === undefined || employeeIds === null) {
+    return {};
+  }
+  if (!Array.isArray(employeeIds)) {
+    return { employeeIds: 'employeeIds debe ser una lista' };
+  }
+  const staff = businessStaff(business);
+  return Object.fromEntries(
+    employeeIds
+      .map((id, index) => [index, staff.some((e) => e.id === id)])
+      .filter(([, known]) => !known)
+      .map(([index]) => [`employeeIds[${index}]`, 'El empleado no pertenece al negocio']),
+  );
+}
+
+/** Staff of the business with those ids, each once, in the order sent. */
+function pickStaff(business, employeeIds) {
+  const staff = businessStaff(business);
+  return [...new Set(employeeIds)].map((id) => staff.find((e) => e.id === id)).filter(Boolean);
+}
 
 /** Service of the business that is not DELETED; null for unknown ids or other businesses. */
 function findService(business, id) {

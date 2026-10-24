@@ -1274,6 +1274,172 @@
           "response": []
         },
         {
+          "name": "Listar empleados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?size=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Empleados del negocio para el selector de HU-12. El endpoint real es de E03 (HU-16 Back, aún sin tarea): el mock lo simula con el equipo de `owner`; un negocio nuevo no tiene empleados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con la página de empleados (vacía en un negocio nuevo)', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content).to.be.an('array');",
+                  "  pm.expect(body.totalElements).to.eql(body.content.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados?size=100",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"],
+                  "query": [
+                    {
+                      "key": "size",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": \"e-ana\",\n      \"name\": \"Ana López\",\n      \"photoUrl\": null\n    },\n    {\n      \"id\": \"e-juan\",\n      \"name\": \"Juan Pérez\",\n      \"photoUrl\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 2,\n  \"totalElements\": 2,\n  \"totalPages\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crear servicio con empleado ajeno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Peinado\",\n  \"status\": \"ACTIVE\",\n  \"employeeIds\": [\n    \"e-ana\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            },
+            "description": "Un empleado que no es del negocio responde 400 con un error por posición (`employeeIds[i]`) y no guarda nada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el empleado rechazado por posición', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.property('employeeIds[0]');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "400 Empleado rechazado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "x-mock-response-code",
+                    "value": "400"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Peinado\",\n  \"status\": \"ACTIVE\",\n  \"employeeIds\": [\n    \"e-ana\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/servicios",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "servicios"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/servicios\",\n  \"errors\": {\n    \"employeeIds[0]\": \"El empleado no pertenece al negocio\"\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Obtener servicio",
           "request": {
             "method": "GET",

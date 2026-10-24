@@ -153,6 +153,18 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
   }
 
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    res.writeHead(200, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"content":[{"id":"e-ana","name":"Ana López","photoUrl":null},{"id":"e-juan","name":"Juan Pérez","photoUrl":null}],"page":0,"size":2,"totalElements":2,"totalPages":1}));
+  }
+
+  // @endpoint POST /api/servicios
+  if (req.method === 'POST' && pathname === '/api/servicios') {
+    res.writeHead(400, {"Content-Type":"application/problem+json"});
+    return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/servicios","errors":{"employeeIds[0]":"El empleado no pertenece al negocio"}}));
+  }
+
   // @endpoint GET /api/servicios/{{serviceId}}
   if (req.method === 'GET' && /^\/api\/servicios\/([^/]+)$/.test(pathname)) {
     const requestedStatusCode = req.headers['x-mock-response-code'];
