@@ -616,13 +616,13 @@ describe('ServicesPage · activar o desactivar (HU-11)', () => {
 
 describe('ServicesPage · asociar empleados (HU-12)', () => {
   const picker = (element: HTMLElement) =>
-    element.querySelector<HTMLElement>('app-service-form-panel app-employee-picker')!;
+    element.querySelector<HTMLElement>('app-service-form-panel app-multi-select')!;
 
   async function choose(rendered: Awaited<ReturnType<typeof render>>, name: string) {
-    picker(rendered.element).querySelector<HTMLButtonElement>('.picker__trigger')!.click();
+    picker(rendered.element).querySelector<HTMLButtonElement>('.multi-select__trigger')!.click();
     await rendered.fixture.whenStable();
     const option = Array.from(
-      picker(rendered.element).querySelectorAll<HTMLLabelElement>('.picker__option'),
+      picker(rendered.element).querySelectorAll<HTMLLabelElement>('.multi-select__option'),
     ).find((label) => label.textContent?.includes(name))!;
     option.querySelector<HTMLInputElement>('input')!.click();
     await rendered.fixture.whenStable();
@@ -661,7 +661,9 @@ describe('ServicesPage · asociar empleados (HU-12)', () => {
 
     const element = picker(rendered.element);
     expect(rendered.element.querySelector('app-service-form-panel')).toBeTruthy();
-    expect(element.querySelector('.picker__chip--rejected')?.textContent).toContain('Ana López');
+    expect(element.querySelector('.multi-select__chip--rejected')?.textContent).toContain(
+      'Ana López',
+    );
     expect(element.textContent).toContain('Algunos empleados ya no están disponibles');
     expect(rendered.element.textContent).not.toContain('El empleado no pertenece al negocio');
   });

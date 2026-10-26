@@ -1,23 +1,39 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ServiceEmployee } from '@features/services/models/service.model';
-import { EmployeePicker } from './employee-picker';
+import { MultiSelect, MultiSelectOption, MultiSelectTexts } from './multi-select';
 
-const team: ServiceEmployee[] = [
+const texts: MultiSelectTexts = {
+  placeholder: 'Seleccionar empleados',
+  selected: (count) =>
+    count === 1 ? '1 empleado seleccionado' : `${count} empleados seleccionados`,
+  none: 'Sin empleados registrados',
+  chipsLabel: 'Empleados seleccionados',
+  unknown: 'Empleado no disponible',
+  search: 'Buscar empleado',
+  loading: 'Cargando empleados…',
+  failed: 'No pudimos cargar los empleados.',
+  empty: 'Tu negocio aún no tiene empleados registrados.',
+  noMatches: 'No hay empleados con ese nombre.',
+};
+
+const team: MultiSelectOption[] = [
   { id: 'e1', name: 'Ana López', photoUrl: null },
   { id: 'e2', name: 'Juan Pérez', photoUrl: null },
   { id: 'e3', name: 'María Gómez', photoUrl: 'https://img.test/maria.png' },
 ];
 
 @Component({
-  imports: [ReactiveFormsModule, EmployeePicker],
+  imports: [ReactiveFormsModule, MultiSelect],
   template: `
     <dialog open (cancel)="cancels = cancels + 1">
-      <app-employee-picker
+      <app-multi-select
         label="Empleados"
+        icon="users"
+        avatars
+        [texts]="texts"
         [formControl]="control"
-        [employees]="employees()"
+        [options]="employees()"
         [loading]="loading()"
         [failed]="failed()"
         [rejectedIds]="rejected()"
@@ -30,7 +46,8 @@ const team: ServiceEmployee[] = [
 })
 class Host {
   readonly control = new FormControl<readonly string[]>([], { nonNullable: true });
-  readonly employees = signal<readonly ServiceEmployee[]>(team);
+  readonly texts = texts;
+  readonly employees = signal<readonly MultiSelectOption[]>(team);
   readonly loading = signal(false);
   readonly failed = signal(false);
   readonly rejected = signal<readonly string[]>([]);
@@ -43,19 +60,19 @@ async function render() {
   await fixture.whenStable();
   const element = fixture.nativeElement as HTMLElement;
   const host = fixture.componentInstance;
-  const trigger = () => element.querySelector<HTMLButtonElement>('.picker__trigger')!;
+  const trigger = () => element.querySelector<HTMLButtonElement>('.multi-select__trigger')!;
   const openList = async () => {
     trigger().click();
     await fixture.whenStable();
   };
   const option = (name: string) =>
-    Array.from(element.querySelectorAll<HTMLLabelElement>('.picker__option')).find((label) =>
+    Array.from(element.querySelectorAll<HTMLLabelElement>('.multi-select__option')).find((label) =>
       label.textContent?.includes(name),
     );
   const names = () =>
-    Array.from(element.querySelectorAll('.picker__name')).map((n) => n.textContent?.trim());
+    Array.from(element.querySelectorAll('.multi-select__name')).map((n) => n.textContent?.trim());
   const search = async (text: string) => {
-    const input = element.querySelector<HTMLInputElement>('.picker__search input')!;
+    const input = element.querySelector<HTMLInputElement>('.multi-select__search input')!;
     input.value = text;
     input.dispatchEvent(new Event('input'));
     await fixture.whenStable();
@@ -67,7 +84,7 @@ async function render() {
   return { fixture, element, host, trigger, openList, option, names, search, set };
 }
 
-describe('EmployeePicker', () => {
+describe('MultiSelect', () => {
   it('lists the employees with photo or initials and name when opened', async () => {
     const { element, trigger, openList, names } = await render();
 
@@ -77,10 +94,10 @@ describe('EmployeePicker', () => {
 
     expect(trigger().getAttribute('aria-expanded')).toBe('true');
     expect(names()).toEqual(['Ana López', 'Juan Pérez', 'María Gómez']);
-    expect(element.querySelector('.picker__option img')?.getAttribute('src')).toBe(
+    expect(element.querySelector('.multi-select__option img')?.getAttribute('src')).toBe(
       'https://img.test/maria.png',
     );
-    expect(element.querySelector('.picker__option')?.textContent).toContain('AL');
+    expect(element.querySelector('.multi-select__option')?.textContent).toContain('AL');
   });
 
   it('selects several employees and writes their ids to the control', async () => {
@@ -93,7 +110,7 @@ describe('EmployeePicker', () => {
 
     expect(host.control.value).toEqual(['e2', 'e1']);
     expect(trigger().textContent).toContain('2 empleados seleccionados');
-    const chips = Array.from(element.querySelectorAll('.picker__chip')).map((c) =>
+    const chips = Array.from(element.querySelectorAll('.multi-select__chip')).map((c) =>
       c.textContent?.trim(),
     );
     expect(chips).toEqual(['Juan Pérez', 'Ana López']);
@@ -119,7 +136,7 @@ describe('EmployeePicker', () => {
     expect(option('Ana')!.querySelector('input')!.checked).toBe(true);
     expect(option('Juan')!.querySelector('input')!.checked).toBe(false);
 
-    element.querySelector<HTMLButtonElement>('button[aria-label="Quitar a Ana López"]')!.click();
+    element.querySelector<HTMLButtonElement>('button[aria-label="Quitar Ana López"]')!.click();
     await fixture.whenStable();
     expect(host.control.value).toEqual(['e3']);
 
@@ -136,11 +153,13 @@ describe('EmployeePicker', () => {
     });
     await openList();
 
-    expect(element.querySelector('.picker__chip--rejected')?.textContent).toContain('Juan Pérez');
-    expect(option('Juan')!.classList).toContain('picker__option--rejected');
+    expect(element.querySelector('.multi-select__chip--rejected')?.textContent).toContain(
+      'Juan Pérez',
+    );
+    expect(option('Juan')!.classList).toContain('multi-select__option--rejected');
     expect(option('Juan')!.textContent).toContain('No disponible');
     expect(trigger().getAttribute('aria-invalid')).toBe('true');
-    expect(element.querySelector('.picker__error')?.textContent).toContain(
+    expect(element.querySelector('.multi-select__error')?.textContent).toContain(
       'ya no están disponibles',
     );
   });
@@ -151,7 +170,7 @@ describe('EmployeePicker', () => {
 
     expect(trigger().textContent).toContain('Sin empleados registrados');
     await openList();
-    expect(element.textContent).toContain('Puedes guardar el servicio sin empleados');
+    expect(element.textContent).toContain(texts.empty);
   });
 
   it.each([
@@ -170,7 +189,7 @@ describe('EmployeePicker', () => {
     await openList();
 
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    element.querySelector('.picker__search input')!.dispatchEvent(escape);
+    element.querySelector('.multi-select__search input')!.dispatchEvent(escape);
     await fixture.whenStable();
 
     expect(escape.defaultPrevented).toBe(true);
@@ -205,7 +224,39 @@ describe('EmployeePicker', () => {
     );
     await openList();
 
-    expect(element.querySelector('.picker__option img[src="x"]')).toBeNull();
+    expect(element.querySelector('.multi-select__option img[src="x"]')).toBeNull();
     expect(element.textContent).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  it('shows the hint of an option, and no avatars unless asked', async () => {
+    @Component({
+      imports: [ReactiveFormsModule, MultiSelect],
+      template: `<app-multi-select
+        label="Servicios"
+        [texts]="texts"
+        [formControl]="control"
+        [options]="options"
+      />`,
+      changeDetection: ChangeDetectionStrategy.OnPush,
+    })
+    class PlainHost {
+      readonly texts = texts;
+      readonly control = new FormControl<readonly string[]>([], { nonNullable: true });
+      readonly options: MultiSelectOption[] = [
+        { id: 's1', name: 'Corte' },
+        { id: 's2', name: 'Tinte', hint: 'Inactivo' },
+      ];
+    }
+    const fixture = TestBed.createComponent(PlainHost);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.multi-select__trigger')!.click();
+    await fixture.whenStable();
+
+    expect(element.querySelector('app-avatar-group')).toBeNull();
+    const hints = Array.from(element.querySelectorAll('.multi-select__hint')).map((hint) =>
+      hint.textContent?.trim(),
+    );
+    expect(hints).toEqual(['Inactivo']);
   });
 });

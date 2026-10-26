@@ -5,39 +5,49 @@ import {
   effect,
   inject,
   input,
+  signal,
   untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HOME_PATH } from '@core/auth/auth-guard';
-import {
-  COMING_SOON,
-  EmployeesTable,
-} from '@features/employees/components/employees-table/employees-table';
+import { Notifier } from '@core/notifications/notifier';
+import { EmployeeFormPanel } from '@features/employees/components/employee-form-panel/employee-form-panel';
+import { EmployeesTable } from '@features/employees/components/employees-table/employees-table';
+import { CreateEmployeeStore } from '@features/employees/data-access/create-employee-store';
 import { EmployeesStore } from '@features/employees/data-access/employees-store';
+import { ServiceOptionsStore } from '@features/employees/data-access/service-options-store';
+import { NewEmployee } from '@features/employees/models/employee.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { Icon } from '@shared/ui/icon/icon';
 import { Paginator } from '@shared/ui/paginator/paginator';
 import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
 
+export const EMPLOYEES_PAGE_MESSAGES = {
+  created: 'Empleado creado',
+} as const;
+
 /**
- * HU-16: employees of the business (private). The page lives in the query params
- * (`?page=&size=`, page 1-based). Creating, editing and the row actions come in later stories.
+ * HU-16 listado and HU-17 registrar (private). The page lives in the query params
+ * (`?page=&size=`, page 1-based). Editing and the row actions come in later stories.
  */
 @Component({
   selector: 'app-employees-page',
-  imports: [Alert, Button, EmployeesTable, Icon, Paginator],
-  providers: [EmployeesStore],
+  imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator],
+  providers: [EmployeesStore, CreateEmployeeStore, ServiceOptionsStore],
   templateUrl: './employees-page.html',
   styleUrl: './employees-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EmployeesPage {
   protected readonly store = inject(EmployeesStore);
+  protected readonly createStore = inject(CreateEmployeeStore);
+  protected readonly servicesStore = inject(ServiceOptionsStore);
+  private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly comingSoon = COMING_SOON;
+  protected readonly panelOpen = signal(false);
 
   // Query params, bound by withComponentInputBinding.
   readonly page = input<string>();
@@ -70,6 +80,26 @@ export default class EmployeesPage {
         untracked(() => void this.router.navigateByUrl(HOME_PATH, { replaceUrl: true }));
       }
     });
+  }
+
+  /** HU-17: the services for the picker load the first time the panel opens. */
+  protected openPanel(): void {
+    this.createStore.reset();
+    this.servicesStore.load();
+    this.panelOpen.set(true);
+  }
+
+  protected closePanel(): void {
+    this.panelOpen.set(false);
+  }
+
+  /** 201: close, reload the current page and confirm; errors stay in the panel. */
+  protected async create(employee: NewEmployee): Promise<void> {
+    if (await this.createStore.create(employee)) {
+      this.panelOpen.set(false);
+      this.store.reload();
+      this.notifier.success(EMPLOYEES_PAGE_MESSAGES.created);
+    }
   }
 
   protected goToPage(page: number): void {

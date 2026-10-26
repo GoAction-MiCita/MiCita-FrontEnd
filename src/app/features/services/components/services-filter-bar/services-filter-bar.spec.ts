@@ -124,19 +124,19 @@ describe('ServicesFilterBar employees filter (HU-12)', () => {
     ]);
     await fixture.whenStable();
 
-    element.querySelector<HTMLButtonElement>('.picker__trigger')!.click();
+    element.querySelector<HTMLButtonElement>('.multi-select__trigger')!.click();
     await fixture.whenStable();
-    element.querySelector<HTMLInputElement>('.picker__option input')!.click();
+    element.querySelector<HTMLInputElement>('.multi-select__option input')!.click();
 
     expect(changes).toEqual([{ name: 'cor', status: null, employeeIds: ['e1'] }]);
-    expect(element.querySelector('.picker__label')?.classList).toContain('u-visually-hidden');
+    expect(element.querySelector('.multi-select__label')?.classList).toContain('u-visually-hidden');
   });
 
   it('shows the employees from the URL as selected', async () => {
     const { fixture, element } = await render({ ...NO_SERVICE_FILTERS, employeeIds: ['e1', 'e2'] });
     await fixture.whenStable();
 
-    expect(element.querySelector('.picker__trigger')?.textContent).toContain(
+    expect(element.querySelector('.multi-select__trigger')?.textContent).toContain(
       '2 empleados seleccionados',
     );
   });

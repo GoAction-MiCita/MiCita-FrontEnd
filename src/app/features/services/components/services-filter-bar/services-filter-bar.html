@@ -26,13 +26,16 @@
     </select>
   </label>
 
-  <app-employee-picker
+  <app-multi-select
     class="filter-bar__employees"
     formControlName="employeeIds"
     label="Filtrar por empleados"
+    icon="users"
+    avatars
     hideLabel
     [showChips]="false"
-    [employees]="employees()"
+    [texts]="employeePickerTexts"
+    [options]="employees()"
     [loading]="employeesLoading()"
     [failed]="employeesFailed()"
   />

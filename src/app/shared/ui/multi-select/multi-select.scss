@@ -4,7 +4,7 @@
   display: block;
 }
 
-.picker {
+.multi-select {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -148,6 +148,14 @@
   &__flag {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
+  }
+
+  &__hint {
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
   }
 
   &__message {

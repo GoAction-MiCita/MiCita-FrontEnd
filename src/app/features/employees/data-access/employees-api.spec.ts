@@ -71,4 +71,37 @@ describe('EmployeesApi', () => {
     http.expectOne('http://api.test/api/empleados?page=0&size=20');
     http.verify();
   });
+
+  it('creates an employee with the mapped body and maps the answer', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(
+      api.create({
+        firstName: ' Eva ',
+        lastName: 'Ruiz',
+        phone: '300 123 4567',
+        email: 'Eva@Correo.com',
+        status: 'ACTIVE',
+        serviceIds: ['s1'],
+      }),
+    );
+
+    const req = http.expectOne('http://api.test/api/empleados');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      firstName: 'Eva',
+      lastName: 'Ruiz',
+      phone: '3001234567',
+      email: 'eva@correo.com',
+      status: 'ACTIVE',
+      serviceIds: ['s1'],
+    });
+    req.flush(
+      { id: 'e9', firstName: 'Eva', lastName: 'Ruiz', status: 'ACTIVE', services: [] },
+      { status: 201, statusText: 'Created' },
+    );
+
+    expect(await result).toMatchObject({ id: 'e9', fullName: 'Eva Ruiz' });
+    http.verify();
+  });
 });

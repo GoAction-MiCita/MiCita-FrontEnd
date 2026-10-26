@@ -25,7 +25,8 @@ import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
-import { EmployeePicker } from '@features/services/components/employee-picker/employee-picker';
+import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
+import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 import { ServiceFormFailure } from '@features/services/models/service-form-failure';
 import {
   NewService,
@@ -67,7 +68,7 @@ export type ServiceFormMode = 'create' | 'edit';
     Alert,
     Button,
     CurrencyInput,
-    EmployeePicker,
+    MultiSelect,
     FormField,
     FormFieldControl,
     Icon,
@@ -92,6 +93,7 @@ export class ServiceFormPanel {
   readonly closed = output();
 
   protected readonly messages = MESSAGES;
+  protected readonly employeePickerTexts = EMPLOYEE_PICKER_TEXTS;
   protected readonly status = SERVICE_STATUS;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 

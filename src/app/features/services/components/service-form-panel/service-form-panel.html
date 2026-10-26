@@ -85,11 +85,14 @@
           </select>
         </app-form-field>
 
-        <app-employee-picker
+        <app-multi-select
           formControlName="employeeIds"
           label="Empleados que prestan el servicio"
+          icon="users"
+          avatars
           optional
-          [employees]="employeeOptions()"
+          [texts]="employeePickerTexts"
+          [options]="employeeOptions()"
           [loading]="employeesLoading()"
           [failed]="employeesFailed()"
           [rejectedIds]="rejectedEmployeeIds()"

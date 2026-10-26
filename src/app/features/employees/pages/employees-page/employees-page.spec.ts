@@ -2,13 +2,17 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { AuthSession } from '@core/auth/auth-session';
 import { ApiError } from '@core/http/api-error.model';
+import { Notifier } from '@core/notifications/notifier';
 import { EmployeesApi } from '@features/employees/data-access/employees-api';
-import { EmployeePage } from '@features/employees/models/employee.model';
+import { ServiceOptionsApi } from '@features/employees/data-access/service-options-api';
+import { EMPLOYEE_FORM_MESSAGES } from '@features/employees/models/employee-form-failure';
+import { Employee, EmployeePage, ServiceOption } from '@features/employees/models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
 import { NEVER, Observable, of, throwError } from 'rxjs';
-import EmployeesPage from './employees-page';
+import EmployeesPage, { EMPLOYEES_PAGE_MESSAGES } from './employees-page';
 
 @Component({ template: 'dashboard' })
 class FakeDashboard {}
@@ -40,11 +44,26 @@ function apiError(kind: ApiError['kind']): ApiError {
   return { kind, status: 0, message: null, fieldErrors: {} };
 }
 
-async function renderAt(url: string, list: (paging: Paging) => Observable<EmployeePage> = paged) {
+const services: ServiceOption[] = [
+  { id: 's1', name: 'Corte', active: true },
+  { id: 's2', name: 'Tinte', active: false },
+];
+
+async function renderAt(
+  url: string,
+  list: (paging: Paging) => Observable<EmployeePage> = paged,
+  create: () => Observable<Employee> = () => of(ana),
+) {
   const listSpy = vi.fn(list);
+  const createSpy = vi.fn(create);
+  const servicesSpy = vi.fn(() => of(services));
+  const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
-      { provide: EmployeesApi, useValue: { list: listSpy } },
+      { provide: EmployeesApi, useValue: { list: listSpy, create: createSpy } },
+      { provide: ServiceOptionsApi, useValue: { list: servicesSpy } },
+      { provide: AuthSession, useValue: { expire: vi.fn() } },
+      { provide: Notifier, useValue: notifier },
       provideRouter(
         [
           { path: 'empleados', component: EmployeesPage },
@@ -61,7 +80,16 @@ async function renderAt(url: string, list: (paging: Paging) => Observable<Employ
   const element = () => harness.routeNativeElement as HTMLElement;
   const button = (label: string) =>
     element().querySelector<HTMLButtonElement>(`app-paginator button[aria-label="${label}"]`)!;
-  return { harness, element, list: listSpy, url: () => router.url, button };
+  return {
+    harness,
+    element,
+    list: listSpy,
+    create: createSpy,
+    services: servicesSpy,
+    notifier,
+    url: () => router.url,
+    button,
+  };
 }
 
 describe('EmployeesPage', () => {
@@ -75,13 +103,10 @@ describe('EmployeesPage', () => {
     );
   });
 
-  it('keeps "Agregar empleado" visible but disabled until HU-17', async () => {
-    const { element } = await renderAt('/empleados');
+  it('does not ask for the services until the panel opens', async () => {
+    const { services } = await renderAt('/empleados');
 
-    const add = element().querySelector<HTMLButtonElement>('header button')!;
-    expect(add.textContent).toContain('Agregar empleado');
-    expect(add.disabled).toBe(true);
-    expect(add.title).toBe('Próximamente');
+    expect(services).not.toHaveBeenCalled();
   });
 
   it('shows a loading indicator', async () => {
@@ -173,5 +198,83 @@ describe('EmployeesPage', () => {
 
     expect(url()).toBe('/empleados?page=3');
     expect(list).toHaveBeenLastCalledWith({ page: 2, size: 20 });
+  });
+});
+
+describe('EmployeesPage · registrar (HU-17)', () => {
+  async function openPanel(url = '/empleados', create?: () => Observable<Employee>) {
+    const page = await renderAt(url, url === '/empleados' ? paged : () => of(emptyPage), create);
+    const button = page
+      .element()
+      .querySelector<HTMLButtonElement>(
+        url === '/empleados' ? 'header button' : '.employees-page__empty button',
+      )!;
+    button.click();
+    await page.harness.fixture.whenStable();
+    const panel = () => page.element().querySelector('app-employee-form-panel');
+    const fill = async (values: Record<string, string>) => {
+      for (const [name, value] of Object.entries(values)) {
+        const input = panel()!.querySelector<HTMLInputElement>(`[formControlName="${name}"]`)!;
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+      }
+      await page.harness.fixture.whenStable();
+    };
+    const save = async () => {
+      panel()!.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+      await page.harness.fixture.whenStable();
+    };
+    return { ...page, panel, fill, save };
+  }
+
+  it('opens the form from the header and loads the services once', async () => {
+    const { panel, services } = await openPanel();
+
+    expect(panel()?.textContent).toContain('Agregar empleado');
+    expect(services).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the form from the empty state', async () => {
+    const { panel } = await openPanel('/empleados?vacio');
+
+    expect(panel()).not.toBeNull();
+  });
+
+  it('on 201 closes the form, reloads the list and confirms', async () => {
+    const { panel, fill, save, create, list, notifier } = await openPanel();
+    const listCalls = list.mock.calls.length;
+
+    await fill({ firstName: 'Eva', lastName: 'Ruiz' });
+    await save();
+
+    expect(create).toHaveBeenCalledWith({
+      firstName: 'Eva',
+      lastName: 'Ruiz',
+      phone: null,
+      email: null,
+      status: 'ACTIVE',
+      serviceIds: [],
+    });
+    expect(panel()).toBeNull();
+    expect(list.mock.calls.length).toBe(listCalls + 1);
+    expect(notifier.success).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.created);
+  });
+
+  it('on 409 keeps the form open with the error on the duplicated field', async () => {
+    const conflict: ApiError = {
+      kind: 'conflict',
+      status: 409,
+      message: null,
+      fieldErrors: { email: 'duplicado' },
+    };
+    const { panel, fill, save, notifier } = await openPanel('/empleados', () =>
+      throwError(() => conflict),
+    );
+
+    await fill({ firstName: 'Eva', lastName: 'Ruiz', email: 'ana@correo.com' });
+    await save();
+
+    expect(panel()?.textContent).toContain(EMPLOYEE_FORM_MESSAGES.duplicateEmail);
+    expect(notifier.success).not.toHaveBeenCalled();
   });
 });

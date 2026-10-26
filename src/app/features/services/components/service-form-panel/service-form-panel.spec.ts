@@ -56,7 +56,7 @@ describe('ServiceFormPanel', () => {
     }
     expect(control('status').value).toBe('ACTIVE');
     expect(element.querySelectorAll('.form-field__optional')).toHaveLength(3);
-    expect(element.querySelector('app-employee-picker')?.textContent).toContain(
+    expect(element.querySelector('app-multi-select')?.textContent).toContain(
       'Empleados que prestan el servicio',
     );
   });
@@ -284,7 +284,7 @@ describe('ServiceFormPanel in edit mode (HU-10)', () => {
     expect(control('price').value).toBe('20.000');
     expect(control('status').value).toBe('INACTIVE');
     expect(element.textContent).toContain('16/120');
-    const chips = Array.from(element.querySelectorAll('.picker__chip')).map((chip) =>
+    const chips = Array.from(element.querySelectorAll('.multi-select__chip')).map((chip) =>
       chip.textContent?.trim(),
     );
     expect(chips).toEqual(['Juan Pérez', 'Pedro Ruiz']);
