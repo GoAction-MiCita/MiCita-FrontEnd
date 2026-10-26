@@ -1,4 +1,82 @@
-import { toEmployee, toEmployeeListParams, toEmployeePage } from './employee.mapper';
+import {
+  REJECTED_SERVICES_MESSAGE,
+  toCreateEmployeeRequestDto,
+  toEmployee,
+  toEmployeeListParams,
+  toEmployeePage,
+  toNewEmployeeFieldErrors,
+  toRejectedServiceIds,
+  toServiceOptions,
+} from './employee.mapper';
+
+describe('employee.mapper · HU-17', () => {
+  it('builds the creation body: trimmed names, clean phone, lowercase email, unique services', () => {
+    expect(
+      toCreateEmployeeRequestDto({
+        firstName: ' Ana ',
+        lastName: ' López ',
+        phone: '+57 (300) 123-4567',
+        email: ' Ana@Correo.COM ',
+        status: 'ACTIVE',
+        serviceIds: ['s1', 's2', 's1'],
+      }),
+    ).toEqual({
+      firstName: 'Ana',
+      lastName: 'López',
+      phone: '+573001234567',
+      email: 'ana@correo.com',
+      status: 'ACTIVE',
+      serviceIds: ['s1', 's2'],
+    });
+  });
+
+  it('sends empty optionals as null', () => {
+    const dto = toCreateEmployeeRequestDto({
+      firstName: 'Ana',
+      lastName: 'López',
+      phone: ' ',
+      email: null,
+      status: 'INACTIVE',
+      serviceIds: [],
+    });
+    expect(dto).toMatchObject({ phone: null, email: null, serviceIds: [] });
+  });
+
+  it('collapses per-service errors into one message on the services field', () => {
+    expect(toNewEmployeeFieldErrors({ firstName: 'x', 'serviceIds[1]': 'y', other: 'z' })).toEqual({
+      firstName: 'x',
+      serviceIds: REJECTED_SERVICES_MESSAGE,
+      other: 'z',
+    });
+  });
+
+  it('finds the rejected services from serviceIds[i] errors', () => {
+    expect(
+      toRejectedServiceIds({ 'serviceIds[1]': 'x', 'serviceIds[0]': 'y', 'serviceIds[7]': 'z' }, [
+        's1',
+        's2',
+      ]),
+    ).toEqual(['s2', 's1']);
+  });
+
+  it('maps the services of the business for the picker', () => {
+    expect(
+      toServiceOptions({
+        content: [
+          { id: 's1', name: 'Corte', status: 'ACTIVE' },
+          { id: 's2', name: 'Tinte', status: 'INACTIVE' },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 2,
+        totalPages: 1,
+      }),
+    ).toEqual([
+      { id: 's1', name: 'Corte', active: true },
+      { id: 's2', name: 'Tinte', active: false },
+    ]);
+  });
+});
 
 describe('employee.mapper', () => {
   it('maps a full employee', () => {

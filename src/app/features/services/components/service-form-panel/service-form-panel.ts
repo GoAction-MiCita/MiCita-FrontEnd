@@ -10,6 +10,7 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core';
@@ -20,13 +21,18 @@ import { CurrencyInput } from '@shared/directives/currency-input';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { integer } from '@shared/forms/validators/integer.validator';
+import { notBlank } from '@shared/forms/validators/not-blank.validator';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
-import { EmployeePicker } from '@features/services/components/employee-picker/employee-picker';
-import { ServiceFormFailure } from '@features/services/models/service-form-failure';
+import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
+import { MultiSelect } from '@shared/ui/multi-select/multi-select';
+import {
+  SERVICE_FORM_MESSAGES,
+  ServiceFormFailure,
+} from '@features/services/models/service-form-failure';
 import {
   NewService,
   NewServiceField,
@@ -67,7 +73,7 @@ export type ServiceFormMode = 'create' | 'edit';
     Alert,
     Button,
     CurrencyInput,
-    EmployeePicker,
+    MultiSelect,
     FormField,
     FormFieldControl,
     Icon,
@@ -92,11 +98,12 @@ export class ServiceFormPanel {
   readonly closed = output();
 
   protected readonly messages = MESSAGES;
+  protected readonly employeePickerTexts = EMPLOYEE_PICKER_TEXTS;
   protected readonly status = SERVICE_STATUS;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    name: ['', Validators.required],
+    name: ['', [Validators.required, notBlank()]],
     description: ['', Validators.maxLength(DESCRIPTION_MAX_LENGTH)],
     durationMinutes: [null as number | null, [Validators.min(1), integer()]],
     price: [null as number | null, [Validators.min(0), integer()]],
@@ -136,6 +143,12 @@ export class ServiceFormPanel {
     this.employeesError() ? (this.failure()?.rejectedEmployeeIds ?? []) : [],
   );
 
+  /** A 400 whose field errors match no control: "Revisa los campos marcados" would point at nothing. */
+  private readonly nothingMarked = signal(false);
+  protected readonly failureSummary = computed(() =>
+    this.nothingMarked() ? SERVICE_FORM_MESSAGES.unexpected : (this.failure()?.summary ?? ''),
+  );
+
   constructor() {
     // Give focus back to the button that opened the panel.
     const opener = inject(DOCUMENT).activeElement;
@@ -166,7 +179,13 @@ export class ServiceFormPanel {
     effect(() => {
       const failure = this.failure();
       if (failure) {
-        untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const unmatched = untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const marked = Object.keys(failure.fieldErrors).length - unmatched.length;
+        this.nothingMarked.set(
+          failure.summary === SERVICE_FORM_MESSAGES.checkFields && marked === 0,
+        );
+      } else {
+        this.nothingMarked.set(false);
       }
     });
   }

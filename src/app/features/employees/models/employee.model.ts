@@ -31,3 +31,23 @@ export interface EmployeePage {
   readonly totalElements: number;
   readonly totalPages: number;
 }
+
+/** Data captured by the employee form (HU-17). Optional fields are `null` when empty. */
+export interface NewEmployee {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly status: EmployeeStatus;
+  /** Services the employee provides (empty: none). */
+  readonly serviceIds: readonly string[];
+}
+
+export type NewEmployeeField = keyof NewEmployee;
+
+/** Service of the business offered by the form's services picker (not DELETED). */
+export interface ServiceOption {
+  readonly id: string;
+  readonly name: string;
+  readonly active: boolean;
+}

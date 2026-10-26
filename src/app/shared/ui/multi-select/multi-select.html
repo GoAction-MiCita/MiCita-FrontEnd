@@ -1,0 +1,104 @@
+<div class="multi-select">
+  <span class="multi-select__label" [id]="ids.label" [class.u-visually-hidden]="hideLabel()">
+    {{ label() }}
+    @if (optional()) {
+      <span class="multi-select__optional">(opcional)</span>
+    }
+  </span>
+
+  @if (showChips() && chips().length > 0) {
+    <ul class="multi-select__chips" [attr.aria-label]="texts().chipsLabel">
+      @for (chip of chips(); track chip.id) {
+        <li class="multi-select__chip" [class.multi-select__chip--rejected]="chip.rejected">
+          {{ chip.name }}
+          <button
+            type="button"
+            [attr.aria-label]="chip.removeLabel"
+            [disabled]="disabled()"
+            (click)="remove(chip.id)"
+          >
+            <app-icon name="x" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <button
+    class="multi-select__trigger"
+    type="button"
+    [id]="ids.trigger"
+    [class.multi-select__trigger--invalid]="invalid()"
+    [attr.aria-labelledby]="ids.label + ' ' + ids.trigger"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="ids.list"
+    [attr.aria-invalid]="invalid() || null"
+    [attr.aria-describedby]="error() ? ids.error : null"
+    [disabled]="disabled()"
+    (click)="toggleOpen()"
+  >
+    <app-icon [name]="icon()" />
+    <span class="multi-select__summary">{{ triggerText() }}</span>
+  </button>
+
+  @if (open()) {
+    <div class="multi-select__popup" [id]="ids.list">
+      <label class="multi-select__search">
+        <span class="u-visually-hidden">{{ texts().search }}</span>
+        <app-icon name="search" />
+        <input
+          type="search"
+          autocomplete="off"
+          placeholder="Buscar por nombre"
+          [value]="query()"
+          (input)="search($event)"
+        />
+      </label>
+
+      @if (loading()) {
+        <p class="multi-select__message" role="status">{{ texts().loading }}</p>
+      } @else if (failed()) {
+        <p class="multi-select__message">{{ texts().failed }}</p>
+      } @else if (options().length === 0) {
+        <p class="multi-select__message">{{ texts().empty }}</p>
+      } @else if (visibleOptions().length === 0) {
+        <p class="multi-select__message">{{ texts().noMatches }}</p>
+      } @else {
+        <ul class="multi-select__options" role="group" [attr.aria-labelledby]="ids.label">
+          @for (option of visibleOptions(); track option.id) {
+            <li>
+              <label
+                class="multi-select__option"
+                [class.multi-select__option--rejected]="option.rejected"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="option.checked"
+                  [attr.aria-invalid]="option.rejected || null"
+                  (change)="toggle(option.id)"
+                />
+                @if (avatars()) {
+                  <app-avatar-group [people]="option.people" [max]="1" />
+                }
+                <span class="multi-select__name">{{ option.name }}</span>
+                @if (option.hint) {
+                  <span class="multi-select__hint">{{ option.hint }}</span>
+                }
+                @if (option.rejected) {
+                  <span class="multi-select__flag">No disponible</span>
+                }
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (error(); as message) {
+    <p class="multi-select__error" [id]="ids.error">
+      <app-icon name="alert-circle" />
+      {{ message }}
+    </p>
+  }
+</div>

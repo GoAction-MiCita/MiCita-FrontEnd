@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { EmployeePicker } from '@features/services/components/employee-picker/employee-picker';
+import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
+import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 import {
   hasServiceFilters,
   NO_SERVICE_FILTERS,
@@ -34,7 +35,7 @@ export const NAME_FILTER_DEBOUNCE_MS = 300;
  */
 @Component({
   selector: 'app-services-filter-bar',
-  imports: [ReactiveFormsModule, EmployeePicker, Icon],
+  imports: [ReactiveFormsModule, MultiSelect, Icon],
   templateUrl: './services-filter-bar.html',
   styleUrl: './services-filter-bar.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +48,7 @@ export class ServicesFilterBar {
   readonly employeesFailed = input(false);
 
   protected readonly status = SERVICE_STATUS;
+  protected readonly employeePickerTexts = EMPLOYEE_PICKER_TEXTS;
   protected readonly canClear = computed(() => hasServiceFilters(this.filters()));
 
   protected readonly form = inject(NonNullableFormBuilder).group({

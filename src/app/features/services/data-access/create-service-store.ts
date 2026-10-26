@@ -52,7 +52,8 @@ export class CreateServiceStore {
       }
       this.state.set({
         pending: false,
-        failure: toServiceFormFailure(apiError, undefined, service.employeeIds),
+        // The body carries the employees without duplicates; employeeIds[i] indexes that list.
+        failure: toServiceFormFailure(apiError, undefined, [...new Set(service.employeeIds)]),
       });
       return false;
     }

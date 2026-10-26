@@ -4,8 +4,13 @@ import { API_URL } from '@core/config/api-url';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
 import { map, Observable } from 'rxjs';
 import { EmployeeResponseDto, PageDto } from '../models/employee.dto';
-import { toEmployeeListParams, toEmployeePage } from '../models/employee.mapper';
-import { EmployeePage } from '../models/employee.model';
+import {
+  toCreateEmployeeRequestDto,
+  toEmployee,
+  toEmployeeListParams,
+  toEmployeePage,
+} from '../models/employee.mapper';
+import { Employee, EmployeePage, NewEmployee } from '../models/employee.model';
 
 @Injectable({ providedIn: 'root' })
 export class EmployeesApi {
@@ -19,5 +24,12 @@ export class EmployeesApi {
         params: toEmployeeListParams(paging),
       })
       .pipe(map(toEmployeePage));
+  }
+
+  /** HU-17: creates an employee in the business of the authenticated user (taken from the token). */
+  create(employee: NewEmployee): Observable<Employee> {
+    return this.http
+      .post<EmployeeResponseDto>(`${this.apiUrl}/empleados`, toCreateEmployeeRequestDto(employee))
+      .pipe(map(toEmployee));
   }
 }

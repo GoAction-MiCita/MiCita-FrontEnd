@@ -10,39 +10,72 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { ServiceEmployee } from '@features/services/models/service.model';
 import { AvatarGroup } from '@shared/ui/avatar-group/avatar-group';
-import { Icon } from '@shared/ui/icon/icon';
+import { Icon, IconName } from '@shared/ui/icon/icon';
+
+export interface MultiSelectOption {
+  readonly id: string;
+  readonly name: string;
+  /** Shown only with `avatars`; initials when missing. */
+  readonly photoUrl?: string | null;
+  /** Short tag next to the name, such as "Inactivo". */
+  readonly hint?: string | null;
+}
+
+/** Visible texts, so each list speaks of its own items (employees, services…) in Spanish. */
+export interface MultiSelectTexts {
+  /** Trigger with nothing selected: "Seleccionar empleados". */
+  readonly placeholder: string;
+  /** Trigger with a selection: "2 empleados seleccionados". */
+  readonly selected: (count: number) => string;
+  /** Trigger when there are no options at all: "Sin empleados registrados". */
+  readonly none: string;
+  /** Accessible name of the chips list: "Empleados seleccionados". */
+  readonly chipsLabel: string;
+  /** Chip of a selected id that is not among the options: "Empleado no disponible". */
+  readonly unknown: string;
+  /** Accessible name of the search box: "Buscar empleado". */
+  readonly search: string;
+  readonly loading: string;
+  readonly failed: string;
+  /** Opened list without options. */
+  readonly empty: string;
+  /** Search without matches. */
+  readonly noMatches: string;
+}
 
 let nextId = 0;
 
 /**
- * HU-12 multi-select of business employees (photo or initials and name), with search.
- * Form control value: the selected ids. Used by the service form and the HU-13 filter bar.
+ * Multi-select with search (HU-12, generalised in HU-17). Form control value: the selected ids.
  * Esc or a click outside closes the list without closing a surrounding <dialog>.
  */
 @Component({
-  selector: 'app-employee-picker',
+  selector: 'app-multi-select',
   imports: [AvatarGroup, Icon],
-  templateUrl: './employee-picker.html',
-  styleUrl: './employee-picker.scss',
+  templateUrl: './multi-select.html',
+  styleUrl: './multi-select.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
-    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => EmployeePicker), multi: true },
+    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MultiSelect), multi: true },
   ],
   host: {
     '(document:click)': 'onDocumentClick($event)',
     '(keydown.escape)': 'onEscape($event)',
   },
 })
-export class EmployeePicker implements ControlValueAccessor {
-  readonly label = input('Empleados');
+export class MultiSelect implements ControlValueAccessor {
+  readonly label = input.required<string>();
+  readonly texts = input.required<MultiSelectTexts>();
+  readonly icon = input<IconName>('layout-grid');
+  /** Photo or initials before each option (people). */
+  readonly avatars = input(false, { transform: booleanAttribute });
   readonly optional = input(false, { transform: booleanAttribute });
   /** Keeps the label for screen readers only (compact filter bar). */
   readonly hideLabel = input(false, { transform: booleanAttribute });
-  /** Selected employees as removable chips under the label (the filter bar only shows a count). */
+  /** Selected options as removable chips under the label (the filter bar only shows a count). */
   readonly showChips = input(true, { transform: booleanAttribute });
-  readonly employees = input<readonly ServiceEmployee[]>([]);
+  readonly options = input<readonly MultiSelectOption[]>([]);
   readonly loading = input(false);
   readonly failed = input(false);
   /** Ids the backend rejected (400): marked in the list and in the chips. */
@@ -51,10 +84,10 @@ export class EmployeePicker implements ControlValueAccessor {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   protected readonly ids = {
-    label: `app-employee-picker-${nextId}-label`,
-    trigger: `app-employee-picker-${nextId}-trigger`,
-    list: `app-employee-picker-${nextId}-list`,
-    error: `app-employee-picker-${nextId++}-error`,
+    label: `app-multi-select-${nextId}-label`,
+    trigger: `app-multi-select-${nextId}-trigger`,
+    list: `app-multi-select-${nextId}-list`,
+    error: `app-multi-select-${nextId++}-error`,
   };
 
   protected readonly open = signal(false);
@@ -65,41 +98,42 @@ export class EmployeePicker implements ControlValueAccessor {
   private onTouched: () => void = () => undefined;
 
   private readonly byId = computed(
-    () => new Map(this.employees().map((employee) => [employee.id, employee])),
+    () => new Map(this.options().map((option) => [option.id, option])),
   );
 
-  protected readonly options = computed(() => {
+  protected readonly visibleOptions = computed(() => {
     const query = normalize(this.query());
     const selected = new Set(this.selected());
     const rejected = new Set(this.rejectedIds());
-    return this.employees()
-      .filter((employee) => normalize(employee.name).includes(query))
-      .map((employee) => ({
-        id: employee.id,
-        name: employee.name,
-        people: [employee],
-        checked: selected.has(employee.id),
-        rejected: rejected.has(employee.id),
+    return this.options()
+      .filter((option) => normalize(option.name).includes(query))
+      .map((option) => ({
+        id: option.id,
+        name: option.name,
+        hint: option.hint ?? null,
+        people: [{ id: option.id, name: option.name, photoUrl: option.photoUrl ?? null }],
+        checked: selected.has(option.id),
+        rejected: rejected.has(option.id),
       }));
   });
 
   protected readonly chips = computed(() => {
     const rejected = new Set(this.rejectedIds());
     return this.selected().map((id) => {
-      const name = this.byId().get(id)?.name ?? 'Empleado no disponible';
-      return { id, name, rejected: rejected.has(id), removeLabel: `Quitar a ${name}` };
+      const name = this.byId().get(id)?.name ?? this.texts().unknown;
+      return { id, name, rejected: rejected.has(id), removeLabel: `Quitar ${name}` };
     });
   });
 
   protected readonly triggerText = computed(() => {
     const count = this.selected().length;
     if (count > 0) {
-      return count === 1 ? '1 empleado seleccionado' : `${count} empleados seleccionados`;
+      return this.texts().selected(count);
     }
-    if (!this.loading() && !this.failed() && this.employees().length === 0) {
-      return 'Sin empleados registrados';
+    if (!this.loading() && !this.failed() && this.options().length === 0) {
+      return this.texts().none;
     }
-    return 'Seleccionar empleados';
+    return this.texts().placeholder;
   });
 
   protected readonly invalid = computed(

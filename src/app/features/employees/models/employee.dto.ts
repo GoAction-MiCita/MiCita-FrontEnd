@@ -24,3 +24,25 @@ export interface PageDto<T> {
   readonly totalElements: number;
   readonly totalPages: number;
 }
+
+/**
+ * Body of `POST /api/empleados` (HU-17 Back); the 201 response is an EmployeeResponseDto.
+ * A 400 for rejected services reports each one as `errors["serviceIds[i]"]`, i being its position
+ * in this list (assumed, same style as HU-12).
+ */
+export interface CreateEmployeeRequestDto {
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly phone: string | null;
+  readonly email: string | null;
+  /** `ACTIVE` or `INACTIVE`. */
+  readonly status: string;
+  readonly serviceIds: readonly string[];
+}
+
+/** Item of `GET /api/servicios` (E02): only what the services picker needs. */
+export interface ServiceOptionDto {
+  readonly id: string;
+  readonly name: string;
+  readonly status: string;
+}

@@ -4,7 +4,7 @@
     <p class="employees-page__subtitle">Administra tu equipo de trabajo y su información.</p>
   </div>
   @if (!store.empty()) {
-    <button appButton type="button" disabled [title]="comingSoon">
+    <button appButton type="button" (click)="openPanel()">
       <app-icon name="plus" />
       Agregar empleado
     </button>
@@ -31,7 +31,7 @@
     <span class="employees-page__empty-icon"><app-icon name="users" /></span>
     <h2 id="employees-empty">Aún no tienes empleados</h2>
     <p>Agrega a tu equipo para asignarles servicios y citas.</p>
-    <button appButton type="button" disabled [title]="comingSoon">
+    <button appButton type="button" (click)="openPanel()">
       <app-icon name="plus" />
       Agregar empleado
     </button>
@@ -46,5 +46,17 @@
     [totalPages]="store.totals().totalPages"
     (pageChange)="goToPage($event)"
     (sizeChange)="changePageSize($event)"
+  />
+}
+
+@if (panelOpen()) {
+  <app-employee-form-panel
+    [pending]="createStore.pending()"
+    [failure]="createStore.failure()"
+    [services]="servicesStore.services()"
+    [servicesLoading]="servicesStore.loading()"
+    [servicesFailed]="servicesStore.failed()"
+    (submitted)="create($event)"
+    (closed)="closePanel()"
   />
 }

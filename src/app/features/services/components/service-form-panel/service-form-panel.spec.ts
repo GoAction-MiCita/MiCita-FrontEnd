@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { ServiceFormFailure } from '@features/services/models/service-form-failure';
+import {
+  SERVICE_FORM_MESSAGES,
+  ServiceFormFailure,
+} from '@features/services/models/service-form-failure';
 import { NewService, Service } from '@features/services/models/service.model';
 import { ServiceFormPanel } from './service-form-panel';
 
@@ -56,7 +59,7 @@ describe('ServiceFormPanel', () => {
     }
     expect(control('status').value).toBe('ACTIVE');
     expect(element.querySelectorAll('.form-field__optional')).toHaveLength(3);
-    expect(element.querySelector('app-employee-picker')?.textContent).toContain(
+    expect(element.querySelector('app-multi-select')?.textContent).toContain(
       'Empleados que prestan el servicio',
     );
   });
@@ -64,6 +67,16 @@ describe('ServiceFormPanel', () => {
   it('requires the name and does not submit when it is empty', async () => {
     const { element, submit, submitted } = await render();
 
+    await submit();
+
+    expect(submitted).toHaveLength(0);
+    expect(element.textContent).toContain('El nombre del servicio es obligatorio');
+  });
+
+  it('does not submit a name made only of spaces', async () => {
+    const { element, fill, submit, submitted } = await render();
+
+    await fill({ name: '   ' });
     await submit();
 
     expect(submitted).toHaveLength(0);
@@ -190,6 +203,22 @@ describe('ServiceFormPanel', () => {
     );
   });
 
+  it('does not ask to check marked fields when the 400 matches none of them', async () => {
+    const { fixture, element } = await render();
+    const failure: ServiceFormFailure = {
+      title: 'No pudimos crear el servicio',
+      summary: SERVICE_FORM_MESSAGES.checkFields,
+      fieldErrors: { businessId: 'inválido' },
+    };
+
+    fixture.componentRef.setInput('failure', failure);
+    await fixture.whenStable();
+
+    const alert = element.querySelector('app-alert')?.textContent ?? '';
+    expect(alert).toContain(SERVICE_FORM_MESSAGES.unexpected);
+    expect(alert).not.toContain(SERVICE_FORM_MESSAGES.checkFields);
+  });
+
   it('renders typed text as text, never as HTML', async () => {
     const { fixture, element } = await render();
 
@@ -284,7 +313,7 @@ describe('ServiceFormPanel in edit mode (HU-10)', () => {
     expect(control('price').value).toBe('20.000');
     expect(control('status').value).toBe('INACTIVE');
     expect(element.textContent).toContain('16/120');
-    const chips = Array.from(element.querySelectorAll('.picker__chip')).map((chip) =>
+    const chips = Array.from(element.querySelectorAll('.multi-select__chip')).map((chip) =>
       chip.textContent?.trim(),
     );
     expect(chips).toEqual(['Juan Pérez', 'Pedro Ruiz']);
