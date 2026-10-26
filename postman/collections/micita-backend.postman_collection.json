@@ -1618,6 +1618,315 @@
           "response": []
         },
         {
+          "name": "Crear empleado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Eva\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"3009998877\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"{{serviceId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"]
+            },
+            "description": "Crea un empleado en el negocio del usuario autenticado (HU-17 Back). Obligatorios `firstName` y `lastName` (1..100) y `status` (`ACTIVE`/`INACTIVE`); `phone` (`+` opcional y 7..15 dígitos), `email` y `serviceIds` son opcionales. 400 con errores por campo (los servicios rechazados como `serviceIds[i]`); 409 si el correo o el teléfono ya los usa otro empleado del negocio (`errors.email` / `errors.phone`, supuesto); 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 201 con el empleado y sus servicios', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "  const employee = pm.response.json();",
+                  "  pm.expect(employee.id).to.be.a('string');",
+                  "  pm.expect(employee).to.include({ firstName: 'Eva', lastName: 'Ruiz', status: 'ACTIVE' });",
+                  "  pm.expect(employee).to.not.have.property('businessId');",
+                  "  pm.expect(employee.services.map((s) => s.id)).to.eql([pm.collectionVariables.get('serviceId')]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Eva\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"3009998877\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"svc-01\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\",\n  \"firstName\": \"Eva\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"3009998877\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"services\": [\n    {\n      \"id\": \"svc-01\",\n      \"name\": \"Corte de cabello\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"12\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"svc-x\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/empleados\",\n  \"errors\": {\n    \"firstName\": \"El nombre es obligatorio y debe tener máximo 100 caracteres\",\n    \"phone\": \"El teléfono no es válido\",\n    \"serviceIds[0]\": \"El servicio no pertenece al negocio\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Eva\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"3009998877\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"{{serviceId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Employee email or phone already exists\",\n  \"instance\": \"/api/empleados\",\n  \"errors\": {\n    \"email\": \"Ya existe un empleado con este correo\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crear empleado duplicado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Otra\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": null,\n  \"email\": \"EVA.RUIZ@correo.com\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"{{serviceId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"]
+            },
+            "description": "Mismo correo que \"Crear empleado\" con otras mayúsculas: 409 con `errors.email`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 409 con el campo duplicado', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Crear empleado inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"phone\": \"12\",\n  \"email\": \"eva@\",\n  \"status\": \"X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"]
+            },
+            "description": "Campos inválidos: 400 con un error por campo y nada se crea."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con errores por campo', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('firstName', 'lastName', 'phone', 'email', 'status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Crear empleado con servicio ajeno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Leo\",\n  \"lastName\": \"Mora\",\n  \"status\": \"ACTIVE\",\n  \"serviceIds\": [\n    \"{{serviceId}}\",\n    \"svc-no-existe\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"]
+            },
+            "description": "Un servicio que no existe, es de otro negocio o está DELETED responde 400 con `serviceIds[i]` y no se crea nada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el servicio rechazado por posición', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('serviceIds[1]');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Crear servicio con empleado ajeno",
           "request": {
             "method": "POST",

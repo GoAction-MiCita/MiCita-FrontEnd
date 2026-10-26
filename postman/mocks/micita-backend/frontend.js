@@ -21,6 +21,9 @@
  * GET /api/empleados (HU-16) lists the employees of the business with their services (not DELETED),
  * ordered by last name, first name and id, with the HU-15 paging rules: owner has 24 visible
  * employees (one more is DELETED), new businesses none, users without business get 403.
+ * POST /api/empleados (HU-17) adds one: 400 per field (firstName/lastName 1..100, phone `+`
+ * optional and 7..15 digits, email, status ACTIVE/INACTIVE, unknown `serviceIds[i]`), 409 when the
+ * email or phone is already used in the business (`errors.email` / `errors.phone`).
  * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
@@ -122,7 +125,7 @@ const employees = Object.fromEntries(
     ['elena', 'Elena', 'Suárez', '3234567890', 'elena.suarez@barberia.com', 'DELETED'],
   ].map(([key, firstName, lastName, phone, email, status]) => [
     key,
-    { id: `e-${key}`, firstName, lastName, phone, email, status },
+    { id: `e-${key}`, businessId: OWNER_BUSINESS_ID, firstName, lastName, phone, email, status },
   ]),
 );
 
@@ -250,6 +253,27 @@ const BUSINESS_RULES = [
 ];
 
 // Mirrors the backend service rules (see HU-09 Back): name and status required.
+// Mirrors the backend CreateEmployeeRequest rules (see HU-17 Back).
+const EMPLOYEE_RULES = [
+  [
+    'firstName',
+    (v) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= 100,
+    'El nombre es obligatorio y debe tener máximo 100 caracteres',
+  ],
+  [
+    'lastName',
+    (v) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= 100,
+    'El apellido es obligatorio y debe tener máximo 100 caracteres',
+  ],
+  ['phone', (v) => isBlank(v) || /^\+?\d{7,15}$/.test(String(v)), 'El teléfono no es válido'],
+  [
+    'email',
+    (v) => isBlank(v) || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v)),
+    'El correo no es válido',
+  ],
+  ['status', (v) => v === 'ACTIVE' || v === 'INACTIVE', 'El estado debe ser ACTIVE o INACTIVE'],
+];
+
 const SERVICE_RULES = [
   ['name', (v) => isFilled(v), 'El nombre del servicio es obligatorio'],
   [
@@ -444,19 +468,86 @@ const routes = {
         a.firstName.localeCompare(b.firstName, 'es') ||
         a.id.localeCompare(b.id),
     );
-    const content = visible.slice(page * size, page * size + size).map((employee) => ({
-      ...employee,
-      services: services
-        .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
-        .filter((s) => s.employees.some((e) => e.id === employee.id))
-        .map(({ id, name }) => ({ id, name })),
-    }));
+    const content = visible
+      .slice(page * size, page * size + size)
+      .map(({ businessId, ...employee }) => ({
+        ...employee,
+        services: services
+          .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
+          .filter((s) => s.employees.some((e) => e.id === employee.id))
+          .map(({ id, name }) => ({ id, name })),
+      }));
     return json(200, {
       content,
       page,
       size,
       totalElements: visible.length,
       totalPages: Math.ceil(visible.length / size),
+    });
+  },
+
+  'POST /api/empleados': (body, req) => {
+    const instance = '/api/empleados';
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const errors = {};
+    for (const [field, isValid, message] of EMPLOYEE_RULES) {
+      if (!isValid(body[field])) {
+        errors[field] = message;
+      }
+    }
+    Object.assign(errors, serviceErrors(business, body.serviceIds));
+    if (Object.keys(errors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
+    }
+    const phone = isBlank(body.phone) ? null : String(body.phone).trim();
+    const email = isBlank(body.email) ? null : String(body.email).trim().toLowerCase();
+    // Duplicates: same email or phone in another employee of the business (not DELETED).
+    const staff = businessStaff(business);
+    const duplicated = {
+      ...(email && staff.some((e) => e.email?.toLowerCase() === email)
+        ? { email: 'Ya existe un empleado con este correo' }
+        : {}),
+      ...(phone && staff.some((e) => e.phone === phone)
+        ? { phone: 'Ya existe un empleado con este teléfono' }
+        : {}),
+    };
+    if (Object.keys(duplicated).length > 0) {
+      return problem(
+        409,
+        'Conflict',
+        'Employee email or phone already exists',
+        instance,
+        duplicated,
+      );
+    }
+    const employee = {
+      id: crypto.randomUUID(),
+      businessId: business.id,
+      firstName: body.firstName.trim(),
+      lastName: body.lastName.trim(),
+      phone,
+      email,
+      status: body.status,
+    };
+    employees[employee.id] = employee;
+    // service_employees is owned by the service module: link through the services.
+    const serviceIds = [...new Set(body.serviceIds ?? [])];
+    for (const service of services.filter((s) => serviceIds.includes(s.id))) {
+      service.employees.push(employeeSummary(employee));
+    }
+    const { businessId, ...response } = employee;
+    return json(201, {
+      ...response,
+      services: services
+        .filter((s) => serviceIds.includes(s.id))
+        .map(({ id, name }) => ({ id, name })),
     });
   },
 
@@ -627,11 +718,27 @@ const routes = {
   },
 };
 
-/** Employees of a business that are not DELETED: owner has the sample team, others none. */
+/** Employees of a business that are not DELETED: owner has the sample team; HU-17 adds more. */
 function businessStaff(business) {
-  return business.id === OWNER_BUSINESS_ID
-    ? Object.values(employees).filter((e) => e.status !== 'DELETED')
-    : [];
+  return Object.values(employees).filter(
+    (e) => e.businessId === business.id && e.status !== 'DELETED',
+  );
+}
+
+/** HU-17: each unknown, foreign or DELETED service is reported by its position, `serviceIds[i]`. */
+function serviceErrors(business, serviceIds) {
+  if (serviceIds === undefined || serviceIds === null) {
+    return {};
+  }
+  if (!Array.isArray(serviceIds)) {
+    return { serviceIds: 'serviceIds debe ser una lista' };
+  }
+  return Object.fromEntries(
+    serviceIds
+      .map((id, index) => [index, findService(business, id) !== null])
+      .filter(([, known]) => !known)
+      .map(([index]) => [`serviceIds[${index}]`, 'El servicio no pertenece al negocio']),
+  );
 }
 
 /**
