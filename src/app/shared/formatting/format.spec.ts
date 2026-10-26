@@ -1,4 +1,11 @@
-import { EMPTY_VALUE, formatCop, formatDuration, formatThousands, initials } from './format';
+import {
+  EMPTY_VALUE,
+  formatCop,
+  formatDuration,
+  formatPhone,
+  formatThousands,
+  initials,
+} from './format';
 
 describe('formatThousands', () => {
   it.each([
@@ -52,5 +59,19 @@ describe('initials', () => {
     ['   ', '?'],
   ])('returns the initials of %s', (name, expected) => {
     expect(initials(name)).toBe(expected);
+  });
+});
+
+describe('formatPhone', () => {
+  it.each([
+    ['3001234567', '300 123 4567'],
+    [' 3001234567 ', '300 123 4567'],
+    ['+57 300 123 4567', '+57 300 123 4567'],
+    ['6012345', '6012345'],
+    ['', EMPTY_VALUE],
+    [null, EMPTY_VALUE],
+    [undefined, EMPTY_VALUE],
+  ])('formats %s', (phone, expected) => {
+    expect(formatPhone(phone)).toBe(expected);
   });
 });

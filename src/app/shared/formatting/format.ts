@@ -38,3 +38,12 @@ export function initials(name: string): string {
   const letters = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : parts;
   return letters.map((part) => part.charAt(0).toLocaleUpperCase('es-CO')).join('') || '?';
 }
+
+/** Colombian 10-digit numbers as `300 123 4567`; any other value is shown as it came, missing as `—`. */
+export function formatPhone(phone: string | null | undefined): string {
+  const value = phone?.trim() ?? '';
+  if (value === '') {
+    return EMPTY_VALUE;
+  }
+  return /^\d{10}$/.test(value) ? value.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3') : value;
+}

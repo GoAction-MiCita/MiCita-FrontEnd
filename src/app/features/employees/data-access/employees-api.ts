@@ -1,0 +1,23 @@
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { API_URL } from '@core/config/api-url';
+import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
+import { map, Observable } from 'rxjs';
+import { EmployeeResponseDto, PageDto } from '../models/employee.dto';
+import { toEmployeeListParams, toEmployeePage } from '../models/employee.mapper';
+import { EmployeePage } from '../models/employee.model';
+
+@Injectable({ providedIn: 'root' })
+export class EmployeesApi {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = inject(API_URL);
+
+  /** HU-16: one page of the business employees with their services, by last name and first name. */
+  list(paging: Paging = FIRST_PAGE): Observable<EmployeePage> {
+    return this.http
+      .get<PageDto<EmployeeResponseDto>>(`${this.apiUrl}/empleados`, {
+        params: toEmployeeListParams(paging),
+      })
+      .pipe(map(toEmployeePage));
+  }
+}

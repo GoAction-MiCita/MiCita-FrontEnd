@@ -22,8 +22,8 @@ describe('EmployeesApi', () => {
     expect(req.request.method).toBe('GET');
     req.flush({
       content: [
-        { id: 'e1', name: 'Ana López' },
-        { id: 'e2', name: 'Juan Pérez', photoUrl: 'https://img.test/juan.png' },
+        { id: 'e1', firstName: 'Ana', lastName: 'López', status: 'ACTIVE', services: [] },
+        { id: 'e2', firstName: 'Juan', lastName: 'Pérez', status: 'INACTIVE', services: [] },
       ],
       page: 0,
       size: 100,
@@ -33,7 +33,7 @@ describe('EmployeesApi', () => {
 
     expect(await result).toEqual([
       { id: 'e1', name: 'Ana López', photoUrl: null },
-      { id: 'e2', name: 'Juan Pérez', photoUrl: 'https://img.test/juan.png' },
+      { id: 'e2', name: 'Juan Pérez', photoUrl: null },
     ]);
     http.verify();
   });

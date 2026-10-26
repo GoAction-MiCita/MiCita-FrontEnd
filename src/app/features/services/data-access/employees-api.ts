@@ -11,7 +11,7 @@ const PICKER_PAGE_SIZE = '100';
 
 /**
  * HU-12: employees of the business for the picker, read from `GET /api/empleados` (E03, HU-16).
- * Lives here until the employees feature (E03) exists; then it moves to core or that feature.
+ * Features cannot import each other, so the employees feature keeps its own API for its table.
  */
 @Injectable({ providedIn: 'root' })
 export class EmployeesApi {

@@ -49,6 +49,7 @@ describe('AdminLayout', () => {
     expect(links).toEqual([
       { text: 'Inicio', href: '/dashboard' },
       { text: 'Servicios', href: '/servicios' },
+      { text: 'Empleados', href: '/empleados' },
     ]);
   });
 });
