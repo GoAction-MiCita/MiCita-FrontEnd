@@ -18,7 +18,9 @@
  * one: 400 per field, 409 for a duplicate name in the same business (case-insensitive).
  * GET and PUT /api/servicios/{id} (HU-10) read and update one: 404 for unknown, DELETED or other
  * businesses' ids; the PUT 409 ignores the service itself and `employeeIds` replaces the list.
- * GET /api/empleados stands in for E03 (HU-16): owner has 5 employees, new businesses none.
+ * GET /api/empleados (HU-16) lists the employees of the business with their services (not DELETED),
+ * ordered by last name, first name and id, with the HU-15 paging rules: owner has 24 visible
+ * employees (one more is DELETED), new businesses none, users without business get 403.
  * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
@@ -82,13 +84,52 @@ const businesses = [
 
 const OWNER_BUSINESS_ID = '4f7c1d2e-8b3a-4c5d-9e6f-7a8b9c0d1e2f';
 
-const employees = {
-  ana: { id: 'e-ana', name: 'Ana López', photoUrl: null },
-  juan: { id: 'e-juan', name: 'Juan Pérez', photoUrl: null },
-  maria: { id: 'e-maria', name: 'María Gómez', photoUrl: null },
-  pedro: { id: 'e-pedro', name: 'Pedro Ruiz', photoUrl: null },
-  luisa: { id: 'e-luisa', name: 'Luisa Díaz', photoUrl: null },
-};
+/** Employees of owner's business (HU-16 Back). DELETED ones are never listed nor accepted. */
+const employees = Object.fromEntries(
+  [
+    ['ana', 'Ana', 'López', '3001234567', 'ana.lopez@barberia.com', 'ACTIVE'],
+    ['juan', 'Juan', 'Pérez', '3012345678', 'juan.perez@barberia.com', 'ACTIVE'],
+    ['maria', 'María', 'Gómez', '3023456789', 'maria.gomez@barberia.com', 'ACTIVE'],
+    ['pedro', 'Pedro', 'Ruiz', '3034567890', null, 'INACTIVE'],
+    ['luisa', 'Luisa', 'Díaz', null, 'luisa.diaz@barberia.com', 'ACTIVE'],
+    // HU-16: enough employees for owner to page through with 20 per page.
+    ['carlos', 'Carlos', 'Ramírez', '3045678901', 'carlos.ramirez@barberia.com', 'ACTIVE'],
+    ['laura', 'Laura', 'Martínez', '3056789012', 'laura.martinez@barberia.com', 'ACTIVE'],
+    ['diego', 'Diego', 'Torres', '3067890123', 'diego.torres@barberia.com', 'ACTIVE'],
+    ['sofia', 'Sofía', 'Hernández', '3078901234', 'sofia.hernandez@barberia.com', 'INACTIVE'],
+    ['andres', 'Andrés', 'Castro', '3089012345', 'andres.castro@barberia.com', 'ACTIVE'],
+    ['camila', 'Camila', 'Rojas', '3090123456', 'camila.rojas@barberia.com', 'ACTIVE'],
+    ['felipe', 'Felipe', 'Moreno', '3101234567', 'felipe.moreno@barberia.com', 'ACTIVE'],
+    ['valentina', 'Valentina', 'Vargas', '3112345678', 'valentina.vargas@barberia.com', 'ACTIVE'],
+    ['santiago', 'Santiago', 'Jiménez', '3123456789', 'santiago.jimenez@barberia.com', 'ACTIVE'],
+    ['daniela', 'Daniela', 'Ortiz', '3134567890', 'daniela.ortiz@barberia.com', 'ACTIVE'],
+    ['mateo', 'Mateo', 'Silva', '3145678901', null, 'ACTIVE'],
+    ['isabella', 'Isabella', 'Mendoza', '3156789012', 'isabella.mendoza@barberia.com', 'ACTIVE'],
+    [
+      'sebastian',
+      'Sebastián',
+      'Navarro',
+      '3167890123',
+      'sebastian.navarro@barberia.com',
+      'INACTIVE',
+    ],
+    ['gabriela', 'Gabriela', 'Ríos', '3178901234', 'gabriela.rios@barberia.com', 'ACTIVE'],
+    ['nicolas', 'Nicolás', 'Guerrero', '3189012345', 'nicolas.guerrero@barberia.com', 'ACTIVE'],
+    ['paula', 'Paula', 'Cárdenas', '3190123456', 'paula.cardenas@barberia.com', 'ACTIVE'],
+    ['tomas', 'Tomás', 'Herrera', '3201234567', 'tomas.herrera@barberia.com', 'ACTIVE'],
+    ['juliana', 'Juliana', 'Acosta', '3212345678', 'juliana.acosta@barberia.com', 'ACTIVE'],
+    ['martin', 'Martín', 'López', '3223456789', 'martin.lopez@barberia.com', 'ACTIVE'],
+    ['elena', 'Elena', 'Suárez', '3234567890', 'elena.suarez@barberia.com', 'DELETED'],
+  ].map(([key, firstName, lastName, phone, email, status]) => [
+    key,
+    { id: `e-${key}`, firstName, lastName, phone, email, status },
+  ]),
+);
+
+/** Employee as embedded in a service (HU-08 Back: id, name, photo). */
+function employeeSummary(employee) {
+  return { id: employee.id, name: `${employee.firstName} ${employee.lastName}`, photoUrl: null };
+}
 
 /** Services per business (HU-08). DELETED ones are never listed. */
 const services = [
@@ -132,6 +173,23 @@ const services = [
   ['Semipermanente de uñas', 'Esmaltado semipermanente.', 60, 50000, 'ACTIVE', ['luisa']],
   ['Tinte de raíz', 'Retoque de raíz.', 60, 60000, 'ACTIVE', ['maria']],
   ['Uñas acrílicas', 'Aplicación completa.', 90, 110000, 'INACTIVE', ['luisa']],
+  // HU-16: services of the new employees.
+  [
+    'Corte clásico',
+    'Corte con tijera y máquina.',
+    30,
+    30000,
+    'ACTIVE',
+    ['carlos', 'diego', 'andres'],
+  ],
+  [
+    'Spa de manos',
+    'Exfoliación e hidratación.',
+    40,
+    45000,
+    'ACTIVE',
+    ['laura', 'camila', 'gabriela'],
+  ],
 ].map(([name, description, durationMinutes, price, status, staff], index) => ({
   id: `svc-${String(index + 1).padStart(2, '0')}`,
   businessId: OWNER_BUSINESS_ID,
@@ -140,7 +198,7 @@ const services = [
   durationMinutes,
   price,
   status,
-  employees: staff.map((key) => employees[key]),
+  employees: staff.map((key) => employeeSummary(employees[key])),
 }));
 
 /** Future appointments per service id (HU-14): deleting one of these answers 409. */
@@ -282,19 +340,11 @@ const routes = {
       return problem(403, 'Forbidden', 'Business required', instance);
     }
     const query = new URL(req.url || '', 'http://localhost').searchParams;
-    // HU-15: 0-based page, default page 0 and size 10. The Front offers 20/50/100, so the mock
-    // accepts up to 100 (HU-15 Back says 50: pending to align).
-    const page = Number(query.get('page') ?? '0');
-    const size = Number(query.get('size') ?? '10');
-    const pagingErrors = {
-      ...(!Number.isInteger(page) || page < 0 ? { page: 'page debe ser un entero >= 0' } : {}),
-      ...(!Number.isInteger(size) || size < 1 || size > 100
-        ? { size: 'size debe estar entre 1 y 100' }
-        : {}),
-    };
-    if (Object.keys(pagingErrors).length > 0) {
-      return problem(400, 'Bad Request', 'Invalid request content.', instance, pagingErrors);
+    const paging = readPaging(query);
+    if (paging.errors) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, paging.errors);
     }
+    const { page, size } = paging;
     // HU-13 filters, combined with AND: name contains (case-insensitive), status, any employee.
     const name = (query.get('name') ?? '').trim().toLowerCase();
     const status = query.get('status');
@@ -371,7 +421,7 @@ const routes = {
     return json(201, response);
   },
 
-  // Stand-in for E03 (HU-16 Back) so the HU-12 picker has data: one page with every employee.
+  // HU-16: paged employees with their services; also feeds the HU-12 picker (size=100).
   'GET /api/empleados': (_body, req) => {
     const instance = '/api/empleados';
     const user = authenticatedUser(req);
@@ -382,13 +432,31 @@ const routes = {
     if (!business) {
       return problem(403, 'Forbidden', 'Business required', instance);
     }
-    const content = [...businessStaff(business)].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const query = new URL(req.url || '', 'http://localhost').searchParams;
+    const paging = readPaging(query);
+    if (paging.errors) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, paging.errors);
+    }
+    const { page, size } = paging;
+    const visible = [...businessStaff(business)].sort(
+      (a, b) =>
+        a.lastName.localeCompare(b.lastName, 'es') ||
+        a.firstName.localeCompare(b.firstName, 'es') ||
+        a.id.localeCompare(b.id),
+    );
+    const content = visible.slice(page * size, page * size + size).map((employee) => ({
+      ...employee,
+      services: services
+        .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
+        .filter((s) => s.employees.some((e) => e.id === employee.id))
+        .map(({ id, name }) => ({ id, name })),
+    }));
     return json(200, {
       content,
-      page: 0,
-      size: content.length || 20,
-      totalElements: content.length,
-      totalPages: content.length ? 1 : 0,
+      page,
+      size,
+      totalElements: visible.length,
+      totalPages: Math.ceil(visible.length / size),
     });
   },
 
@@ -559,9 +627,27 @@ const routes = {
   },
 };
 
-/** Employees of a business (E03 does not exist yet): owner has the sample team, others none. */
+/** Employees of a business that are not DELETED: owner has the sample team, others none. */
 function businessStaff(business) {
-  return business.id === OWNER_BUSINESS_ID ? Object.values(employees) : [];
+  return business.id === OWNER_BUSINESS_ID
+    ? Object.values(employees).filter((e) => e.status !== 'DELETED')
+    : [];
+}
+
+/**
+ * HU-15 paging: 0-based page, default page 0 and size 10. The Front offers 20/50/100, so the mock
+ * accepts up to 100 (HU-15 Back says 50: pending to align).
+ */
+function readPaging(query) {
+  const page = Number(query.get('page') ?? '0');
+  const size = Number(query.get('size') ?? '10');
+  const errors = {
+    ...(!Number.isInteger(page) || page < 0 ? { page: 'page debe ser un entero >= 0' } : {}),
+    ...(!Number.isInteger(size) || size < 1 || size > 100
+      ? { size: 'size debe estar entre 1 y 100' }
+      : {}),
+  };
+  return Object.keys(errors).length > 0 ? { errors } : { page, size };
 }
 
 /** HU-12: each unknown employee is reported by its position, `employeeIds[i]`, Spring style. */
@@ -584,7 +670,10 @@ function employeeErrors(business, employeeIds) {
 /** Staff of the business with those ids, each once, in the order sent. */
 function pickStaff(business, employeeIds) {
   const staff = businessStaff(business);
-  return [...new Set(employeeIds)].map((id) => staff.find((e) => e.id === id)).filter(Boolean);
+  return [...new Set(employeeIds)]
+    .map((id) => staff.find((e) => e.id === id))
+    .filter(Boolean)
+    .map(employeeSummary);
 }
 
 /** Service of the business that is not DELETED; null for unknown ids or other businesses. */

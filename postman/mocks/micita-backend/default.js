@@ -176,7 +176,21 @@ const server = http.createServer((req, res) => {
   // @endpoint GET /api/empleados
   if (req.method === 'GET' && pathname === '/api/empleados') {
     res.writeHead(200, {"Content-Type":"application/json"});
-    return res.end(JSON.stringify({"content":[{"id":"e-ana","name":"Ana López","photoUrl":null},{"id":"e-juan","name":"Juan Pérez","photoUrl":null}],"page":0,"size":2,"totalElements":2,"totalPages":1}));
+    return res.end(JSON.stringify({"content":[{"id":"e-juliana","firstName":"Juliana","lastName":"Acosta","phone":"3212345678","email":"juliana.acosta@barberia.com","status":"ACTIVE","services":[]},{"id":"e-ana","firstName":"Ana","lastName":"López","phone":"3001234567","email":"ana.lopez@barberia.com","status":"ACTIVE","services":[{"id":"svc-01","name":"Corte de cabello"},{"id":"svc-02","name":"Tinte completo"}]}],"page":0,"size":2,"totalElements":24,"totalPages":12}));
+  }
+
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
   }
 
   // @endpoint POST /api/servicios

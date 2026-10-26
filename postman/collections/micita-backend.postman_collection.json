@@ -1470,7 +1470,7 @@
                 }
               ]
             },
-            "description": "Empleados del negocio para el selector de HU-12. El endpoint real es de E03 (HU-16 Back, aún sin tarea): el mock lo simula con el equipo de `owner`; un negocio nuevo no tiene empleados."
+            "description": "Empleados del negocio (HU-16 Back) con sus servicios no eliminados, ordenados por apellido y nombre, sin los DELETED. Contrato de paginación de HU-15: `page` (base 0) y `size` (el mock acepta 1..100; HU-15 Back dice máximo 50, pendiente de alinear). También alimenta el selector de HU-12 con `size=100`. 401 sin token válido; 403 sin negocio. `owner` tiene 24 empleados visibles; un negocio nuevo, ninguno."
           },
           "event": [
             {
@@ -1482,7 +1482,11 @@
                   "  pm.response.to.have.status(200);",
                   "  const body = pm.response.json();",
                   "  pm.expect(body.content).to.be.an('array');",
-                  "  pm.expect(body.totalElements).to.eql(body.content.length);",
+                  "  pm.expect(body.totalElements).to.be.at.least(body.content.length);",
+                  "  body.content.forEach((employee) => {",
+                  "    pm.expect(employee).to.include.keys('id', 'firstName', 'lastName', 'status', 'services');",
+                  "    pm.expect(employee.status).to.be.oneOf(['ACTIVE', 'INACTIVE']);",
+                  "  });",
                   "});"
                 ]
               }
@@ -1520,9 +1524,98 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"content\": [\n    {\n      \"id\": \"e-ana\",\n      \"name\": \"Ana López\",\n      \"photoUrl\": null\n    },\n    {\n      \"id\": \"e-juan\",\n      \"name\": \"Juan Pérez\",\n      \"photoUrl\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 2,\n  \"totalElements\": 2,\n  \"totalPages\": 1\n}"
+              "body": "{\n  \"content\": [\n    {\n      \"id\": \"e-juliana\",\n      \"firstName\": \"Juliana\",\n      \"lastName\": \"Acosta\",\n      \"phone\": \"3212345678\",\n      \"email\": \"juliana.acosta@barberia.com\",\n      \"status\": \"ACTIVE\",\n      \"services\": []\n    },\n    {\n      \"id\": \"e-ana\",\n      \"firstName\": \"Ana\",\n      \"lastName\": \"López\",\n      \"phone\": \"3001234567\",\n      \"email\": \"ana.lopez@barberia.com\",\n      \"status\": \"ACTIVE\",\n      \"services\": [\n        {\n          \"id\": \"svc-01\",\n          \"name\": \"Corte de cabello\"\n        },\n        {\n          \"id\": \"svc-02\",\n          \"name\": \"Tinte completo\"\n        }\n      ]\n    }\n  ],\n  \"page\": 0,\n  \"size\": 2,\n  \"totalElements\": 24,\n  \"totalPages\": 12\n}"
             }
           ]
+        },
+        {
+          "name": "Listar empleados paginados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?page=0&size=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Paginación de HU-16 con el contrato de HU-15: `page` en base 0 y `size`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde la primera página de 1 elemento con los totales', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.include({ page: 0, size: 1 });",
+                  "  pm.expect(body.content.length).to.be.at.most(1);",
+                  "  pm.expect(body.totalPages).to.eql(body.totalElements);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Listar empleados con tamaño inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?page=-1&size=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "-1"
+                },
+                {
+                  "key": "size",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "`size` fuera de 1..100 o `page` negativa responde 400 con el error por parámetro."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con errores en page y size', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('page', 'size');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
         },
         {
           "name": "Crear servicio con empleado ajeno",
