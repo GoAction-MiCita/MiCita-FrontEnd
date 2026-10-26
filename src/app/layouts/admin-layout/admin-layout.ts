@@ -7,6 +7,7 @@ import { AdminNav, AdminNavItem } from './admin-nav/admin-nav';
 const NAV_ITEMS: readonly AdminNavItem[] = [
   { path: '/dashboard', label: 'Inicio', icon: 'home' },
   { path: '/servicios', label: 'Servicios', icon: 'layout-grid' },
+  { path: '/empleados', label: 'Empleados', icon: 'users' },
 ];
 
 /**

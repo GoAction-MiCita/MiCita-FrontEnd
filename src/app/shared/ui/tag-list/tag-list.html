@@ -1,0 +1,14 @@
+@if (tags().length === 0) {
+  <span class="tag-list__empty">{{ emptyValue }}</span>
+} @else {
+  <ul class="tag-list" [attr.aria-label]="label()">
+    @for (tag of visible(); track tag.id) {
+      <li class="tag-list__tag" [title]="tag.name">{{ tag.name }}</li>
+    }
+    @if (hidden() > 0) {
+      <li class="tag-list__tag tag-list__more" aria-hidden="true" [title]="hiddenNames()">
+        +{{ hidden() }}
+      </li>
+    }
+  </ul>
+}

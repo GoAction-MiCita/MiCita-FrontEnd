@@ -14,7 +14,8 @@
   background-color: var(--color-bg);
 
   @include respond-to(lg) {
-    grid-template-columns: 15rem 1fr;
+    // minmax(0, …): a wide table scrolls inside the page instead of stretching the column.
+    grid-template-columns: 15rem minmax(0, 1fr);
     grid-template-rows: 1fr;
     grid-template-areas: 'sidebar main';
   }

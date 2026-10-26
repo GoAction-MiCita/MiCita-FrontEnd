@@ -90,7 +90,11 @@ export function toUpdateServiceRequestDto(service: NewService): UpdateServiceReq
 }
 
 export function toEmployees(dto: PageDto<EmployeeResponseDto>): readonly ServiceEmployee[] {
-  return (dto.content ?? []).map(toEmployee);
+  return (dto.content ?? []).map((employee) => ({
+    id: employee.id,
+    name: `${employee.firstName} ${employee.lastName}`.trim(),
+    photoUrl: null,
+  }));
 }
 
 /** HU-12: ids of the employees a 400 rejected, from `employeeIds[i]` keys and the ids sent. */

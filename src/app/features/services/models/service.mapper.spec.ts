@@ -182,7 +182,7 @@ describe('employees (HU-12)', () => {
   it('maps the employees page', () => {
     expect(
       toEmployees({
-        content: [{ id: 'e1', name: 'Ana López' }],
+        content: [{ id: 'e1', firstName: 'Ana', lastName: 'López' }],
         page: 0,
         size: 100,
         totalElements: 1,

@@ -1,0 +1,50 @@
+<header class="employees-page__header">
+  <div>
+    <h1 class="employees-page__title">Gestión de empleados</h1>
+    <p class="employees-page__subtitle">Administra tu equipo de trabajo y su información.</p>
+  </div>
+  @if (!store.empty()) {
+    <button appButton type="button" disabled [title]="comingSoon">
+      <app-icon name="plus" />
+      Agregar empleado
+    </button>
+  }
+</header>
+
+@if (store.loading()) {
+  <div class="employees-page__state" role="status">
+    <span class="employees-page__spinner" aria-hidden="true"></span>
+    Cargando empleados…
+  </div>
+} @else if (store.error(); as error) {
+  <div class="employees-page__state">
+    <app-alert title="No pudimos mostrar tus empleados">{{ error.message }}</app-alert>
+    @if (error.retryable) {
+      <button class="employees-page__retry" type="button" (click)="store.reload()">
+        <app-icon name="refresh" />
+        Reintentar
+      </button>
+    }
+  </div>
+} @else if (store.empty()) {
+  <section class="employees-page__state employees-page__empty" aria-labelledby="employees-empty">
+    <span class="employees-page__empty-icon"><app-icon name="users" /></span>
+    <h2 id="employees-empty">Aún no tienes empleados</h2>
+    <p>Agrega a tu equipo para asignarles servicios y citas.</p>
+    <button appButton type="button" disabled [title]="comingSoon">
+      <app-icon name="plus" />
+      Agregar empleado
+    </button>
+  </section>
+} @else {
+  <app-employees-table [employees]="store.employees()" />
+  <app-paginator
+    itemsLabel="empleados"
+    [page]="store.paging().page"
+    [size]="store.paging().size"
+    [totalElements]="store.totals().totalElements"
+    [totalPages]="store.totals().totalPages"
+    (pageChange)="goToPage($event)"
+    (sizeChange)="changePageSize($event)"
+  />
+}

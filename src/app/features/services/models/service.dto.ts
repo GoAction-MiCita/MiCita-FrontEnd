@@ -44,11 +44,14 @@ export interface UpdateServiceStatusRequestDto {
   readonly status: string;
 }
 
-/** Item of `GET /api/empleados` (E03, HU-16 Back, not built yet): only what the picker needs. */
+/**
+ * Item of `GET /api/empleados` (E03, HU-16 Back): only what the picker needs. No photos in the
+ * MVP; the employees feature has its own complete DTO.
+ */
 export interface EmployeeResponseDto {
   readonly id: string;
-  readonly name: string;
-  readonly photoUrl?: string | null;
+  readonly firstName: string;
+  readonly lastName: string;
 }
 
 /** Pagination envelope shared by list endpoints (HU-15 Back). */

@@ -1,0 +1,65 @@
+<table class="employees-table">
+  <caption class="u-visually-hidden">
+    Empleados del negocio
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Nombre</th>
+      <th scope="col">Teléfono</th>
+      <th scope="col">Correo</th>
+      <th scope="col">Servicios</th>
+      <th scope="col">Estado</th>
+      <th scope="col">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.id) {
+      <tr>
+        <td class="employees-table__employee">
+          <span class="employees-table__avatar" aria-hidden="true">{{ row.initials }}</span>
+          <span class="employees-table__name">{{ row.name }}</span>
+        </td>
+        <td class="employees-table__contact">
+          <app-icon name="phone" />
+          <span class="u-visually-hidden">Teléfono:</span>
+          <span [class.employees-table__missing]="!row.hasPhone">{{ row.phone }}</span>
+        </td>
+        <td class="employees-table__contact">
+          <app-icon name="mail" />
+          <span class="u-visually-hidden">Correo:</span>
+          @if (row.email) {
+            <a class="employees-table__email" [href]="'mailto:' + row.email">{{ row.email }}</a>
+          } @else {
+            <span class="employees-table__missing">{{ emptyValue }}</span>
+          }
+        </td>
+        <td class="employees-table__services">
+          <span class="u-visually-hidden">Servicios:</span>
+          <app-tag-list [tags]="row.services" />
+        </td>
+        <td class="employees-table__status">
+          <span class="employees-table__badge" [class.employees-table__badge--active]="row.active">
+            {{ row.statusLabel }}
+          </span>
+        </td>
+        <td class="employees-table__actions">
+          <button type="button" disabled [title]="comingSoon" [attr.aria-label]="row.editLabel">
+            <app-icon name="pencil" />
+          </button>
+          <button type="button" disabled [title]="comingSoon" [attr.aria-label]="row.toggleLabel">
+            <app-icon name="power" />
+          </button>
+          <button
+            class="employees-table__danger"
+            type="button"
+            disabled
+            [title]="comingSoon"
+            [attr.aria-label]="row.deleteLabel"
+          >
+            <app-icon name="trash" />
+          </button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

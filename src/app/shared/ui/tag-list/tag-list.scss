@@ -1,0 +1,35 @@
+:host {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__tag {
+    max-width: 10rem;
+    overflow: hidden;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-accent-subtle);
+    color: var(--color-accent);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__more {
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-muted);
+  }
+
+  &__empty {
+    color: var(--color-text-subtle);
+  }
+}
