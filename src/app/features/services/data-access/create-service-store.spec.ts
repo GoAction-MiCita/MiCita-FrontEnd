@@ -34,6 +34,18 @@ function error(kind: ApiError['kind'], status: number): ApiError {
 }
 
 describe('CreateServiceStore', () => {
+  it('resolves employeeIds[i] against the list sent, without duplicates', async () => {
+    const rejected: ApiError = {
+      ...error('validation', 400),
+      fieldErrors: { 'employeeIds[1]': 'x' },
+    };
+    const { store } = setup(() => throwError(() => rejected));
+
+    await store.create({ ...newService, employeeIds: ['e1', 'e1', 'e2'] });
+
+    expect(store.failure()?.rejectedEmployeeIds).toEqual(['e2']);
+  });
+
   it('creates the service', async () => {
     const { store } = setup(() => of(service));
 

@@ -52,7 +52,8 @@ export class CreateEmployeeStore {
       }
       this.state.set({
         pending: false,
-        failure: toEmployeeFormFailure(apiError, employee.serviceIds),
+        // The body carries the services without duplicates; serviceIds[i] indexes that list.
+        failure: toEmployeeFormFailure(apiError, [...new Set(employee.serviceIds)]),
       });
       return false;
     }

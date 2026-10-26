@@ -64,6 +64,16 @@ describe('CreateEmployeeStore', () => {
     expect(store.pending()).toBe(false);
   });
 
+  it('resolves serviceIds[i] against the list sent, without duplicates', async () => {
+    const { store } = setup(() =>
+      throwError(() => apiError('validation', { 'serviceIds[1]': 'x' })),
+    );
+
+    await store.create({ ...newEmployee, serviceIds: ['s1', 's1', 's2'] });
+
+    expect(store.failure()?.rejectedServiceIds).toEqual(['s2']);
+  });
+
   it('keeps the 409 on the duplicated field', async () => {
     const { store } = setup(() => throwError(() => apiError('conflict', { phone: 'dup' })));
 

@@ -103,7 +103,8 @@ export class EditServiceStore {
     }
     this.state.set({
       ...next,
-      failure: toServiceFormFailure(apiError, title, sent?.employeeIds),
+      // The body carries the employees without duplicates; employeeIds[i] indexes that list.
+      failure: toServiceFormFailure(apiError, title, sent && [...new Set(sent.employeeIds)]),
     });
     return 'failed';
   }

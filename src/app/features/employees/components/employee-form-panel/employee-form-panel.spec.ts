@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { EmployeeFormFailure } from '@features/employees/models/employee-form-failure';
+import {
+  EMPLOYEE_FORM_MESSAGES,
+  EmployeeFormFailure,
+} from '@features/employees/models/employee-form-failure';
 import { NewEmployee, ServiceOption } from '@features/employees/models/employee.model';
 import { EmployeeFormPanel } from './employee-form-panel';
 
@@ -158,6 +161,20 @@ describe('EmployeeFormPanel', () => {
     const cancel = new Event('cancel', { cancelable: true });
     element.querySelector('dialog')!.dispatchEvent(cancel);
     expect(cancel.defaultPrevented).toBe(true);
+  });
+
+  it('does not ask to check marked fields when the 400 matches none of them', async () => {
+    const { element, set } = await render();
+
+    await set('failure', {
+      title: EMPLOYEE_FORM_MESSAGES.title,
+      summary: EMPLOYEE_FORM_MESSAGES.checkFields,
+      fieldErrors: { businessId: 'inválido' },
+    } satisfies EmployeeFormFailure);
+
+    const alert = element.querySelector('app-alert')?.textContent ?? '';
+    expect(alert).toContain(EMPLOYEE_FORM_MESSAGES.unexpected);
+    expect(alert).not.toContain(EMPLOYEE_FORM_MESSAGES.checkFields);
   });
 
   it('shows the server errors per field (400) and the summary', async () => {

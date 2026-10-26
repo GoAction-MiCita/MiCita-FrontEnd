@@ -10,12 +10,16 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { EmployeeFormFailure } from '@features/employees/models/employee-form-failure';
+import {
+  EMPLOYEE_FORM_MESSAGES,
+  EmployeeFormFailure,
+} from '@features/employees/models/employee-form-failure';
 import {
   EMPLOYEE_STATUS,
   EmployeeStatus,
@@ -114,6 +118,12 @@ export class EmployeeFormPanel {
     this.servicesError() ? (this.failure()?.rejectedServiceIds ?? []) : [],
   );
 
+  /** A 400 whose field errors match no control: "Revisa los campos marcados" would point at nothing. */
+  private readonly nothingMarked = signal(false);
+  protected readonly failureSummary = computed(() =>
+    this.nothingMarked() ? EMPLOYEE_FORM_MESSAGES.unexpected : (this.failure()?.summary ?? ''),
+  );
+
   constructor() {
     // Give focus back to the button that opened the panel.
     const opener = inject(DOCUMENT).activeElement;
@@ -128,7 +138,13 @@ export class EmployeeFormPanel {
     effect(() => {
       const failure = this.failure();
       if (failure) {
-        untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const unmatched = untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const marked = Object.keys(failure.fieldErrors).length - unmatched.length;
+        this.nothingMarked.set(
+          failure.summary === EMPLOYEE_FORM_MESSAGES.checkFields && marked === 0,
+        );
+      } else {
+        this.nothingMarked.set(false);
       }
     });
   }

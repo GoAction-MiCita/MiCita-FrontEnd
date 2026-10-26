@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { ServiceFormFailure } from '@features/services/models/service-form-failure';
+import {
+  SERVICE_FORM_MESSAGES,
+  ServiceFormFailure,
+} from '@features/services/models/service-form-failure';
 import { NewService, Service } from '@features/services/models/service.model';
 import { ServiceFormPanel } from './service-form-panel';
 
@@ -198,6 +201,22 @@ describe('ServiceFormPanel', () => {
     expect(element.querySelector('[formcontrolname="name"]')?.getAttribute('aria-invalid')).toBe(
       'true',
     );
+  });
+
+  it('does not ask to check marked fields when the 400 matches none of them', async () => {
+    const { fixture, element } = await render();
+    const failure: ServiceFormFailure = {
+      title: 'No pudimos crear el servicio',
+      summary: SERVICE_FORM_MESSAGES.checkFields,
+      fieldErrors: { businessId: 'inválido' },
+    };
+
+    fixture.componentRef.setInput('failure', failure);
+    await fixture.whenStable();
+
+    const alert = element.querySelector('app-alert')?.textContent ?? '';
+    expect(alert).toContain(SERVICE_FORM_MESSAGES.unexpected);
+    expect(alert).not.toContain(SERVICE_FORM_MESSAGES.checkFields);
   });
 
   it('renders typed text as text, never as HTML', async () => {

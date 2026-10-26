@@ -10,6 +10,7 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core';
@@ -28,7 +29,10 @@ import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
 import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
 import { MultiSelect } from '@shared/ui/multi-select/multi-select';
-import { ServiceFormFailure } from '@features/services/models/service-form-failure';
+import {
+  SERVICE_FORM_MESSAGES,
+  ServiceFormFailure,
+} from '@features/services/models/service-form-failure';
 import {
   NewService,
   NewServiceField,
@@ -139,6 +143,12 @@ export class ServiceFormPanel {
     this.employeesError() ? (this.failure()?.rejectedEmployeeIds ?? []) : [],
   );
 
+  /** A 400 whose field errors match no control: "Revisa los campos marcados" would point at nothing. */
+  private readonly nothingMarked = signal(false);
+  protected readonly failureSummary = computed(() =>
+    this.nothingMarked() ? SERVICE_FORM_MESSAGES.unexpected : (this.failure()?.summary ?? ''),
+  );
+
   constructor() {
     // Give focus back to the button that opened the panel.
     const opener = inject(DOCUMENT).activeElement;
@@ -169,7 +179,13 @@ export class ServiceFormPanel {
     effect(() => {
       const failure = this.failure();
       if (failure) {
-        untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const unmatched = untracked(() => applyServerErrors(this.form, failure.fieldErrors));
+        const marked = Object.keys(failure.fieldErrors).length - unmatched.length;
+        this.nothingMarked.set(
+          failure.summary === SERVICE_FORM_MESSAGES.checkFields && marked === 0,
+        );
+      } else {
+        this.nothingMarked.set(false);
       }
     });
   }

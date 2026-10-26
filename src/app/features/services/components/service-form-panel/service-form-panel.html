@@ -21,7 +21,7 @@
 
     <div class="service-panel__body">
       @if (failure(); as failure) {
-        <app-alert [title]="failure.title">{{ failure.summary }}</app-alert>
+        <app-alert [title]="failure.title">{{ failureSummary() }}</app-alert>
       }
 
       @if (loading()) {
