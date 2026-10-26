@@ -171,6 +171,7 @@ src/styles/
 - **Nunca hacer push, merge ni PR a `main` salvo que el usuario lo pida explícitamente nombrando `main`.** Flujo de ramas: `integration` → `staging` → `main`. Los PR de trabajo van a `integration`.
 - **Trabajo sobre una HU de Notion:** primero se confirma el tipo de trabajo (nueva funcionalidad → `feat`, ajuste o corrección de bug → `fix`, actualización de una funcionalidad → `feat`/`refactor`). Luego, partiendo de `integration`, se trabaja y se hace push en una única rama por HU con su código: "E01 · HU-02" → `E01-HU-02`. Excepciones: `chore/<slug>` desde `integration` y `hotfix/<slug>` desde `main`, este último solo cuando haya un incidente en producción. `chore/mock-server` es una rama de herramientas que nunca se integra (ver "Backend simulado").
 - Las tareas de repositorio (ramas, commits, push, PRs, hotfixes, rollbacks, conflictos e historial) las hace el agente `repo-manager` (`.claude/agents/repo-manager.md`). Ahí están las convenciones de ramas y commits (Conventional Commits en español, incluidos `hotfix` y `revert`), el protocolo de rollback y la ejecución rigurosa de pruebas obligatoria antes de commit, push y PR.
+- La revisión de un PR nuevo la hace el agente `code-reviewer` (`.claude/agents/code-reviewer.md`), con `/code-rwr <enlace del PR>`. Revisa con foco en Angular 22 y publica la revisión en el PR como comentarios (necesita `gh` instalado y autenticado). Nunca aprueba ni mergea.
 - Remoto: `GoAction-MiCita/MiCita-FrontEnd`.
 
 ## No hacer
