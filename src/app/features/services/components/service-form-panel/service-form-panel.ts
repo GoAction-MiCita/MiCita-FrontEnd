@@ -20,6 +20,7 @@ import { CurrencyInput } from '@shared/directives/currency-input';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { integer } from '@shared/forms/validators/integer.validator';
+import { notBlank } from '@shared/forms/validators/not-blank.validator';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
@@ -98,7 +99,7 @@ export class ServiceFormPanel {
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    name: ['', Validators.required],
+    name: ['', [Validators.required, notBlank()]],
     description: ['', Validators.maxLength(DESCRIPTION_MAX_LENGTH)],
     durationMinutes: [null as number | null, [Validators.min(1), integer()]],
     price: [null as number | null, [Validators.min(0), integer()]],

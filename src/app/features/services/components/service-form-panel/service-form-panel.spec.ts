@@ -70,6 +70,16 @@ describe('ServiceFormPanel', () => {
     expect(element.textContent).toContain('El nombre del servicio es obligatorio');
   });
 
+  it('does not submit a name made only of spaces', async () => {
+    const { element, fill, submit, submitted } = await render();
+
+    await fill({ name: '   ' });
+    await submit();
+
+    expect(submitted).toHaveLength(0);
+    expect(element.textContent).toContain('El nombre del servicio es obligatorio');
+  });
+
   it('emits the service with empty optionals as null', async () => {
     const { fill, submit, submitted } = await render();
 

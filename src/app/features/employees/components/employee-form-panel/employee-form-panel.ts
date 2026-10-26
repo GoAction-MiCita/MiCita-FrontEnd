@@ -27,6 +27,7 @@ import { SERVICE_PICKER_TEXTS } from '@features/employees/models/service-picker-
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { email } from '@shared/forms/validators/email.validator';
+import { notBlank } from '@shared/forms/validators/not-blank.validator';
 import { phone } from '@shared/forms/validators/phone.validator';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
@@ -84,8 +85,8 @@ export class EmployeeFormPanel {
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    firstName: ['', [Validators.required, Validators.maxLength(NAME_MAX_LENGTH)]],
-    lastName: ['', [Validators.required, Validators.maxLength(NAME_MAX_LENGTH)]],
+    firstName: ['', [Validators.required, notBlank(), Validators.maxLength(NAME_MAX_LENGTH)]],
+    lastName: ['', [Validators.required, notBlank(), Validators.maxLength(NAME_MAX_LENGTH)]],
     phone: ['', phone()],
     email: ['', email()],
     // Preselected "Activo" (HU-17 note).

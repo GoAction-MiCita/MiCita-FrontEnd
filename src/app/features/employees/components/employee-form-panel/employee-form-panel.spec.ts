@@ -82,6 +82,17 @@ describe('EmployeeFormPanel', () => {
     expect(errorOf('lastName')).toContain('El apellido es obligatorio');
   });
 
+  it('does not submit names made only of spaces', async () => {
+    const { fill, submit, submitted, errorOf } = await render();
+
+    await fill({ firstName: '   ', lastName: '\t ' });
+    await submit();
+
+    expect(submitted).toEqual([]);
+    expect(errorOf('firstName')).toContain('El nombre es obligatorio');
+    expect(errorOf('lastName')).toContain('El apellido es obligatorio');
+  });
+
   it('does not submit names longer than 100 characters', async () => {
     const { fill, submit, submitted, errorOf } = await render();
 
