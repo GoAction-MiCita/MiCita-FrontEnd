@@ -317,6 +317,67 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
   }
 
+  // @endpoint PATCH /api/empleados/{{employeeId}}/estado
+  if (req.method === 'PATCH' && /^\/api\/empleados\/([^/]+)\/estado$/.test(pathname)) {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "400 Bad Request" — when x-mock-response-code: 400
+    if (requestedStatusCode === '400') {
+      res.writeHead(400, {"Content-Type":"application/json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado","errors":{"status":"El estado debe ser ACTIVE o INACTIVE"}}));
+    }
+
+    // "404 Not Found" — when x-mock-response-code: 404
+    if (requestedStatusCode === '404') {
+      res.writeHead(404, {"Content-Type":"application/json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Not Found","status":404,"detail":"Employee not found","instance":"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado"}));
+    }
+
+    // "401 Unauthorized" — when x-mock-response-code: 401
+    if (requestedStatusCode === '401') {
+      res.writeHead(401, {"Content-Type":"application/json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Unauthorized","status":401,"detail":"Missing or invalid access token","instance":"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado"}));
+    }
+
+    // "403 Forbidden" — when x-mock-response-code: 403
+    if (requestedStatusCode === '403') {
+      res.writeHead(403, {"Content-Type":"application/json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Forbidden","status":403,"detail":"Business required","instance":"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado"}));
+    }
+
+    // "200 OK" — default
+    res.writeHead(200, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"id":"7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c","firstName":"Eva","lastName":"Ruiz","phone":"3009998877","email":"eva.ruiz@correo.com","status":"INACTIVE","services":[{"id":"svc-01","name":"Corte de cabello"}]}));
+  }
+
+  // @endpoint PATCH /api/empleados/{{employeeId}}/estado
+  if (req.method === 'PATCH' && /^\/api\/empleados\/([^/]+)\/estado$/.test(pathname)) {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint PATCH /api/empleados/{{employeeId}}/estado
+  if (req.method === 'PATCH' && /^\/api\/empleados\/([^/]+)\/estado$/.test(pathname)) {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint PATCH /api/empleados/{{employeeId}}/estado
+  if (req.method === 'PATCH' && /^\/api\/empleados\/([^/]+)\/estado$/.test(pathname)) {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint PATCH /api/empleados/e-no-existe/estado
+  if (req.method === 'PATCH' && pathname === '/api/empleados/e-no-existe/estado') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
   // @endpoint POST /api/servicios
   if (req.method === 'POST' && pathname === '/api/servicios') {
     res.writeHead(400, {"Content-Type":"application/problem+json"});

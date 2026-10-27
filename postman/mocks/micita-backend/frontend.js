@@ -27,6 +27,8 @@
  * GET and PUT /api/empleados/{id} (HU-18) read and update one with the HU-17 rules: 404 for unknown,
  * DELETED or other businesses' ids; the PUT 409 ignores the employee itself and `serviceIds`
  * replaces its services (an empty list removes them all).
+ * PATCH /api/empleados/{id}/estado (HU-20) switches ACTIVE ↔ INACTIVE (200, idempotent) keeping its
+ * services; DELETED or another value answers 400, unknown/DELETED/foreign ids 404.
  * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
@@ -631,6 +633,31 @@ const routes = {
         service.employees.push(employeeSummary(employee));
       }
     }
+    return json(200, employeeResponse(business, employee));
+  },
+
+  'PATCH /api/empleados/{id}/estado': (body, req, params) => {
+    const instance = `/api/empleados/${params.id}/estado`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    // DELETED is not a valid target here: deleting is HU-21.
+    if (body.status !== 'ACTIVE' && body.status !== 'INACTIVE') {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, {
+        status: 'El estado debe ser ACTIVE o INACTIVE',
+      });
+    }
+    const employee = findEmployee(business, params.id);
+    if (!employee) {
+      return problem(404, 'Not Found', 'Employee not found', instance);
+    }
+    // Idempotent; its services and appointments are kept.
+    employee.status = body.status;
     return json(200, employeeResponse(business, employee));
   },
 

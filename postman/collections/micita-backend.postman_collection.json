@@ -2474,6 +2474,439 @@
           "response": []
         },
         {
+          "name": "Activar empleado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}", "estado"]
+            },
+            "description": "Cambia el estado (HU-20) entre ACTIVE e INACTIVE conservando sus servicios y sus citas. Responde 200 con el empleado y su estado nuevo; el mismo estado también responde 200 (idempotente). 400 con DELETED u otro valor; 404 si no existe, es de otro negocio o está DELETED; 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 con el estado nuevo', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c", "estado"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\",\n  \"firstName\": \"Eva\",\n  \"lastName\": \"Ruiz\",\n  \"phone\": \"3009998877\",\n  \"email\": \"eva.ruiz@correo.com\",\n  \"status\": \"INACTIVE\",\n  \"services\": [\n    {\n      \"id\": \"svc-01\",\n      \"name\": \"Corte de cabello\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c", "estado"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"DELETED\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado\",\n  \"errors\": {\n    \"status\": \"El estado debe ser ACTIVE o INACTIVE\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c", "estado"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"Employee not found\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c", "estado"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c", "estado"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"INACTIVE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c/estado\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Activar empleado ya activo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}", "estado"]
+            },
+            "description": "El mismo estado responde 200 sin cambios."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('es idempotente', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Desactivar empleado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}", "estado"]
+            },
+            "description": "Desactiva conservando sus servicios."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 inactivo y conserva sus servicios', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const employee = pm.response.json();",
+                  "  pm.expect(employee.status).to.eql('INACTIVE');",
+                  "  pm.expect(employee.services).to.be.an('array');",
+                  "  pm.expect(employee).to.not.have.property('businessId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Cambiar estado de empleado a DELETED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELETED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}", "estado"]
+            },
+            "description": "DELETED no es un estado válido aquí (eliminar es HU-21): 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el error en status', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Cambiar estado de empleado inexistente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/e-no-existe/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "e-no-existe", "estado"]
+            },
+            "description": "Id desconocido: 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Crear servicio con empleado ajeno",
           "request": {
             "method": "POST",
