@@ -98,7 +98,11 @@ describe('EmployeeStatusStore', () => {
   ] as const)('reports %s and frees the toggle', async (kind, status, message) => {
     const { store } = setup(() => throwError(() => error(kind, status)));
 
-    expect(await store.toggle(active)).toEqual({ kind: 'failed', message });
+    expect(await store.toggle(active)).toEqual({
+      kind: 'failed',
+      message,
+      gone: kind === 'not-found',
+    });
     expect(store.pendingIds().size).toBe(0);
   });
 
@@ -108,6 +112,7 @@ describe('EmployeeStatusStore', () => {
     expect(await store.toggle(active)).toEqual({
       kind: 'failed',
       message: EMPLOYEE_STATUS_MESSAGES.unexpected,
+      gone: false,
     });
   });
 

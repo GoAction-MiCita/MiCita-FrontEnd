@@ -68,13 +68,18 @@ export class EmployeesStore {
 
   /** HU-20: shows the status the backend answered without reloading the page. */
   setStatus(id: string, status: EmployeeStatus): void {
-    this.page.update(
-      (page) =>
-        page && {
-          ...page,
-          items: page.items.map((item) => (item.id === id ? { ...item, status } : item)),
-        },
-    );
+    // set() aborts a load in flight (page change, reload); that load already brings the stored
+    // status, so the page is left alone.
+    if (this.page.isLoading() || !this.page.hasValue()) {
+      return;
+    }
+    const page = this.page.value();
+    if (page.items.some((item) => item.id === id)) {
+      this.page.set({
+        ...page,
+        items: page.items.map((item) => (item.id === id ? { ...item, status } : item)),
+      });
+    }
   }
 
   /** Reloads the current page (retry, or after creating or editing). */

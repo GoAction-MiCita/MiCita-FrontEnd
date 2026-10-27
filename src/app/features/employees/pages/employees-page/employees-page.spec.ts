@@ -496,7 +496,7 @@ describe('EmployeesPage · activar o desactivar (HU-20)', () => {
     toggle().click();
     await harness.fixture.whenStable();
 
-    expect(toggle().disabled).toBe(true);
+    expect(toggle().getAttribute('aria-disabled')).toBe('true');
     toggle().click();
     expect(changeStatus).toHaveBeenCalledTimes(1);
     expect(badge()).toBe('Activo');
@@ -507,23 +507,29 @@ describe('EmployeesPage · activar o desactivar (HU-20)', () => {
     await new Promise((resolve) => setTimeout(resolve));
     await harness.fixture.whenStable();
 
-    expect(toggle().disabled).toBe(false);
+    expect(toggle().hasAttribute('aria-disabled')).toBe(false);
     expect(badge()).toBe('Inactivo');
   });
 
   it.each([
-    ['not-found', EMPLOYEE_STATUS_MESSAGES.notFound],
-    ['server', EMPLOYEE_STATUS_MESSAGES.unexpected],
-  ] as const)('on %s shows the message and keeps the previous status', async (kind, message) => {
-    const { click, badge, toggle, notifier } = await renderList(() =>
-      throwError(() => apiError(kind)),
-    );
+    ['not-found', EMPLOYEE_STATUS_MESSAGES.notFound, 1],
+    ['server', EMPLOYEE_STATUS_MESSAGES.unexpected, 0],
+  ] as const)(
+    'on %s shows the message and keeps the previous status',
+    async (kind, message, reloads) => {
+      const { click, badge, toggle, notifier, list } = await renderList(() =>
+        throwError(() => apiError(kind)),
+      );
+      const listCalls = list.mock.calls.length;
 
-    await click();
+      await click();
 
-    expect(notifier.error).toHaveBeenCalledWith(message);
-    expect(notifier.success).not.toHaveBeenCalled();
-    expect(badge()).toBe('Activo');
-    expect(toggle().disabled).toBe(false);
-  });
+      expect(notifier.error).toHaveBeenCalledWith(message);
+      expect(notifier.success).not.toHaveBeenCalled();
+      expect(badge()).toBe('Activo');
+      expect(toggle().hasAttribute('aria-disabled')).toBe(false);
+      // A 404 reloads the list so the employee that no longer exists disappears.
+      expect(list.mock.calls.length).toBe(listCalls + reloads);
+    },
+  );
 });

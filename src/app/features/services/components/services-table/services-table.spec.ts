@@ -132,17 +132,20 @@ describe('ServicesTable', () => {
     expect(toggled).toEqual([facial]);
   });
 
-  it('disables only the toggle of the rows whose change is in flight', async () => {
+  it('marks only the toggle of the rows in flight as aria-disabled (it keeps the focus)', async () => {
     const { rows } = await render([haircut, facial], new Set(['s1']));
 
     const busy = rows[0].querySelector<HTMLButtonElement>('button[aria-label^="Desactivar"]')!;
-    expect(busy.disabled).toBe(true);
+    expect(busy.disabled).toBe(false);
+    expect(busy.getAttribute('aria-disabled')).toBe('true');
     expect(busy.getAttribute('aria-busy')).toBe('true');
     expect(rows[0].querySelector<HTMLButtonElement>('button[aria-label^="Editar"]')!.disabled).toBe(
       false,
     );
     expect(
-      rows[1].querySelector<HTMLButtonElement>('button[aria-label^="Activar"]')!.disabled,
+      rows[1]
+        .querySelector<HTMLButtonElement>('button[aria-label^="Activar"]')!
+        .hasAttribute('aria-disabled'),
     ).toBe(false);
   });
 });

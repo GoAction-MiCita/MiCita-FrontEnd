@@ -126,9 +126,11 @@ describe('EmployeesTable', () => {
     fixture.componentRef.setInput('busyIds', new Set(['e1']));
     await fixture.whenStable();
 
-    expect(button('Desactivar Ana López').disabled).toBe(true);
+    // aria-disabled, not disabled: the focused button keeps the focus while busy.
+    expect(button('Desactivar Ana López').disabled).toBe(false);
+    expect(button('Desactivar Ana López').getAttribute('aria-disabled')).toBe('true');
     expect(button('Desactivar Ana López').getAttribute('aria-busy')).toBe('true');
-    expect(button('Activar Juan Pérez').disabled).toBe(false);
+    expect(button('Activar Juan Pérez').hasAttribute('aria-disabled')).toBe(false);
     expect(button('Activar Juan Pérez').hasAttribute('aria-busy')).toBe(false);
   });
 });

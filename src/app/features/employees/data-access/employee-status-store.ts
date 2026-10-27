@@ -8,7 +8,8 @@ import { EmployeesApi } from './employees-api';
 
 export type EmployeeStatusChange =
   | { readonly kind: 'changed'; readonly status: EmployeeStatus }
-  | { readonly kind: 'failed'; readonly message: string }
+  /** `gone`: 404, the employee no longer exists (deleted meanwhile or from another business). */
+  | { readonly kind: 'failed'; readonly message: string; readonly gone: boolean }
   /** Already in flight for this employee, or the session ended (401). */
   | { readonly kind: 'ignored' };
 
@@ -26,10 +27,13 @@ export class EmployeeStatusStore {
   private readonly session = inject(AuthSession);
   private readonly pending = signal<ReadonlySet<string>>(new Set());
 
-  /** Ids of the employees whose change is in flight (their toggle is disabled). */
+  /** Ids of the employees whose change is in flight (their toggle is aria-disabled). */
   readonly pendingIds = this.pending.asReadonly();
 
-  /** The new status is only known (and shown) once the backend answers. */
+  /**
+   * The new status is only known (and shown) once the backend answers. The toggle stays focusable
+   * while busy (aria-disabled), so a second click is ignored here.
+   */
   async toggle(employee: Employee): Promise<EmployeeStatusChange> {
     if (this.pending().has(employee.id)) {
       return { kind: 'ignored' };
@@ -49,7 +53,11 @@ export class EmployeeStatusStore {
         await this.session.expire();
         return { kind: 'ignored' };
       }
-      return { kind: 'failed', message: toEmployeeStatusFailureMessage(apiError) };
+      return {
+        kind: 'failed',
+        message: toEmployeeStatusFailureMessage(apiError),
+        gone: apiError.kind === API_ERROR_KIND.notFound,
+      };
     } finally {
       this.setPending(employee.id, false);
     }

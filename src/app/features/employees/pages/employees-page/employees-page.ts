@@ -167,13 +167,19 @@ export default class EmployeesPage {
     this.notifier.error(EMPLOYEES_PAGE_MESSAGES.gone);
   }
 
-  /** HU-20: no confirmation; the badge changes only with the 200, errors keep the old status. */
+  /**
+   * HU-20: no confirmation; the badge changes only with the 200, errors keep the old status.
+   * A 404 also reloads the list, so the employee that no longer exists disappears.
+   */
   protected async toggleStatus(employee: Employee): Promise<void> {
     const change = await this.statusStore.toggle(employee);
     if (change.kind === 'changed') {
       this.store.setStatus(employee.id, change.status);
       this.notifier.success(employeeStatusChangedMessage(change.status));
     } else if (change.kind === 'failed') {
+      if (change.gone) {
+        this.store.reload();
+      }
       this.notifier.error(change.message);
     }
   }

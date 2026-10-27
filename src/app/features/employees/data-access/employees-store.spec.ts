@@ -140,4 +140,25 @@ describe('EmployeesStore.setStatus (HU-20)', () => {
 
     expect(store.employees()).toEqual(page.items);
   });
+
+  it('does not cancel a load in flight (it already brings the stored status)', async () => {
+    const second = new Subject<EmployeePage>();
+    let calls = 0;
+    const { store } = setup(() => (calls++ === 0 ? of(page) : second.asObservable()));
+    await settle();
+
+    store.setPaging({ page: 1, size: 20 });
+    // Not settle(): it would wait for the load that is meant to stay in flight.
+    await Promise.resolve();
+    TestBed.tick();
+    expect(store.loading()).toBe(true);
+
+    store.setStatus('e1', 'INACTIVE');
+    second.next({ ...page, page: 1, items: [{ ...page.items[0], id: 'new' }] });
+    second.complete();
+    await settle();
+
+    expect(store.loading()).toBe(false);
+    expect(store.employees().map((item) => item.id)).toEqual(['new']);
+  });
 });

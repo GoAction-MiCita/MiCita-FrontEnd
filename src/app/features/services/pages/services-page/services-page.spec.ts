@@ -587,13 +587,17 @@ describe('ServicesPage · activar o desactivar (HU-11)', () => {
     rendered.fixture.detectChanges();
 
     expect(badge(rendered.element)).toBe('Activo');
-    expect(toggleButton(rendered.element, 'Desactivar Barba').disabled).toBe(true);
+    expect(toggleButton(rendered.element, 'Desactivar Barba').getAttribute('aria-disabled')).toBe(
+      'true',
+    );
 
     response.next('INACTIVE');
     response.complete();
     // The click handler awaits the store; whenStable() does not track that promise.
     await vi.waitFor(() => expect(badge(rendered.element)).toBe('Inactivo'));
-    expect(toggleButton(rendered.element, 'Activar Barba').disabled).toBe(false);
+    expect(toggleButton(rendered.element, 'Activar Barba').hasAttribute('aria-disabled')).toBe(
+      false,
+    );
   });
 
   it.each([
@@ -610,7 +614,9 @@ describe('ServicesPage · activar o desactivar (HU-11)', () => {
     expect(badge(rendered.element)).toBe('Activo');
     expect(rendered.notifier.error).toHaveBeenCalledWith(message);
     expect(rendered.notifier.success).not.toHaveBeenCalled();
-    expect(toggleButton(rendered.element, 'Desactivar Barba').disabled).toBe(false);
+    expect(toggleButton(rendered.element, 'Desactivar Barba').hasAttribute('aria-disabled')).toBe(
+      false,
+    );
   });
 });
 

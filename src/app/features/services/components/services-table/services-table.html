@@ -42,7 +42,7 @@
             type="button"
             [attr.aria-label]="row.toggleLabel"
             [attr.aria-busy]="row.busy || null"
-            [disabled]="row.busy"
+            [attr.aria-disabled]="row.busy || null"
             (click)="toggleStatus.emit(row.service)"
           >
             <app-icon name="power" />
