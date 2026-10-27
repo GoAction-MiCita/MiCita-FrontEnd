@@ -17,6 +17,7 @@ import {
 } from '@features/employees/models/employee-form-failure';
 import {
   EMPLOYEE_STATUS,
+  Employee,
   EmployeeStatus,
   NewEmployee,
   NewEmployeeField,
@@ -55,10 +56,12 @@ const MESSAGES: Readonly<Record<NewEmployeeField, ErrorMessages>> = {
   serviceIds: {},
 };
 
+export type EmployeeFormMode = 'create' | 'edit';
+
 /**
- * HU-17 "Agregar empleado" inside a `SidePanel`, with the personal and work sections of the
- * mockup (only the fields of the contract). The panel closes with Esc, the X or "Cancelar"
- * (emits `closed`); the parent removes it. HU-18 reuses it to edit.
+ * HU-17 "Agregar empleado" and HU-18 "Editar empleado" inside a `SidePanel`, with the personal and
+ * work sections of the mockup (only the fields of the contract). The panel closes with Esc, the X
+ * or "Cancelar" (emits `closed`); the parent removes it. In edit mode the form waits for `employee`.
  */
 @Component({
   selector: 'app-employee-form-panel',
@@ -77,6 +80,10 @@ const MESSAGES: Readonly<Record<NewEmployeeField, ErrorMessages>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeeFormPanel {
+  readonly mode = input<EmployeeFormMode>('create');
+  /** Edit mode: the employee to edit, `null` while it loads or if it could not be loaded. */
+  readonly employee = input<Employee | null>(null);
+  readonly loading = input(false);
   readonly pending = input(false);
   readonly failure = input<EmployeeFormFailure | null>(null);
   /** Services of the business offered by the picker. */
@@ -102,14 +109,35 @@ export class EmployeeFormPanel {
     serviceIds: [[] as readonly string[]],
   });
 
-  /** Inactive services can be assigned too; they carry an "Inactivo" tag. */
-  protected readonly serviceOptions = computed<readonly MultiSelectOption[]>(() =>
-    this.services().map((service) => ({
+  protected readonly editing = computed(() => this.mode() === 'edit');
+  protected readonly title = computed(() =>
+    this.editing() ? 'Editar empleado' : 'Agregar empleado',
+  );
+  protected readonly subtitle = computed(() =>
+    this.editing()
+      ? 'Actualiza la información del empleado'
+      : 'Completa la información del empleado',
+  );
+  protected readonly saveLabel = computed(() =>
+    this.editing() ? 'Guardar cambios' : 'Guardar empleado',
+  );
+  /** In edit mode there is nothing to show or save until the employee arrives. */
+  protected readonly ready = computed(() => !this.editing() || this.employee() !== null);
+
+  /**
+   * Inactive services can be assigned too; they carry an "Inactivo" tag. In edit mode the
+   * employee's services missing from the list (e.g. beyond the first 100) stay selectable.
+   */
+  protected readonly serviceOptions = computed<readonly MultiSelectOption[]>(() => {
+    const listed: MultiSelectOption[] = this.services().map((service) => ({
       id: service.id,
       name: service.name,
       hint: service.active ? null : 'Inactivo',
-    })),
-  );
+    }));
+    const known = new Set(listed.map((service) => service.id));
+    const extra = (this.employee()?.services ?? []).filter((service) => !known.has(service.id));
+    return [...listed, ...extra];
+  });
 
   // The server error stays on the control until the selection changes (Angular revalidates).
   protected readonly servicesError = toSignal(
@@ -130,6 +158,22 @@ export class EmployeeFormPanel {
 
   constructor() {
     effect(() => {
+      const employee = this.employee();
+      if (employee) {
+        untracked(() =>
+          this.form.reset({
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            phone: employee.phone ?? '',
+            email: employee.email ?? '',
+            status: employee.status,
+            serviceIds: employee.services.map((service) => service.id),
+          }),
+        );
+      }
+    });
+
+    effect(() => {
       const failure = this.failure();
       if (failure) {
         const unmatched = untracked(() => applyServerErrors(this.form, failure.fieldErrors));
@@ -144,7 +188,7 @@ export class EmployeeFormPanel {
   }
 
   protected submit(): void {
-    if (this.pending()) {
+    if (this.pending() || !this.ready()) {
       return;
     }
     if (this.form.invalid) {

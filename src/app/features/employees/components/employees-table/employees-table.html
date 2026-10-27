@@ -43,7 +43,7 @@
           </span>
         </td>
         <td class="employees-table__actions">
-          <button type="button" disabled [title]="comingSoon" [attr.aria-label]="row.editLabel">
+          <button type="button" [attr.aria-label]="row.editLabel" (click)="edit.emit(row.employee)">
             <app-icon name="pencil" />
           </button>
           <button type="button" disabled [title]="comingSoon" [attr.aria-label]="row.toggleLabel">

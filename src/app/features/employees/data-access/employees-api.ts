@@ -9,6 +9,7 @@ import {
   toEmployee,
   toEmployeeListParams,
   toEmployeePage,
+  toUpdateEmployeeRequestDto,
 } from '../models/employee.mapper';
 import { Employee, EmployeePage, NewEmployee } from '../models/employee.model';
 
@@ -31,5 +32,21 @@ export class EmployeesApi {
     return this.http
       .post<EmployeeResponseDto>(`${this.apiUrl}/empleados`, toCreateEmployeeRequestDto(employee))
       .pipe(map(toEmployee));
+  }
+
+  /** HU-18: current data of one employee with its services. 404 if it no longer exists. */
+  get(id: string): Observable<Employee> {
+    return this.http.get<EmployeeResponseDto>(this.employeeUrl(id)).pipe(map(toEmployee));
+  }
+
+  /** HU-18: updates an employee; its `serviceIds` replace the whole list of services. */
+  update(id: string, employee: NewEmployee): Observable<Employee> {
+    return this.http
+      .put<EmployeeResponseDto>(this.employeeUrl(id), toUpdateEmployeeRequestDto(employee))
+      .pipe(map(toEmployee));
+  }
+
+  private employeeUrl(id: string): string {
+    return `${this.apiUrl}/empleados/${encodeURIComponent(id)}`;
   }
 }

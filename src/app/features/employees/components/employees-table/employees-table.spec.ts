@@ -76,7 +76,7 @@ describe('EmployeesTable', () => {
     ]);
   });
 
-  it('keeps the row actions disabled until their stories exist', async () => {
+  it('names each row action and keeps activate and delete disabled until their stories exist', async () => {
     const element = await render([ana, juan]);
 
     const buttons = Array.from(element.querySelectorAll<HTMLButtonElement>('tbody button'));
@@ -88,6 +88,23 @@ describe('EmployeesTable', () => {
       'Activar Juan Pérez',
       'Eliminar Juan Pérez',
     ]);
-    expect(buttons.every((button) => button.disabled && button.title === COMING_SOON)).toBe(true);
+    const pending = buttons.filter((button) => !button.ariaLabel?.startsWith('Editar'));
+    expect(pending.every((button) => button.disabled && button.title === COMING_SOON)).toBe(true);
+  });
+
+  it('emits the employee of the row on Editar (HU-18)', async () => {
+    const fixture = TestBed.createComponent(EmployeesTable);
+    fixture.componentRef.setInput('employees', [ana, juan]);
+    const edited: Employee[] = [];
+    fixture.componentInstance.edit.subscribe((employee) => edited.push(employee));
+    await fixture.whenStable();
+
+    const edit = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'button[aria-label="Editar Juan Pérez"]',
+    )!;
+    expect(edit.disabled).toBe(false);
+    edit.click();
+
+    expect(edited).toEqual([juan]);
   });
 });

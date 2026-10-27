@@ -7,6 +7,7 @@ import {
   toNewEmployeeFieldErrors,
   toRejectedServiceIds,
   toServiceOptions,
+  toUpdateEmployeeRequestDto,
 } from './employee.mapper';
 
 describe('employee.mapper · HU-17', () => {
@@ -75,6 +76,28 @@ describe('employee.mapper · HU-17', () => {
       { id: 's1', name: 'Corte', active: true },
       { id: 's2', name: 'Tinte', active: false },
     ]);
+  });
+});
+
+describe('employee.mapper · HU-18', () => {
+  it('builds the update body like the creation one; an empty list removes every service', () => {
+    expect(
+      toUpdateEmployeeRequestDto({
+        firstName: ' Ana ',
+        lastName: 'López',
+        phone: '300-123-4567',
+        email: '',
+        status: 'INACTIVE',
+        serviceIds: [],
+      }),
+    ).toEqual({
+      firstName: 'Ana',
+      lastName: 'López',
+      phone: '3001234567',
+      email: null,
+      status: 'INACTIVE',
+      serviceIds: [],
+    });
   });
 });
 

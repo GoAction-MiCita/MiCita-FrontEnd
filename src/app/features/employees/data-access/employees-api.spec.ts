@@ -104,4 +104,58 @@ describe('EmployeesApi', () => {
     expect(await result).toMatchObject({ id: 'e9', fullName: 'Eva Ruiz' });
     http.verify();
   });
+
+  it('gets the current data of one employee (HU-18)', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(api.get('e/1'));
+
+    const req = http.expectOne('http://api.test/api/empleados/e%2F1');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      id: 'e/1',
+      firstName: 'Ana',
+      lastName: 'López',
+      status: 'INACTIVE',
+      services: [{ id: 's1', name: 'Corte' }],
+    });
+
+    expect(await result).toMatchObject({
+      id: 'e/1',
+      fullName: 'Ana López',
+      status: 'INACTIVE',
+      services: [{ id: 's1', name: 'Corte' }],
+    });
+    http.verify();
+  });
+
+  it('updates an employee with the same cleaned body as the creation (HU-18)', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(
+      api.update('e1', {
+        firstName: 'Ana ',
+        lastName: 'Gómez',
+        phone: null,
+        email: 'ANA@correo.com',
+        status: 'INACTIVE',
+        serviceIds: [],
+      }),
+    );
+
+    const req = http.expectOne('http://api.test/api/empleados/e1');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      firstName: 'Ana',
+      lastName: 'Gómez',
+      phone: null,
+      email: 'ana@correo.com',
+      status: 'INACTIVE',
+      serviceIds: [],
+    });
+    req.flush({ id: 'e1', firstName: 'Ana', lastName: 'Gómez', status: 'INACTIVE' });
+
+    expect(await result).toMatchObject({ id: 'e1', fullName: 'Ana Gómez', services: [] });
+    http.verify();
+  });
 });

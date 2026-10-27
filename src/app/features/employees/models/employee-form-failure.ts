@@ -2,7 +2,7 @@ import { API_ERROR_KIND, ApiError } from '@core/http/api-error.model';
 import { FieldErrors } from '@shared/models/field-errors.model';
 import { toNewEmployeeFieldErrors, toRejectedServiceIds } from './employee.mapper';
 
-/** What the employee panel shows after a failed `POST /empleados`. */
+/** What the employee panel shows after a failed `POST /empleados`, `GET` or `PUT /empleados/{id}`. */
 export interface EmployeeFormFailure {
   readonly title: string;
   readonly summary: string;
@@ -14,6 +14,8 @@ export interface EmployeeFormFailure {
 
 export const EMPLOYEE_FORM_MESSAGES = {
   title: 'No pudimos crear el empleado',
+  updateTitle: 'No pudimos guardar los cambios',
+  loadTitle: 'No pudimos cargar el empleado',
   checkFields: 'Revisa los campos marcados e inténtalo de nuevo.',
   duplicate: 'Ya tienes un empleado con ese correo o teléfono.',
   duplicateEmail: 'Ya existe un empleado con este correo',
@@ -50,7 +52,8 @@ export function toEmployeeFormFailure(
 }
 
 /**
- * HU-17 Back: 409 when the email or phone is already used in the business. The field comes in
+ * HU-17/HU-18 Back: 409 when the email or phone is already used by another employee of the
+ * business. The field comes in
  * `errors` (assumed: `email` and/or `phone`); our own texts are shown on those fields.
  */
 function duplicates(error: ApiError): FieldErrors {

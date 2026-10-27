@@ -5,6 +5,7 @@ import {
   EmployeeResponseDto,
   PageDto,
   ServiceOptionDto,
+  UpdateEmployeeRequestDto,
 } from './employee.dto';
 import {
   EMPLOYEE_STATUS,
@@ -44,6 +45,11 @@ export function toCreateEmployeeRequestDto(employee: NewEmployee): CreateEmploye
     status: employee.status,
     serviceIds: [...new Set(employee.serviceIds)],
   };
+}
+
+/** HU-18: same cleaning as HU-17. */
+export function toUpdateEmployeeRequestDto(employee: NewEmployee): UpdateEmployeeRequestDto {
+  return toCreateEmployeeRequestDto(employee);
 }
 
 /**

@@ -11,12 +11,16 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { HOME_PATH } from '@core/auth/auth-guard';
 import { Notifier } from '@core/notifications/notifier';
-import { EmployeeFormPanel } from '@features/employees/components/employee-form-panel/employee-form-panel';
+import {
+  EmployeeFormMode,
+  EmployeeFormPanel,
+} from '@features/employees/components/employee-form-panel/employee-form-panel';
 import { EmployeesTable } from '@features/employees/components/employees-table/employees-table';
 import { CreateEmployeeStore } from '@features/employees/data-access/create-employee-store';
+import { EditEmployeeStore } from '@features/employees/data-access/edit-employee-store';
 import { EmployeesStore } from '@features/employees/data-access/employees-store';
 import { ServiceOptionsStore } from '@features/employees/data-access/service-options-store';
-import { NewEmployee } from '@features/employees/models/employee.model';
+import { Employee, NewEmployee } from '@features/employees/models/employee.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { Icon } from '@shared/ui/icon/icon';
@@ -25,29 +29,45 @@ import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator
 
 export const EMPLOYEES_PAGE_MESSAGES = {
   created: 'Empleado creado',
+  updated: 'Empleado actualizado',
+  gone: 'Este empleado ya no existe',
 } as const;
 
 /**
- * HU-16 listado and HU-17 registrar (private). The page lives in the query params
- * (`?page=&size=`, page 1-based). Editing and the row actions come in later stories.
+ * HU-16 listado, HU-17 registrar and HU-18 editar (private). The page lives in the query params
+ * (`?page=&size=`, page 1-based). The other row actions come in later stories.
  */
 @Component({
   selector: 'app-employees-page',
   imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator],
-  providers: [EmployeesStore, CreateEmployeeStore, ServiceOptionsStore],
+  providers: [EmployeesStore, CreateEmployeeStore, EditEmployeeStore, ServiceOptionsStore],
   templateUrl: './employees-page.html',
   styleUrl: './employees-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EmployeesPage {
   protected readonly store = inject(EmployeesStore);
-  protected readonly createStore = inject(CreateEmployeeStore);
+  private readonly createStore = inject(CreateEmployeeStore);
+  private readonly editStore = inject(EditEmployeeStore);
   protected readonly servicesStore = inject(ServiceOptionsStore);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly panelOpen = signal(false);
+  /** `null` while the panel is closed. */
+  protected readonly panelMode = signal<EmployeeFormMode | null>(null);
+
+  private readonly editing = computed(() => this.panelMode() === 'edit');
+  protected readonly formEmployee = computed(() =>
+    this.editing() ? this.editStore.employee() : null,
+  );
+  protected readonly formLoading = computed(() => this.editing() && this.editStore.loading());
+  protected readonly formPending = computed(() =>
+    this.editing() ? this.editStore.pending() : this.createStore.pending(),
+  );
+  protected readonly formFailure = computed(() =>
+    this.editing() ? this.editStore.failure() : this.createStore.failure(),
+  );
 
   // Query params, bound by withComponentInputBinding.
   readonly page = input<string>();
@@ -86,20 +106,55 @@ export default class EmployeesPage {
   protected openPanel(): void {
     this.createStore.reset();
     this.servicesStore.load();
-    this.panelOpen.set(true);
+    this.panelMode.set('create');
+  }
+
+  /** HU-18: the form waits for the current data of the employee (GET), not the list row. */
+  protected async openEdit(employee: Employee): Promise<void> {
+    this.editStore.reset();
+    this.servicesStore.load();
+    this.panelMode.set('edit');
+    if ((await this.editStore.load(employee.id)) === 'not-found') {
+      this.employeeGone();
+    }
   }
 
   protected closePanel(): void {
-    this.panelOpen.set(false);
+    this.panelMode.set(null);
+    // Drops a GET still in flight so it cannot report on a closed panel.
+    this.editStore.reset();
+  }
+
+  protected submit(employee: NewEmployee): Promise<void> {
+    return this.editing() ? this.update(employee) : this.create(employee);
   }
 
   /** 201: close, reload the current page and confirm; errors stay in the panel. */
-  protected async create(employee: NewEmployee): Promise<void> {
+  private async create(employee: NewEmployee): Promise<void> {
     if (await this.createStore.create(employee)) {
-      this.panelOpen.set(false);
+      this.panelMode.set(null);
       this.store.reload();
       this.notifier.success(EMPLOYEES_PAGE_MESSAGES.created);
     }
+  }
+
+  /** 200: close, reload the current page and confirm; 400 and 409 stay in the panel. */
+  private async update(changes: NewEmployee): Promise<void> {
+    const result = await this.editStore.save(changes);
+    if (result === 'saved') {
+      this.closePanel();
+      this.store.reload();
+      this.notifier.success(EMPLOYEES_PAGE_MESSAGES.updated);
+    } else if (result === 'not-found') {
+      this.employeeGone();
+    }
+  }
+
+  /** 404 on GET or PUT: deleted meanwhile (or from another business). */
+  private employeeGone(): void {
+    this.closePanel();
+    this.store.reload();
+    this.notifier.error(EMPLOYEES_PAGE_MESSAGES.gone);
   }
 
   protected goToPage(page: number): void {

@@ -1,6 +1,6 @@
 <app-side-panel
-  title="Agregar empleado"
-  subtitle="Completa la información del empleado"
+  [title]="title()"
+  [subtitle]="subtitle()"
   [pending]="pending()"
   (closed)="closed.emit()"
 >
@@ -15,90 +15,104 @@
       <app-alert [title]="failure.title">{{ failureSummary() }}</app-alert>
     }
 
-    <section class="employee-panel__section" aria-labelledby="employee-panel-personal">
-      <h3 id="employee-panel-personal" class="employee-panel__heading">
-        <app-icon name="user" />
-        Información personal
-      </h3>
+    @if (loading()) {
+      <p class="employee-panel__loading" role="status">
+        <span class="employee-panel__spinner" aria-hidden="true"></span>
+        Cargando empleado…
+      </p>
+    } @else if (ready()) {
+      <section class="employee-panel__section" aria-labelledby="employee-panel-personal">
+        <h3 id="employee-panel-personal" class="employee-panel__heading">
+          <app-icon name="user" />
+          Información personal
+        </h3>
 
-      <div class="employee-panel__row">
-        <app-form-field label="Nombre" [errorMessages]="messages.firstName">
-          <input
-            appFormFieldControl
-            formControlName="firstName"
-            autocomplete="off"
-            [attr.maxlength]="nameMaxLength"
-            placeholder="Ej. Ana"
-          />
+        <div class="employee-panel__row">
+          <app-form-field label="Nombre" [errorMessages]="messages.firstName">
+            <input
+              appFormFieldControl
+              formControlName="firstName"
+              autocomplete="off"
+              [attr.maxlength]="nameMaxLength"
+              placeholder="Ej. Ana"
+            />
+          </app-form-field>
+
+          <app-form-field label="Apellido" [errorMessages]="messages.lastName">
+            <input
+              appFormFieldControl
+              formControlName="lastName"
+              autocomplete="off"
+              [attr.maxlength]="nameMaxLength"
+              placeholder="Ej. López"
+            />
+          </app-form-field>
+        </div>
+
+        <div class="employee-panel__row">
+          <app-form-field label="Teléfono" optional [errorMessages]="messages.phone">
+            <app-icon appFieldPrefix name="phone" />
+            <input
+              appFormFieldControl
+              formControlName="phone"
+              type="tel"
+              inputmode="tel"
+              autocomplete="off"
+              placeholder="Ej. 300 123 4567"
+            />
+          </app-form-field>
+
+          <app-form-field label="Correo electrónico" optional [errorMessages]="messages.email">
+            <app-icon appFieldPrefix name="mail" />
+            <input
+              appFormFieldControl
+              formControlName="email"
+              type="email"
+              inputmode="email"
+              autocomplete="off"
+              placeholder="Ej. ana@correo.com"
+            />
+          </app-form-field>
+        </div>
+      </section>
+
+      <section class="employee-panel__section" aria-labelledby="employee-panel-work">
+        <h3 id="employee-panel-work" class="employee-panel__heading">
+          <app-icon name="id-card" />
+          Información laboral
+        </h3>
+
+        <app-form-field label="Estado" [errorMessages]="messages.status">
+          <select appFormFieldControl formControlName="status">
+            <option [value]="status.active">Activo</option>
+            <option [value]="status.inactive">Inactivo</option>
+          </select>
         </app-form-field>
 
-        <app-form-field label="Apellido" [errorMessages]="messages.lastName">
-          <input
-            appFormFieldControl
-            formControlName="lastName"
-            autocomplete="off"
-            [attr.maxlength]="nameMaxLength"
-            placeholder="Ej. López"
-          />
-        </app-form-field>
-      </div>
-
-      <div class="employee-panel__row">
-        <app-form-field label="Teléfono" optional [errorMessages]="messages.phone">
-          <app-icon appFieldPrefix name="phone" />
-          <input
-            appFormFieldControl
-            formControlName="phone"
-            type="tel"
-            inputmode="tel"
-            autocomplete="off"
-            placeholder="Ej. 300 123 4567"
-          />
-        </app-form-field>
-
-        <app-form-field label="Correo electrónico" optional [errorMessages]="messages.email">
-          <app-icon appFieldPrefix name="mail" />
-          <input
-            appFormFieldControl
-            formControlName="email"
-            type="email"
-            inputmode="email"
-            autocomplete="off"
-            placeholder="Ej. ana@correo.com"
-          />
-        </app-form-field>
-      </div>
-    </section>
-
-    <section class="employee-panel__section" aria-labelledby="employee-panel-work">
-      <h3 id="employee-panel-work" class="employee-panel__heading">
-        <app-icon name="id-card" />
-        Información laboral
-      </h3>
-
-      <app-form-field label="Estado" [errorMessages]="messages.status">
-        <select appFormFieldControl formControlName="status">
-          <option [value]="status.active">Activo</option>
-          <option [value]="status.inactive">Inactivo</option>
-        </select>
-      </app-form-field>
-
-      <app-multi-select
-        formControlName="serviceIds"
-        label="Servicios que presta"
-        icon="layout-grid"
-        optional
-        [texts]="servicePickerTexts"
-        [options]="serviceOptions()"
-        [loading]="servicesLoading()"
-        [failed]="servicesFailed()"
-        [rejectedIds]="rejectedServiceIds()"
-        [error]="servicesError()"
-      />
-    </section>
+        <app-multi-select
+          formControlName="serviceIds"
+          label="Servicios que presta"
+          icon="layout-grid"
+          optional
+          [texts]="servicePickerTexts"
+          [options]="serviceOptions()"
+          [loading]="servicesLoading()"
+          [failed]="servicesFailed()"
+          [rejectedIds]="rejectedServiceIds()"
+          [error]="servicesError()"
+        />
+      </section>
+    }
   </form>
 
-  <button appButton appSidePanelActions type="submit" form="employee-form" [loading]="pending()">
-    {{ pending() ? 'Guardando…' : 'Guardar empleado' }}
+  <button
+    appButton
+    appSidePanelActions
+    type="submit"
+    form="employee-form"
+    [loading]="pending()"
+    [disabled]="!ready()"
+  >
+    {{ pending() ? 'Guardando…' : saveLabel() }}
   </button>
 </app-side-panel>

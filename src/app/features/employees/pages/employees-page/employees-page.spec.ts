@@ -49,18 +49,29 @@ const services: ServiceOption[] = [
   { id: 's2', name: 'Tinte', active: false },
 ];
 
+interface EditApi {
+  readonly get?: (id: string) => Observable<Employee>;
+  readonly update?: (id: string, changes: unknown) => Observable<Employee>;
+}
+
 async function renderAt(
   url: string,
   list: (paging: Paging) => Observable<EmployeePage> = paged,
   create: () => Observable<Employee> = () => of(ana),
+  edit: EditApi = {},
 ) {
   const listSpy = vi.fn(list);
   const createSpy = vi.fn(create);
+  const getSpy = vi.fn(edit.get ?? (() => of(ana)));
+  const updateSpy = vi.fn(edit.update ?? (() => of(ana)));
   const servicesSpy = vi.fn(() => of(services));
   const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
-      { provide: EmployeesApi, useValue: { list: listSpy, create: createSpy } },
+      {
+        provide: EmployeesApi,
+        useValue: { list: listSpy, create: createSpy, get: getSpy, update: updateSpy },
+      },
       { provide: ServiceOptionsApi, useValue: { list: servicesSpy } },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
       { provide: Notifier, useValue: notifier },
@@ -85,6 +96,8 @@ async function renderAt(
     element,
     list: listSpy,
     create: createSpy,
+    get: getSpy,
+    update: updateSpy,
     services: servicesSpy,
     notifier,
     url: () => router.url,
@@ -276,5 +289,122 @@ describe('EmployeesPage · registrar (HU-17)', () => {
 
     expect(panel()?.textContent).toContain(EMPLOYEE_FORM_MESSAGES.duplicateEmail);
     expect(notifier.success).not.toHaveBeenCalled();
+  });
+});
+
+describe('EmployeesPage · editar (HU-18)', () => {
+  async function openEdit(edit: EditApi = {}) {
+    const page = await renderAt('/empleados', paged, undefined, edit);
+    page
+      .element()
+      .querySelector<HTMLButtonElement>('button[aria-label="Editar Ana López"]')!
+      .click();
+    await page.harness.fixture.whenStable();
+    const panel = () => page.element().querySelector('app-employee-form-panel');
+    const control = (name: string) =>
+      panel()!.querySelector<HTMLInputElement>(`[formControlName="${name}"]`)!;
+    const save = async () => {
+      panel()!.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+      await page.harness.fixture.whenStable();
+    };
+    return { ...page, panel, control, save };
+  }
+
+  const conflict: ApiError = {
+    kind: 'conflict',
+    status: 409,
+    message: null,
+    fieldErrors: { phone: 'duplicado' },
+  };
+
+  it('opens "Editar empleado" with the current data of the employee and its services', async () => {
+    const current: Employee = { ...ana, firstName: 'Ana María', fullName: 'Ana María López' };
+    const { panel, control, get, services } = await openEdit({ get: () => of(current) });
+
+    expect(get).toHaveBeenCalledWith('e1');
+    expect(services).toHaveBeenCalledTimes(1);
+    expect(panel()?.querySelector('h2')?.textContent).toContain('Editar empleado');
+    expect(control('firstName').value).toBe('Ana María');
+    expect(control('email').value).toBe('ana@correo.com');
+    expect(panel()?.querySelector('.multi-select__chip')?.textContent).toContain('Corte');
+  });
+
+  it('on 200 sends the PUT, closes the form, reloads the list and confirms', async () => {
+    const { panel, control, save, update, list, notifier, harness } = await openEdit();
+    const listCalls = list.mock.calls.length;
+
+    control('lastName').value = 'Gómez';
+    control('lastName').dispatchEvent(new Event('input'));
+    await harness.fixture.whenStable();
+    await save();
+
+    expect(update).toHaveBeenCalledWith('e1', {
+      firstName: 'Ana',
+      lastName: 'Gómez',
+      phone: '3001234567',
+      email: 'ana@correo.com',
+      status: 'ACTIVE',
+      serviceIds: ['s1'],
+    });
+    expect(panel()).toBeNull();
+    expect(list.mock.calls.length).toBe(listCalls + 1);
+    expect(notifier.success).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.updated);
+  });
+
+  it('sends the resulting serviceIds when services are removed', async () => {
+    const { panel, save, update, harness } = await openEdit();
+
+    panel()!.querySelector<HTMLButtonElement>('button[aria-label="Quitar Corte"]')!.click();
+    await harness.fixture.whenStable();
+    await save();
+
+    expect(update).toHaveBeenCalledWith('e1', expect.objectContaining({ serviceIds: [] }));
+  });
+
+  it('on 409 keeps the form open with the error on the duplicated field', async () => {
+    const { panel, save, notifier } = await openEdit({ update: () => throwError(() => conflict) });
+
+    await save();
+
+    expect(panel()?.textContent).toContain(EMPLOYEE_FORM_MESSAGES.duplicatePhone);
+    expect(panel()?.textContent).toContain(EMPLOYEE_FORM_MESSAGES.updateTitle);
+    expect(notifier.success).not.toHaveBeenCalled();
+  });
+
+  it('on 404 when opening says the employee no longer exists and reloads the list', async () => {
+    const { panel, list, notifier } = await openEdit({
+      get: () => throwError(() => apiError('not-found')),
+    });
+
+    expect(panel()).toBeNull();
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.gone);
+  });
+
+  it('on 404 when saving closes the form, says so and reloads the list', async () => {
+    const { panel, save, list, notifier } = await openEdit({
+      update: () => throwError(() => apiError('not-found')),
+    });
+    const listCalls = list.mock.calls.length;
+
+    await save();
+
+    expect(panel()).toBeNull();
+    expect(list.mock.calls.length).toBe(listCalls + 1);
+    expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.gone);
+  });
+
+  it('opens "Agregar empleado" empty after editing', async () => {
+    const { element, panel, control, harness } = await openEdit();
+
+    panel()!
+      .querySelectorAll<HTMLButtonElement>('button')
+      .forEach((button) => button.textContent?.includes('Cancelar') && button.click());
+    await harness.fixture.whenStable();
+    element().querySelector<HTMLButtonElement>('header button')!.click();
+    await harness.fixture.whenStable();
+
+    expect(panel()?.querySelector('h2')?.textContent).toContain('Agregar empleado');
+    expect(control('firstName').value).toBe('');
   });
 });
