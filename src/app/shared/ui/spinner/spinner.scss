@@ -1,0 +1,37 @@
+:host {
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--size-spinner-md);
+  aspect-ratio: 1;
+  border: var(--border-width-thick) solid var(--color-primary-subtle);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin var(--duration-spin) linear infinite;
+}
+
+:host(.spinner--sm) {
+  width: var(--size-spinner-sm);
+}
+
+:host(.spinner--lg) {
+  width: var(--size-spinner-lg);
+  border-width: var(--border-width-heavy);
+}
+
+:host(.spinner--current) {
+  border-color: currentColor;
+  border-right-color: transparent;
+}
+
+// The ring stays visible as a static cue; the loading text carries the meaning.
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

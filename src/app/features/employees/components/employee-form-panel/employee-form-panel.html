@@ -17,7 +17,7 @@
 
     @if (loading()) {
       <p class="employee-panel__loading" role="status">
-        <span class="employee-panel__spinner" aria-hidden="true"></span>
+        <app-spinner />
         Cargando empleado…
       </p>
     } @else if (ready()) {

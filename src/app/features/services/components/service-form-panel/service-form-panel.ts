@@ -23,6 +23,7 @@ import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
 import { SidePanel } from '@shared/ui/side-panel/side-panel';
+import { Spinner } from '@shared/ui/spinner/spinner';
 import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
 import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 import {
@@ -74,6 +75,7 @@ export type ServiceFormMode = 'create' | 'edit';
     FormFieldControl,
     Icon,
     SidePanel,
+    Spinner,
   ],
   templateUrl: './service-form-panel.html',
   styleUrl: './service-form-panel.scss',

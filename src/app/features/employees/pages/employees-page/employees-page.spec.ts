@@ -381,6 +381,25 @@ describe('EmployeesPage · editar (HU-18)', () => {
     expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.gone);
   });
 
+  it('keeps the form open with the alert, no fields and no save when loading fails', async () => {
+    const { panel, notifier, update, harness } = await openEdit({
+      get: () => throwError(() => apiError('server')),
+    });
+
+    const alert = panel()?.querySelector('app-alert')?.textContent ?? '';
+    expect(alert).toContain(EMPLOYEE_FORM_MESSAGES.loadTitle);
+    expect(alert).toContain(EMPLOYEE_FORM_MESSAGES.unexpected);
+    expect(panel()?.querySelector('[formControlName="firstName"]')).toBeNull();
+    const save = panel()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(save.textContent).toContain('Guardar cambios');
+    expect(save.disabled).toBe(true);
+
+    save.click();
+    await harness.fixture.whenStable();
+    expect(update).not.toHaveBeenCalled();
+    expect(notifier.error).not.toHaveBeenCalled();
+  });
+
   it('on 404 when saving closes the form, says so and reloads the list', async () => {
     const { panel, save, list, notifier } = await openEdit({
       update: () => throwError(() => apiError('not-found')),

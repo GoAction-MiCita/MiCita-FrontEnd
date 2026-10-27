@@ -53,8 +53,8 @@ export function toEmployeeFormFailure(
 
 /**
  * HU-17/HU-18 Back: 409 when the email or phone is already used by another employee of the
- * business. The field comes in
- * `errors` (assumed: `email` and/or `phone`); our own texts are shown on those fields.
+ * business. The field comes in `errors` (assumed: `email` and/or `phone`); our own texts are
+ * shown on those fields.
  */
 function duplicates(error: ApiError): FieldErrors {
   return {

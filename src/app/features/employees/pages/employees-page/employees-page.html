@@ -13,7 +13,7 @@
 
 @if (store.loading()) {
   <div class="employees-page__state" role="status">
-    <span class="employees-page__spinner" aria-hidden="true"></span>
+    <app-spinner size="lg" />
     Cargando empleados…
   </div>
 } @else if (store.error(); as error) {

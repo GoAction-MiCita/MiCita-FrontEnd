@@ -26,6 +26,7 @@ import { Button } from '@shared/ui/button/button';
 import { Icon } from '@shared/ui/icon/icon';
 import { Paginator } from '@shared/ui/paginator/paginator';
 import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
+import { Spinner } from '@shared/ui/spinner/spinner';
 
 export const EMPLOYEES_PAGE_MESSAGES = {
   created: 'Empleado creado',
@@ -39,7 +40,7 @@ export const EMPLOYEES_PAGE_MESSAGES = {
  */
 @Component({
   selector: 'app-employees-page',
-  imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator],
+  imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator, Spinner],
   providers: [EmployeesStore, CreateEmployeeStore, EditEmployeeStore, ServiceOptionsStore],
   templateUrl: './employees-page.html',
   styleUrl: './employees-page.scss',

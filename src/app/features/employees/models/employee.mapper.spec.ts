@@ -99,6 +99,20 @@ describe('employee.mapper · HU-18', () => {
       serviceIds: [],
     });
   });
+
+  // Contract of GET /api/empleados/{id}: the edit form preloads this status and saves it back.
+  it.each([
+    ['ACTIVE', 'ACTIVE'],
+    ['active', 'ACTIVE'],
+    [' Active ', 'ACTIVE'],
+    ['INACTIVE', 'INACTIVE'],
+    ['inactive', 'INACTIVE'],
+    ['DELETED', 'INACTIVE'],
+  ] as const)('reads the detail status %o as %s', (status, expected) => {
+    expect(toEmployee({ id: 'e1', firstName: 'Ana', lastName: 'López', status }).status).toBe(
+      expected,
+    );
+  });
 });
 
 describe('employee.mapper', () => {

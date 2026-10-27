@@ -1,13 +1,15 @@
 import { booleanAttribute, ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Spinner } from '../spinner/spinner';
 
 /** Primary action button. Usage: `<button appButton type="submit" [loading]="pending()">`. */
 @Component({
   // Attribute selector keeps native <button> semantics (type, form submit, focus).
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'button[appButton]',
+  imports: [Spinner],
   template: `
     @if (loading()) {
-      <span class="button__spinner" aria-hidden="true"></span>
+      <app-spinner size="sm" tone="current" />
     }
     <ng-content />
   `,

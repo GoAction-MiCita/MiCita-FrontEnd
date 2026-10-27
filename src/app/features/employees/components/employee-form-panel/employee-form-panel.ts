@@ -36,6 +36,7 @@ import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
 import { MultiSelect, MultiSelectOption } from '@shared/ui/multi-select/multi-select';
 import { SidePanel } from '@shared/ui/side-panel/side-panel';
+import { Spinner } from '@shared/ui/spinner/spinner';
 import { map } from 'rxjs';
 
 /** HU-17 Back: first and last name, 1 to 100 characters. */
@@ -74,6 +75,7 @@ export type EmployeeFormMode = 'create' | 'edit';
     Icon,
     MultiSelect,
     SidePanel,
+    Spinner,
   ],
   templateUrl: './employee-form-panel.html',
   styleUrl: './employee-form-panel.scss',
