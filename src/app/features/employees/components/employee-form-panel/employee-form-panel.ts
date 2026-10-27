@@ -1,18 +1,13 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
-  DOCUMENT,
   effect,
-  ElementRef,
   inject,
   input,
   output,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -39,6 +34,7 @@ import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
 import { MultiSelect, MultiSelectOption } from '@shared/ui/multi-select/multi-select';
+import { SidePanel } from '@shared/ui/side-panel/side-panel';
 import { map } from 'rxjs';
 
 /** HU-17 Back: first and last name, 1 to 100 characters. */
@@ -60,13 +56,22 @@ const MESSAGES: Readonly<Record<NewEmployeeField, ErrorMessages>> = {
 };
 
 /**
- * HU-17 "Agregar empleado": side panel on desktop, full screen on mobile, with the personal and
- * work sections of the mockup (only the fields of the contract). Closes with Esc, the X or
- * "Cancelar" (emits `closed`); the parent removes it. HU-18 reuses it to edit.
+ * HU-17 "Agregar empleado" inside a `SidePanel`, with the personal and work sections of the
+ * mockup (only the fields of the contract). The panel closes with Esc, the X or "Cancelar"
+ * (emits `closed`); the parent removes it. HU-18 reuses it to edit.
  */
 @Component({
   selector: 'app-employee-form-panel',
-  imports: [ReactiveFormsModule, Alert, Button, FormField, FormFieldControl, Icon, MultiSelect],
+  imports: [
+    ReactiveFormsModule,
+    Alert,
+    Button,
+    FormField,
+    FormFieldControl,
+    Icon,
+    MultiSelect,
+    SidePanel,
+  ],
   templateUrl: './employee-form-panel.html',
   styleUrl: './employee-form-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -86,7 +91,6 @@ export class EmployeeFormPanel {
   protected readonly status = EMPLOYEE_STATUS;
   protected readonly servicePickerTexts = SERVICE_PICKER_TEXTS;
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
-  private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     firstName: ['', [Validators.required, notBlank(), Validators.maxLength(NAME_MAX_LENGTH)]],
@@ -125,16 +129,6 @@ export class EmployeeFormPanel {
   );
 
   constructor() {
-    // Give focus back to the button that opened the panel.
-    const opener = inject(DOCUMENT).activeElement;
-    inject(DestroyRef).onDestroy(() => {
-      if (opener instanceof HTMLElement && opener.isConnected) {
-        opener.focus();
-      }
-    });
-
-    afterNextRender(() => this.open());
-
     effect(() => {
       const failure = this.failure();
       if (failure) {
@@ -147,36 +141,6 @@ export class EmployeeFormPanel {
         this.nothingMarked.set(false);
       }
     });
-  }
-
-  private open(): void {
-    const dialog = this.dialog().nativeElement;
-    // showModal() makes the rest of the page inert and traps focus inside the panel.
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    } else {
-      dialog.setAttribute('open', '');
-    }
-  }
-
-  /** Esc must not drop a request in flight. */
-  protected onCancel(event: Event): void {
-    if (this.pending()) {
-      event.preventDefault();
-    }
-  }
-
-  protected close(): void {
-    if (this.pending()) {
-      return;
-    }
-    const dialog = this.dialog().nativeElement;
-    // close() fires the `close` event, which emits `closed`.
-    if (typeof dialog.close === 'function') {
-      dialog.close();
-    } else {
-      this.closed.emit();
-    }
   }
 
   protected submit(): void {
