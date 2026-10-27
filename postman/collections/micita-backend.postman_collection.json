@@ -2907,6 +2907,234 @@
           "response": []
         },
         {
+          "name": "Eliminar empleado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}"]
+            },
+            "description": "Baja lógica (HU-21): el empleado pasa a DELETED, deja de aparecer en los listados y en los empleados de los servicios, y su correo y teléfono se pueden reutilizar. 204 sin cuerpo; 409 si tiene citas futuras (con la cantidad); 404 si no existe, es de otro negocio o ya está DELETED; 401 sin token válido; 403 sin negocio."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 204 sin cuerpo', () => {",
+                  "  pm.response.to.have.status(204);",
+                  "  pm.expect(pm.response.text()).to.eql('');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c"]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": ""
+            },
+            {
+              "name": "409 Conflict",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Employee has 2 future appointments\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\",\n  \"futureAppointments\": 2\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Not Found\",\n  \"status\": 404,\n  \"detail\": \"Employee not found\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Unauthorized\",\n  \"status\": 401,\n  \"detail\": \"Missing or invalid access token\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados", "7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Forbidden\",\n  \"status\": 403,\n  \"detail\": \"Business required\",\n  \"instance\": \"/api/empleados/7b1e0c2a-4f5d-4e6a-9b8c-1d2e3f4a5b6c\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Eliminar empleado ya eliminado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}"]
+            },
+            "description": "Ya está DELETED: 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Obtener empleado eliminado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados", "{{employeeId}}"]
+            },
+            "description": "El detalle de un empleado DELETED responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Crear servicio con empleado ajeno",
           "request": {
             "method": "POST",

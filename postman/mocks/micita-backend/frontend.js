@@ -29,6 +29,9 @@
  * replaces its services (an empty list removes them all).
  * PATCH /api/empleados/{id}/estado (HU-20) switches ACTIVE ↔ INACTIVE (200, idempotent) keeping its
  * services; DELETED or another value answers 400, unknown/DELETED/foreign ids 404.
+ * DELETE /api/empleados/{id} (HU-21) marks it DELETED (204): it leaves the lists and the services'
+ * employees, and its email and phone can be reused. Owner's Ana López (e-ana) has future
+ * appointments and answers 409.
  * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
@@ -211,6 +214,9 @@ const services = [
 
 /** Future appointments per service id (HU-14): deleting one of these answers 409. */
 const futureAppointments = { 'svc-01': 3 };
+
+/** HU-21: future appointments per employee (the 409 of DELETE /api/empleados/{id}). */
+const employeeFutureAppointments = { 'e-ana': 2 };
 
 // Mirrors the backend RegisterUserRequest rules (see HU-01 Back).
 const REGISTER_RULES = [
@@ -659,6 +665,40 @@ const routes = {
     // Idempotent; its services and appointments are kept.
     employee.status = body.status;
     return json(200, employeeResponse(business, employee));
+  },
+
+  'DELETE /api/empleados/{id}': (_body, req, params) => {
+    const instance = `/api/empleados/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const employee = findEmployee(business, params.id);
+    if (!employee) {
+      return problem(404, 'Not Found', 'Employee not found', instance);
+    }
+    const count = employeeFutureAppointments[employee.id] ?? 0;
+    if (count > 0) {
+      const conflict = problem(
+        409,
+        'Conflict',
+        `Employee has ${count} future appointments`,
+        instance,
+      );
+      // Assumed extension member for the count: HU-21 Back does not name it yet.
+      conflict.body = JSON.stringify({ ...JSON.parse(conflict.body), futureAppointments: count });
+      return conflict;
+    }
+    // Logical delete: the record stays; it leaves the lists and the services' employees.
+    employee.status = 'DELETED';
+    for (const service of services.filter((s) => s.businessId === business.id)) {
+      service.employees = service.employees.filter((e) => e.id !== employee.id);
+    }
+    return { status: 204, headers: {}, body: '' };
   },
 
   'GET /api/servicios/{id}': (_body, req, params) => {
