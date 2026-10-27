@@ -4,13 +4,13 @@ import { EMPTY_VALUE, formatPhone, initials } from '@shared/formatting/format';
 import { Icon } from '@shared/ui/icon/icon';
 import { TagList } from '@shared/ui/tag-list/tag-list';
 
-/** Shown on row actions that arrive in later stories (activate/deactivate and delete). */
+/** Shown on the row action that arrives in a later story (delete, HU-21). */
 export const COMING_SOON = 'Próximamente';
 
 /**
  * Employees table (HU-16). Becomes a list of cards on small screens.
- * Edit only emits `edit` (HU-18); activate/deactivate and delete stay disabled until their
- * stories exist.
+ * Row actions only emit: `edit` (HU-18) and `toggleStatus` (HU-20, disabled while `busyIds` has
+ * the row). Delete stays disabled until its story exists.
  */
 @Component({
   selector: 'app-employees-table',
@@ -22,13 +22,18 @@ export const COMING_SOON = 'Próximamente';
 export class EmployeesTable {
   readonly employees = input.required<readonly Employee[]>();
 
+  /** HU-20: employees whose status change is in flight. */
+  readonly busyIds = input<ReadonlySet<string>>(new Set());
+
   readonly edit = output<Employee>();
+  readonly toggleStatus = output<Employee>();
 
   protected readonly comingSoon = COMING_SOON;
   protected readonly emptyValue = EMPTY_VALUE;
 
-  protected readonly rows = computed(() =>
-    this.employees().map((employee) => {
+  protected readonly rows = computed(() => {
+    const busy = this.busyIds();
+    return this.employees().map((employee) => {
       const active = employee.status === EMPLOYEE_STATUS.active;
       return {
         id: employee.id,
@@ -40,11 +45,12 @@ export class EmployeesTable {
         email: employee.email,
         services: employee.services,
         active,
+        busy: busy.has(employee.id),
         statusLabel: active ? 'Activo' : 'Inactivo',
         editLabel: `Editar ${employee.fullName}`,
         toggleLabel: `${active ? 'Desactivar' : 'Activar'} ${employee.fullName}`,
         deleteLabel: `Eliminar ${employee.fullName}`,
       };
-    }),
-  );
+    });
+  });
 }

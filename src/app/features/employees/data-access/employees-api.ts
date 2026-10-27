@@ -3,15 +3,20 @@ import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
 import { map, Observable } from 'rxjs';
-import { EmployeeResponseDto, PageDto } from '../models/employee.dto';
+import {
+  EmployeeResponseDto,
+  PageDto,
+  UpdateEmployeeStatusRequestDto,
+} from '../models/employee.dto';
 import {
   toCreateEmployeeRequestDto,
   toEmployee,
   toEmployeeListParams,
   toEmployeePage,
+  toEmployeeStatus,
   toUpdateEmployeeRequestDto,
 } from '../models/employee.mapper';
-import { Employee, EmployeePage, NewEmployee } from '../models/employee.model';
+import { Employee, EmployeePage, EmployeeStatus, NewEmployee } from '../models/employee.model';
 
 @Injectable({ providedIn: 'root' })
 export class EmployeesApi {
@@ -44,6 +49,14 @@ export class EmployeesApi {
     return this.http
       .put<EmployeeResponseDto>(this.employeeUrl(id), toUpdateEmployeeRequestDto(employee))
       .pipe(map(toEmployee));
+  }
+
+  /** HU-20: ACTIVE ↔ INACTIVE; the answer carries the status now stored. */
+  changeStatus(id: string, status: EmployeeStatus): Observable<EmployeeStatus> {
+    const body: UpdateEmployeeStatusRequestDto = { status };
+    return this.http
+      .patch<EmployeeResponseDto>(`${this.employeeUrl(id)}/estado`, body)
+      .pipe(map(toEmployeeStatus));
   }
 
   private employeeUrl(id: string): string {

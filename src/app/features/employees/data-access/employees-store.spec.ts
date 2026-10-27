@@ -120,3 +120,24 @@ describe('EmployeesStore', () => {
     expect(store.empty()).toBe(false);
   });
 });
+
+describe('EmployeesStore.setStatus (HU-20)', () => {
+  it('changes the status of one employee without fetching again', async () => {
+    const { store, list } = setup(() => of(page));
+    await settle();
+
+    store.setStatus('e1', 'INACTIVE');
+
+    expect(store.employees()[0].status).toBe('INACTIVE');
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores unknown ids', async () => {
+    const { store } = setup(() => of(page));
+    await settle();
+
+    store.setStatus('nope', 'INACTIVE');
+
+    expect(store.employees()).toEqual(page.items);
+  });
+});

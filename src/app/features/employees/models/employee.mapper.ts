@@ -106,6 +106,11 @@ export function toEmployeePage(dto: PageDto<EmployeeResponseDto>): EmployeePage 
   };
 }
 
+/** HU-20: only the new status of the answer is used, whatever else it carries. */
+export function toEmployeeStatus(dto: Pick<EmployeeResponseDto, 'status'>): EmployeeStatus {
+  return toStatus(dto.status);
+}
+
 export function toEmployee(dto: EmployeeResponseDto): Employee {
   const firstName = dto.firstName?.trim() ?? '';
   const lastName = dto.lastName?.trim() ?? '';

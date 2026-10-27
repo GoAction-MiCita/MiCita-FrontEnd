@@ -2,7 +2,7 @@ import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { API_ERROR_KIND, ApiError, isApiError } from '@core/http/api-error.model';
 import { FIRST_PAGE, Paging, samePaging } from '@shared/ui/paginator/paging';
 import { firstValueFrom } from 'rxjs';
-import { Employee } from '../models/employee.model';
+import { Employee, EmployeeStatus } from '../models/employee.model';
 import { EmployeesLoadError, toEmployeesLoadError } from '../models/employees-error';
 import { EmployeesApi } from './employees-api';
 
@@ -66,7 +66,18 @@ export class EmployeesStore {
     }
   }
 
-  /** Reloads the current page (retry). */
+  /** HU-20: shows the status the backend answered without reloading the page. */
+  setStatus(id: string, status: EmployeeStatus): void {
+    this.page.update(
+      (page) =>
+        page && {
+          ...page,
+          items: page.items.map((item) => (item.id === id ? { ...item, status } : item)),
+        },
+    );
+  }
+
+  /** Reloads the current page (retry, or after creating or editing). */
   reload(): void {
     this.page.reload();
   }

@@ -8,10 +8,16 @@ import { Notifier } from '@core/notifications/notifier';
 import { EmployeesApi } from '@features/employees/data-access/employees-api';
 import { ServiceOptionsApi } from '@features/employees/data-access/service-options-api';
 import { EMPLOYEE_FORM_MESSAGES } from '@features/employees/models/employee-form-failure';
-import { Employee, EmployeePage, ServiceOption } from '@features/employees/models/employee.model';
+import { EMPLOYEE_STATUS_MESSAGES } from '@features/employees/models/employee-status-messages';
+import {
+  Employee,
+  EmployeePage,
+  EmployeeStatus,
+  ServiceOption,
+} from '@features/employees/models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
-import { NEVER, Observable, of, throwError } from 'rxjs';
+import { NEVER, Observable, of, Subject, throwError } from 'rxjs';
 import EmployeesPage, { EMPLOYEES_PAGE_MESSAGES } from './employees-page';
 
 @Component({ template: 'dashboard' })
@@ -52,6 +58,7 @@ const services: ServiceOption[] = [
 interface EditApi {
   readonly get?: (id: string) => Observable<Employee>;
   readonly update?: (id: string, changes: unknown) => Observable<Employee>;
+  readonly changeStatus?: (id: string, status: EmployeeStatus) => Observable<EmployeeStatus>;
 }
 
 async function renderAt(
@@ -64,13 +71,22 @@ async function renderAt(
   const createSpy = vi.fn(create);
   const getSpy = vi.fn(edit.get ?? (() => of(ana)));
   const updateSpy = vi.fn(edit.update ?? (() => of(ana)));
+  const changeStatusSpy = vi.fn(
+    edit.changeStatus ?? ((_id: string, status: EmployeeStatus) => of(status)),
+  );
   const servicesSpy = vi.fn(() => of(services));
   const notifier = { success: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
       {
         provide: EmployeesApi,
-        useValue: { list: listSpy, create: createSpy, get: getSpy, update: updateSpy },
+        useValue: {
+          list: listSpy,
+          create: createSpy,
+          get: getSpy,
+          update: updateSpy,
+          changeStatus: changeStatusSpy,
+        },
       },
       { provide: ServiceOptionsApi, useValue: { list: servicesSpy } },
       { provide: AuthSession, useValue: { expire: vi.fn() } },
@@ -98,6 +114,7 @@ async function renderAt(
     create: createSpy,
     get: getSpy,
     update: updateSpy,
+    changeStatus: changeStatusSpy,
     services: servicesSpy,
     notifier,
     url: () => router.url,
@@ -425,5 +442,88 @@ describe('EmployeesPage · editar (HU-18)', () => {
 
     expect(panel()?.querySelector('h2')?.textContent).toContain('Agregar empleado');
     expect(control('firstName').value).toBe('');
+  });
+});
+
+describe('EmployeesPage · activar o desactivar (HU-20)', () => {
+  async function renderList(changeStatus?: EditApi['changeStatus']) {
+    const page = await renderAt('/empleados', paged, undefined, { changeStatus });
+    const toggle = () =>
+      page
+        .element()
+        .querySelector<HTMLButtonElement>(
+          'button[aria-label$="Ana López"][aria-label^="Desactivar"], button[aria-label$="Ana López"][aria-label^="Activar"]',
+        )!;
+    const badge = () =>
+      page.element().querySelector('.employees-table__badge')?.textContent?.trim();
+    const click = async () => {
+      toggle().click();
+      await page.harness.fixture.whenStable();
+    };
+    return { ...page, toggle, badge, click };
+  }
+
+  it('deactivates without confirmation: PATCH, Inactivo badge and the appointments notice', async () => {
+    const { click, badge, toggle, changeStatus, notifier, list } = await renderList();
+    const listCalls = list.mock.calls.length;
+
+    await click();
+
+    expect(changeStatus).toHaveBeenCalledWith('e1', 'INACTIVE');
+    expect(badge()).toBe('Inactivo');
+    expect(toggle().getAttribute('aria-label')).toBe('Activar Ana López');
+    expect(notifier.success).toHaveBeenCalledWith(EMPLOYEE_STATUS_MESSAGES.deactivated);
+    expect(list.mock.calls.length).toBe(listCalls);
+  });
+
+  it('activates an inactive employee', async () => {
+    const { click, badge, changeStatus, notifier } = await renderList();
+    await click();
+
+    await click();
+
+    expect(changeStatus).toHaveBeenLastCalledWith('e1', 'ACTIVE');
+    expect(badge()).toBe('Activo');
+    expect(notifier.success).toHaveBeenLastCalledWith(EMPLOYEE_STATUS_MESSAGES.activated);
+  });
+
+  it('disables the action of that employee while the request is in flight', async () => {
+    const response = new Subject<EmployeeStatus>();
+    const { toggle, harness, badge, changeStatus } = await renderList(() =>
+      response.asObservable(),
+    );
+
+    toggle().click();
+    await harness.fixture.whenStable();
+
+    expect(toggle().disabled).toBe(true);
+    toggle().click();
+    expect(changeStatus).toHaveBeenCalledTimes(1);
+    expect(badge()).toBe('Activo');
+
+    response.next('INACTIVE');
+    response.complete();
+    // The page awaits the store, which frees the row in its finally: let both settle.
+    await new Promise((resolve) => setTimeout(resolve));
+    await harness.fixture.whenStable();
+
+    expect(toggle().disabled).toBe(false);
+    expect(badge()).toBe('Inactivo');
+  });
+
+  it.each([
+    ['not-found', EMPLOYEE_STATUS_MESSAGES.notFound],
+    ['server', EMPLOYEE_STATUS_MESSAGES.unexpected],
+  ] as const)('on %s shows the message and keeps the previous status', async (kind, message) => {
+    const { click, badge, toggle, notifier } = await renderList(() =>
+      throwError(() => apiError(kind)),
+    );
+
+    await click();
+
+    expect(notifier.error).toHaveBeenCalledWith(message);
+    expect(notifier.success).not.toHaveBeenCalled();
+    expect(badge()).toBe('Activo');
+    expect(toggle().disabled).toBe(false);
   });
 });

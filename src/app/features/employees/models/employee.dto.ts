@@ -46,6 +46,12 @@ export interface CreateEmployeeRequestDto {
 /** Body of `PUT /api/empleados/{id}` (HU-18 Back): same rules as HU-17; `serviceIds` replace the list. */
 export type UpdateEmployeeRequestDto = CreateEmployeeRequestDto;
 
+/** Body of `PATCH /api/empleados/{id}/estado` (HU-20 Back); the 200 answer is the employee. */
+export interface UpdateEmployeeStatusRequestDto {
+  /** `ACTIVE` or `INACTIVE`; DELETED answers 400 (deleting is HU-21). */
+  readonly status: string;
+}
+
 /** Item of `GET /api/servicios` (E02): only what the services picker needs. */
 export interface ServiceOptionDto {
   readonly id: string;
