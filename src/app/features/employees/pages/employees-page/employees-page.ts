@@ -17,14 +17,16 @@ import {
 } from '@features/employees/components/employee-form-panel/employee-form-panel';
 import { EmployeesTable } from '@features/employees/components/employees-table/employees-table';
 import { CreateEmployeeStore } from '@features/employees/data-access/create-employee-store';
+import { DeleteEmployeeStore } from '@features/employees/data-access/delete-employee-store';
 import { EditEmployeeStore } from '@features/employees/data-access/edit-employee-store';
 import { EmployeeStatusStore } from '@features/employees/data-access/employee-status-store';
 import { EmployeesStore } from '@features/employees/data-access/employees-store';
 import { ServiceOptionsStore } from '@features/employees/data-access/service-options-store';
 import { employeeStatusChangedMessage } from '@features/employees/models/employee-status-messages';
-import { Employee, NewEmployee } from '@features/employees/models/employee.model';
+import { EMPLOYEE_STATUS, Employee, NewEmployee } from '@features/employees/models/employee.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
+import { ConfirmDialog } from '@shared/ui/confirm-dialog/confirm-dialog';
 import { Icon } from '@shared/ui/icon/icon';
 import { Paginator } from '@shared/ui/paginator/paginator';
 import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
@@ -33,21 +35,33 @@ import { Spinner } from '@shared/ui/spinner/spinner';
 export const EMPLOYEES_PAGE_MESSAGES = {
   created: 'Empleado creado',
   updated: 'Empleado actualizado',
+  deleted: 'Empleado eliminado',
   gone: 'Este empleado ya no existe',
 } as const;
 
 /**
- * HU-16 listado, HU-17 registrar, HU-18 editar and HU-20 activar/desactivar (private). The page lives in the query params
- * (`?page=&size=`, page 1-based). Deleting comes in HU-21.
+ * HU-16 listado, HU-17 registrar, HU-18 editar, HU-20 activar/desactivar and HU-21 eliminar
+ * (private). The page lives in the query params
+ * (`?page=&size=`, page 1-based).
  */
 @Component({
   selector: 'app-employees-page',
-  imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator, Spinner],
+  imports: [
+    Alert,
+    Button,
+    ConfirmDialog,
+    EmployeeFormPanel,
+    EmployeesTable,
+    Icon,
+    Paginator,
+    Spinner,
+  ],
   providers: [
     EmployeesStore,
     CreateEmployeeStore,
     EditEmployeeStore,
     EmployeeStatusStore,
+    DeleteEmployeeStore,
     ServiceOptionsStore,
   ],
   templateUrl: './employees-page.html',
@@ -59,10 +73,27 @@ export default class EmployeesPage {
   private readonly createStore = inject(CreateEmployeeStore);
   private readonly editStore = inject(EditEmployeeStore);
   protected readonly statusStore = inject(EmployeeStatusStore);
+  protected readonly deleteStore = inject(DeleteEmployeeStore);
   protected readonly servicesStore = inject(ServiceOptionsStore);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  /** HU-21: the dialog is busy while deleting or while deactivating from its 409 offer. */
+  protected readonly deletePending = computed(() => {
+    const employee = this.deleteStore.employee();
+    return (
+      this.deleteStore.pending() ||
+      (employee !== null && this.statusStore.pendingIds().has(employee.id))
+    );
+  });
+  protected readonly deletePendingLabel = computed(() =>
+    this.deleteStore.failure()?.blocked ? 'Desactivando…' : 'Eliminando…',
+  );
+  /** After a 409 the dialog offers to deactivate, unless the employee is already inactive. */
+  protected readonly deactivateOffer = computed(() =>
+    this.deleteStore.employee()?.status === EMPLOYEE_STATUS.active ? 'Desactivar' : null,
+  );
 
   /** `null` while the panel is closed. */
   protected readonly panelMode = signal<EmployeeFormMode | null>(null);
@@ -181,6 +212,37 @@ export default class EmployeesPage {
         this.store.reload();
       }
       this.notifier.error(change.message);
+    }
+  }
+
+  /**
+   * HU-21: after a 204 the list is reloaded (an emptied last page moves back one, see the
+   * constructor). A 404 also reloads: the employee was already gone.
+   */
+  protected async confirmDelete(): Promise<void> {
+    const result = await this.deleteStore.confirm();
+    if (result === 'deleted') {
+      this.store.reload();
+      this.notifier.success(EMPLOYEES_PAGE_MESSAGES.deleted);
+    } else if (result === 'not-found') {
+      this.store.reload();
+      this.notifier.error(EMPLOYEES_PAGE_MESSAGES.gone);
+    }
+  }
+
+  /** HU-21 409 offer: deactivates with the HU-20 action and closes the dialog when it answers. */
+  protected async deactivateInstead(): Promise<void> {
+    const employee = this.deleteStore.employee();
+    if (!employee) {
+      return;
+    }
+    await this.toggleStatus(employee);
+    this.closeDeleteDialog();
+  }
+
+  protected closeDeleteDialog(): void {
+    if (!this.deletePending()) {
+      this.deleteStore.close();
     }
   }
 

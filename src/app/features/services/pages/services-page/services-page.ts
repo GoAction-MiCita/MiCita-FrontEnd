@@ -16,7 +16,6 @@ import {
 } from '@features/services/components/service-form-panel/service-form-panel';
 import { ServicesFilterBar } from '@features/services/components/services-filter-bar/services-filter-bar';
 import { ServicesTable } from '@features/services/components/services-table/services-table';
-import { DeleteServiceDialog } from '@features/services/components/delete-service-dialog/delete-service-dialog';
 import { CreateServiceStore } from '@features/services/data-access/create-service-store';
 import { DeleteServiceStore } from '@features/services/data-access/delete-service-store';
 import { EditServiceStore } from '@features/services/data-access/edit-service-store';
@@ -33,6 +32,7 @@ import { statusChangedMessage } from '@features/services/models/service-status-m
 import { NewService, Service } from '@features/services/models/service.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
+import { ConfirmDialog } from '@shared/ui/confirm-dialog/confirm-dialog';
 import { Icon } from '@shared/ui/icon/icon';
 import { Paginator } from '@shared/ui/paginator/paginator';
 import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
@@ -55,7 +55,7 @@ export const SERVICES_PAGE_MESSAGES = {
   imports: [
     Alert,
     Button,
-    DeleteServiceDialog,
+    ConfirmDialog,
     Icon,
     Paginator,
     ServiceFormPanel,

@@ -42,6 +42,7 @@
     [busyIds]="statusStore.pendingIds()"
     (edit)="openEdit($event)"
     (toggleStatus)="toggleStatus($event)"
+    (remove)="deleteStore.open($event)"
   />
   <app-paginator
     itemsLabel="empleados"
@@ -67,4 +68,23 @@
     (submitted)="submit($event)"
     (closed)="closePanel()"
   />
+}
+
+@if (deleteStore.employee(); as employee) {
+  <app-confirm-dialog
+    title="Eliminar empleado"
+    [pending]="deletePending()"
+    [pendingLabel]="deletePendingLabel()"
+    [alert]="deleteStore.failure()"
+    [blocked]="deleteStore.failure()?.blocked"
+    [blockedActionLabel]="deactivateOffer()"
+    (confirmed)="confirmDelete()"
+    (blockedAction)="deactivateInstead()"
+    (closed)="closeDeleteDialog()"
+  >
+    <p>
+      ¿Seguro que quieres eliminar a <strong>«{{ employee.fullName }}»</strong>? Dejará de aparecer
+      en tu listado y no se le podrán agendar citas. Sus citas pasadas se conservan.
+    </p>
+  </app-confirm-dialog>
 }

@@ -1,8 +1,8 @@
 import {
   afterNextRender,
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
   DOCUMENT,
   ElementRef,
@@ -11,34 +11,48 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { DeleteServiceFailure } from '@features/services/models/delete-service-failure';
-import { Service } from '@features/services/models/service.model';
 import { Alert } from '@shared/ui/alert/alert';
-import { Icon } from '@shared/ui/icon/icon';
+import { Icon, IconName } from '@shared/ui/icon/icon';
+
+/** Message shown inside the dialog after a failed confirmation. */
+export interface ConfirmDialogAlert {
+  readonly title: string;
+  readonly summary: string;
+}
+
+let nextId = 0;
 
 /**
- * HU-14 confirmation before deleting a service. Nothing is sent until "Eliminar".
- * Closes with Esc, "Cancelar" or "Cerrar" (emits `closed`); the parent removes it.
+ * Modal confirmation for a destructive action (HU-14 services, HU-21 employees). The question is
+ * projected as content; nothing happens until the confirm button. Closes with Esc, "Cancelar" or
+ * "Cerrar" (emits `closed`) unless `pending`; the parent removes it.
+ * `blocked` (e.g. a 409) hides the confirm button and only offers "Cerrar", plus the optional
+ * `blockedActionLabel` alternative (emits `blockedAction`).
  */
 @Component({
-  selector: 'app-delete-service-dialog',
+  selector: 'app-confirm-dialog',
   imports: [Alert, Icon],
-  templateUrl: './delete-service-dialog.html',
-  styleUrl: './delete-service-dialog.scss',
+  templateUrl: './confirm-dialog.html',
+  styleUrl: './confirm-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DeleteServiceDialog {
-  readonly service = input.required<Service>();
+export class ConfirmDialog {
+  readonly title = input.required<string>();
+  readonly icon = input<IconName>('trash');
+  readonly confirmLabel = input('Eliminar');
+  readonly pendingLabel = input('Eliminando…');
   readonly pending = input(false);
-  readonly failure = input<DeleteServiceFailure | null>(null);
+  readonly alert = input<ConfirmDialogAlert | null>(null);
+  readonly blocked = input(false, { transform: booleanAttribute });
+  readonly blockedActionLabel = input<string | null>(null);
 
   readonly confirmed = output();
+  readonly blockedAction = output();
   readonly closed = output();
 
+  protected readonly titleId = `app-confirm-dialog-${nextId}-title`;
+  protected readonly descriptionId = `app-confirm-dialog-${nextId++}-description`;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
-
-  /** After a 409 deleting is not possible: only "Cerrar" is offered. */
-  protected readonly blocked = computed(() => this.failure()?.blocked ?? false);
 
   constructor() {
     // Give focus back to the button that opened the dialog (if its row still exists).
@@ -82,6 +96,12 @@ export class DeleteServiceDialog {
   protected confirm(): void {
     if (!this.pending() && !this.blocked()) {
       this.confirmed.emit();
+    }
+  }
+
+  protected runBlockedAction(): void {
+    if (!this.pending() && this.blocked()) {
+      this.blockedAction.emit();
     }
   }
 }

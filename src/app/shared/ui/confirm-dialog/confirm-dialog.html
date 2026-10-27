@@ -1,0 +1,51 @@
+<dialog
+  #dialog
+  class="confirm-dialog"
+  role="alertdialog"
+  [attr.aria-labelledby]="titleId"
+  [attr.aria-describedby]="descriptionId"
+  (cancel)="onCancel($event)"
+  (close)="closed.emit()"
+>
+  <span class="confirm-dialog__icon"><app-icon [name]="icon()" /></span>
+  <h2 class="confirm-dialog__title" [id]="titleId">{{ title() }}</h2>
+  <div class="confirm-dialog__description" [id]="descriptionId">
+    <ng-content />
+  </div>
+
+  @if (alert(); as alert) {
+    <app-alert [title]="alert.title">{{ alert.summary }}</app-alert>
+  }
+
+  <div class="confirm-dialog__actions">
+    @if (blocked()) {
+      <button class="confirm-dialog__cancel" type="button" [disabled]="pending()" (click)="close()">
+        Cerrar
+      </button>
+      @if (blockedActionLabel(); as label) {
+        <button
+          class="confirm-dialog__alternative"
+          type="button"
+          [disabled]="pending()"
+          [attr.aria-busy]="pending() || null"
+          (click)="runBlockedAction()"
+        >
+          {{ pending() ? pendingLabel() : label }}
+        </button>
+      }
+    } @else {
+      <button class="confirm-dialog__cancel" type="button" [disabled]="pending()" (click)="close()">
+        Cancelar
+      </button>
+      <button
+        class="confirm-dialog__confirm"
+        type="button"
+        [disabled]="pending()"
+        [attr.aria-busy]="pending() || null"
+        (click)="confirm()"
+      >
+        {{ pending() ? pendingLabel() : confirmLabel() }}
+      </button>
+    }
+  </div>
+</dialog>

@@ -4,7 +4,7 @@
   display: contents;
 }
 
-.delete-dialog {
+.confirm-dialog {
   width: min(100% - var(--space-8), 28rem);
   margin: auto;
   padding: var(--space-6);
@@ -39,12 +39,9 @@
     font-size: var(--font-size-xl);
   }
 
+  // The question is projected: emulated styles do not reach its markup (e.g. <strong>).
   &__description {
     color: var(--color-text-muted);
-
-    strong {
-      color: var(--color-text);
-    }
   }
 
   &__actions {
@@ -55,7 +52,8 @@
   }
 
   &__cancel,
-  &__confirm {
+  &__confirm,
+  &__alternative {
     min-height: 3rem;
     padding-inline: var(--space-6);
     border-radius: var(--radius-md);
@@ -84,6 +82,16 @@
 
     &:hover:not(:disabled) {
       filter: brightness(0.92);
+    }
+  }
+
+  &__alternative {
+    border: 0;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-primary-hover);
     }
   }
 }

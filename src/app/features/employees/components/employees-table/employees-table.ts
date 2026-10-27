@@ -4,13 +4,10 @@ import { EMPTY_VALUE, formatPhone, initials } from '@shared/formatting/format';
 import { Icon } from '@shared/ui/icon/icon';
 import { TagList } from '@shared/ui/tag-list/tag-list';
 
-/** Shown on the row action that arrives in a later story (delete, HU-21). */
-export const COMING_SOON = 'Próximamente';
-
 /**
  * Employees table (HU-16). Becomes a list of cards on small screens.
- * Row actions only emit: `edit` (HU-18) and `toggleStatus` (HU-20, disabled while `busyIds` has
- * the row). Delete stays disabled until its story exists.
+ * Row actions only emit: `edit` (HU-18), `toggleStatus` (HU-20, aria-disabled while `busyIds`
+ * has the row) and `remove` (HU-21).
  */
 @Component({
   selector: 'app-employees-table',
@@ -27,8 +24,8 @@ export class EmployeesTable {
 
   readonly edit = output<Employee>();
   readonly toggleStatus = output<Employee>();
+  readonly remove = output<Employee>();
 
-  protected readonly comingSoon = COMING_SOON;
   protected readonly emptyValue = EMPTY_VALUE;
 
   protected readonly rows = computed(() => {

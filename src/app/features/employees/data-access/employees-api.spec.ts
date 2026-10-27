@@ -172,4 +172,17 @@ describe('EmployeesApi', () => {
     expect(await result).toBe('INACTIVE');
     http.verify();
   });
+
+  it('deletes an employee with DELETE (HU-21)', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(api.remove('e/1'));
+
+    const req = http.expectOne('http://api.test/api/empleados/e%2F1');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    expect(await result).toBeNull();
+    http.verify();
+  });
 });

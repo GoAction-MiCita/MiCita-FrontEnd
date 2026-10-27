@@ -58,9 +58,8 @@
           <button
             class="employees-table__danger"
             type="button"
-            disabled
-            [title]="comingSoon"
             [attr.aria-label]="row.deleteLabel"
+            (click)="remove.emit(row.employee)"
           >
             <app-icon name="trash" />
           </button>
