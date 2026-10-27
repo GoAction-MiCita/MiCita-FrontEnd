@@ -1,0 +1,37 @@
+<dialog
+  #dialog
+  class="side-panel"
+  [attr.aria-labelledby]="titleId"
+  [attr.aria-describedby]="subtitle() ? subtitleId : null"
+  (cancel)="onCancel($event)"
+  (close)="closed.emit()"
+>
+  <header class="side-panel__header" [class.side-panel__header--stacked]="subtitle()">
+    <div>
+      <h2 class="side-panel__title" [id]="titleId">{{ title() }}</h2>
+      @if (subtitle(); as subtitle) {
+        <p class="side-panel__subtitle" [id]="subtitleId">{{ subtitle }}</p>
+      }
+    </div>
+    <button
+      class="side-panel__close"
+      type="button"
+      aria-label="Cerrar"
+      [disabled]="pending()"
+      (click)="close()"
+    >
+      <app-icon name="x" />
+    </button>
+  </header>
+
+  <div class="side-panel__body">
+    <ng-content />
+  </div>
+
+  <footer class="side-panel__actions">
+    <button class="side-panel__cancel" type="button" [disabled]="pending()" (click)="close()">
+      Cancelar
+    </button>
+    <ng-content select="[appSidePanelActions]" />
+  </footer>
+</dialog>

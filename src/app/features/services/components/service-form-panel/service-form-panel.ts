@@ -1,18 +1,13 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
-  DOCUMENT,
   effect,
-  ElementRef,
   inject,
   input,
   output,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -27,6 +22,7 @@ import { Button } from '@shared/ui/button/button';
 import { FormField } from '@shared/ui/form-field/form-field';
 import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
+import { SidePanel } from '@shared/ui/side-panel/side-panel';
 import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
 import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 import {
@@ -62,8 +58,8 @@ const MESSAGES: Readonly<Record<NewServiceField, ErrorMessages>> = {
 export type ServiceFormMode = 'create' | 'edit';
 
 /**
- * HU-09 "Agregar servicio" and HU-10 "Editar servicio": side panel on desktop, full screen on
- * mobile. Closes with Esc, the X or "Cancelar" (emits `closed`); the parent removes it.
+ * HU-09 "Agregar servicio" and HU-10 "Editar servicio" inside a `SidePanel`, which closes with
+ * Esc, the X or "Cancelar" (emits `closed`); the parent removes it.
  * In edit mode the form waits for `service`. Employees are chosen with the HU-12 picker.
  */
 @Component({
@@ -77,6 +73,7 @@ export type ServiceFormMode = 'create' | 'edit';
     FormField,
     FormFieldControl,
     Icon,
+    SidePanel,
   ],
   templateUrl: './service-form-panel.html',
   styleUrl: './service-form-panel.scss',
@@ -100,7 +97,6 @@ export class ServiceFormPanel {
   protected readonly messages = MESSAGES;
   protected readonly employeePickerTexts = EMPLOYEE_PICKER_TEXTS;
   protected readonly status = SERVICE_STATUS;
-  private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     name: ['', [Validators.required, notBlank()]],
@@ -150,16 +146,6 @@ export class ServiceFormPanel {
   );
 
   constructor() {
-    // Give focus back to the button that opened the panel.
-    const opener = inject(DOCUMENT).activeElement;
-    inject(DestroyRef).onDestroy(() => {
-      if (opener instanceof HTMLElement && opener.isConnected) {
-        opener.focus();
-      }
-    });
-
-    afterNextRender(() => this.open());
-
     effect(() => {
       const service = this.service();
       if (service) {
@@ -188,36 +174,6 @@ export class ServiceFormPanel {
         this.nothingMarked.set(false);
       }
     });
-  }
-
-  private open(): void {
-    const dialog = this.dialog().nativeElement;
-    // showModal() makes the rest of the page inert and traps focus inside the panel.
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    } else {
-      dialog.setAttribute('open', '');
-    }
-  }
-
-  /** Esc must not drop a request in flight. */
-  protected onCancel(event: Event): void {
-    if (this.pending()) {
-      event.preventDefault();
-    }
-  }
-
-  protected close(): void {
-    if (this.pending()) {
-      return;
-    }
-    const dialog = this.dialog().nativeElement;
-    // close() fires the `close` event, which emits `closed`.
-    if (typeof dialog.close === 'function') {
-      dialog.close();
-    } else {
-      this.closed.emit();
-    }
   }
 
   protected submit(): void {

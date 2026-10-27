@@ -1,113 +1,100 @@
-<dialog
-  #dialog
-  class="service-panel"
-  aria-labelledby="service-panel-title"
-  (cancel)="onCancel($event)"
-  (close)="closed.emit()"
->
-  <form class="service-panel__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <header class="service-panel__header">
-      <h2 id="service-panel-title" class="service-panel__title">{{ title() }}</h2>
-      <button
-        class="service-panel__close"
-        type="button"
-        aria-label="Cerrar"
-        [disabled]="pending()"
-        (click)="close()"
+<app-side-panel [title]="title()" [pending]="pending()" (closed)="closed.emit()">
+  <form
+    id="service-form"
+    class="service-panel__form"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    novalidate
+  >
+    @if (failure(); as failure) {
+      <app-alert [title]="failure.title">{{ failureSummary() }}</app-alert>
+    }
+
+    @if (loading()) {
+      <p class="service-panel__loading" role="status">
+        <span class="service-panel__spinner" aria-hidden="true"></span>
+        Cargando servicio…
+      </p>
+    } @else if (ready()) {
+      <app-form-field label="Nombre del servicio" [errorMessages]="messages.name">
+        <input appFormFieldControl formControlName="name" placeholder="Ej. Corte de cabello" />
+      </app-form-field>
+
+      <app-form-field
+        label="Descripción"
+        optional
+        [hint]="descriptionCount()"
+        [errorMessages]="messages.description"
       >
-        <app-icon name="x" />
-      </button>
-    </header>
+        <textarea
+          appFormFieldControl
+          formControlName="description"
+          rows="3"
+          maxlength="120"
+          placeholder="Describe brevemente el servicio"
+        ></textarea>
+      </app-form-field>
 
-    <div class="service-panel__body">
-      @if (failure(); as failure) {
-        <app-alert [title]="failure.title">{{ failureSummary() }}</app-alert>
-      }
-
-      @if (loading()) {
-        <p class="service-panel__loading" role="status">
-          <span class="service-panel__spinner" aria-hidden="true"></span>
-          Cargando servicio…
-        </p>
-      } @else if (ready()) {
-        <app-form-field label="Nombre del servicio" [errorMessages]="messages.name">
-          <input appFormFieldControl formControlName="name" placeholder="Ej. Corte de cabello" />
-        </app-form-field>
-
+      <div class="service-panel__row">
         <app-form-field
-          label="Descripción"
+          label="Duración (minutos)"
           optional
-          [hint]="descriptionCount()"
-          [errorMessages]="messages.description"
+          [errorMessages]="messages.durationMinutes"
         >
-          <textarea
+          <app-icon appFieldPrefix name="clock" />
+          <input
             appFormFieldControl
-            formControlName="description"
-            rows="3"
-            maxlength="120"
-            placeholder="Describe brevemente el servicio"
-          ></textarea>
+            formControlName="durationMinutes"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            placeholder="Ej. 45"
+          />
         </app-form-field>
 
-        <div class="service-panel__row">
-          <app-form-field
-            label="Duración (minutos)"
-            optional
-            [errorMessages]="messages.durationMinutes"
-          >
-            <app-icon appFieldPrefix name="clock" />
-            <input
-              appFormFieldControl
-              formControlName="durationMinutes"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              step="1"
-              placeholder="Ej. 45"
-            />
-          </app-form-field>
-
-          <app-form-field label="Precio (COP)" optional [errorMessages]="messages.price">
-            <span appFieldPrefix class="service-panel__currency" aria-hidden="true">$</span>
-            <input
-              appFormFieldControl
-              appCurrencyInput
-              formControlName="price"
-              placeholder="Ej. 45.000"
-            />
-          </app-form-field>
-        </div>
-
-        <app-form-field label="Estado" [errorMessages]="messages.status">
-          <select appFormFieldControl formControlName="status">
-            <option [value]="status.active">Activo</option>
-            <option [value]="status.inactive">Inactivo</option>
-          </select>
+        <app-form-field label="Precio (COP)" optional [errorMessages]="messages.price">
+          <span appFieldPrefix class="service-panel__currency" aria-hidden="true">$</span>
+          <input
+            appFormFieldControl
+            appCurrencyInput
+            formControlName="price"
+            placeholder="Ej. 45.000"
+          />
         </app-form-field>
+      </div>
 
-        <app-multi-select
-          formControlName="employeeIds"
-          label="Empleados que prestan el servicio"
-          icon="users"
-          avatars
-          optional
-          [texts]="employeePickerTexts"
-          [options]="employeeOptions()"
-          [loading]="employeesLoading()"
-          [failed]="employeesFailed()"
-          [rejectedIds]="rejectedEmployeeIds()"
-          [error]="employeesError()"
-        />
-      }
-    </div>
+      <app-form-field label="Estado" [errorMessages]="messages.status">
+        <select appFormFieldControl formControlName="status">
+          <option [value]="status.active">Activo</option>
+          <option [value]="status.inactive">Inactivo</option>
+        </select>
+      </app-form-field>
 
-    <footer class="service-panel__actions">
-      <button class="service-panel__cancel" type="button" [disabled]="pending()" (click)="close()">
-        Cancelar
-      </button>
-      <button appButton type="submit" [loading]="pending()" [disabled]="!ready()">
-        {{ pending() ? 'Guardando…' : 'Guardar' }}
-      </button>
-    </footer>
+      <app-multi-select
+        formControlName="employeeIds"
+        label="Empleados que prestan el servicio"
+        icon="users"
+        avatars
+        optional
+        [texts]="employeePickerTexts"
+        [options]="employeeOptions()"
+        [loading]="employeesLoading()"
+        [failed]="employeesFailed()"
+        [rejectedIds]="rejectedEmployeeIds()"
+        [error]="employeesError()"
+      />
+    }
   </form>
-</dialog>
+
+  <button
+    appButton
+    appSidePanelActions
+    type="submit"
+    form="service-form"
+    [loading]="pending()"
+    [disabled]="!ready()"
+  >
+    {{ pending() ? 'Guardando…' : 'Guardar' }}
+  </button>
+</app-side-panel>
