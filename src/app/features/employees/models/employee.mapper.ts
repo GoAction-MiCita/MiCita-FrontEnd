@@ -5,6 +5,7 @@ import {
   EmployeeResponseDto,
   PageDto,
   ServiceOptionDto,
+  UpdateEmployeeRequestDto,
 } from './employee.dto';
 import {
   EMPLOYEE_STATUS,
@@ -44,6 +45,11 @@ export function toCreateEmployeeRequestDto(employee: NewEmployee): CreateEmploye
     status: employee.status,
     serviceIds: [...new Set(employee.serviceIds)],
   };
+}
+
+/** HU-18: same cleaning as HU-17. */
+export function toUpdateEmployeeRequestDto(employee: NewEmployee): UpdateEmployeeRequestDto {
+  return toCreateEmployeeRequestDto(employee);
 }
 
 /**
@@ -115,9 +121,15 @@ export function toEmployee(dto: EmployeeResponseDto): Employee {
   };
 }
 
-// The list never includes DELETED employees (HU-16 Back); anything unexpected shows as inactive.
-function toStatus(status: string): EmployeeStatus {
-  return status === EMPLOYEE_STATUS.active ? EMPLOYEE_STATUS.active : EMPLOYEE_STATUS.inactive;
+/**
+ * The list and the detail never include DELETED employees (HU-16/HU-18 Back). Case and spaces are
+ * ignored: the edit form preloads this value, so a lowercase `active` must not be saved as
+ * INACTIVE. Anything else unexpected shows as inactive.
+ */
+function toStatus(status: string | null | undefined): EmployeeStatus {
+  return status?.trim().toUpperCase() === EMPLOYEE_STATUS.active
+    ? EMPLOYEE_STATUS.active
+    : EMPLOYEE_STATUS.inactive;
 }
 
 function emptyToNull(value: string | null | undefined): string | null {

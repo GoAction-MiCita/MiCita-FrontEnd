@@ -40,4 +40,11 @@
       grid-template-columns: 1fr 1fr;
     }
   }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--color-text-muted);
+  }
 }

@@ -36,6 +36,7 @@ import { Button } from '@shared/ui/button/button';
 import { Icon } from '@shared/ui/icon/icon';
 import { Paginator } from '@shared/ui/paginator/paginator';
 import { PageSize, Paging, toPaging, toPagingParams } from '@shared/ui/paginator/paging';
+import { Spinner } from '@shared/ui/spinner/spinner';
 
 export const SERVICES_PAGE_MESSAGES = {
   created: 'Servicio creado',
@@ -60,6 +61,7 @@ export const SERVICES_PAGE_MESSAGES = {
     ServiceFormPanel,
     ServicesFilterBar,
     ServicesTable,
+    Spinner,
   ],
   providers: [
     ServicesStore,

@@ -3,7 +3,7 @@ import {
   EMPLOYEE_FORM_MESSAGES,
   EmployeeFormFailure,
 } from '@features/employees/models/employee-form-failure';
-import { NewEmployee, ServiceOption } from '@features/employees/models/employee.model';
+import { Employee, NewEmployee, ServiceOption } from '@features/employees/models/employee.model';
 import { EmployeeFormPanel } from './employee-form-panel';
 
 type FieldName = keyof NewEmployee;
@@ -40,7 +40,7 @@ async function render() {
   const errorOf = (name: FieldName) =>
     control(name).closest('app-form-field')?.querySelector('.form-field__message--error')
       ?.textContent ?? '';
-  const set = async (name: 'pending' | 'failure', value: unknown) => {
+  const set = async (name: 'pending' | 'loading' | 'failure', value: unknown) => {
     fixture.componentRef.setInput(name, value);
     await fixture.whenStable();
   };
@@ -207,6 +207,20 @@ describe('EmployeeFormPanel', () => {
     );
   });
 
+  it('shows a <script> typed in a name as text, never as markup', async () => {
+    const { fixture, element, fill, submit, submitted } = await render();
+
+    await fill({
+      firstName: '<script>alert(1)</script>',
+      lastName: '"><img src=x onerror=alert(1)>',
+    });
+    await submit();
+    await fixture.whenStable();
+
+    expect(submitted[0]?.firstName).toBe('<script>alert(1)</script>');
+    expect(element.querySelector('script, img')).toBeNull();
+  });
+
   it('closes with Cancelar without emitting the employee', async () => {
     const { element, submitted, closes } = await render();
 
@@ -216,5 +230,102 @@ describe('EmployeeFormPanel', () => {
 
     expect(closes()).toBe(1);
     expect(submitted).toEqual([]);
+  });
+});
+
+describe('EmployeeFormPanel · editar (HU-18)', () => {
+  const ana: Employee = {
+    id: 'e1',
+    firstName: 'Ana',
+    lastName: 'López',
+    fullName: 'Ana López',
+    phone: '3001234567',
+    email: null,
+    status: 'INACTIVE',
+    // s9 is not in the business list (e.g. beyond the first 100 services).
+    services: [
+      { id: 's2', name: 'Tinte' },
+      { id: 's9', name: 'Masaje' },
+    ],
+  };
+
+  async function renderEdit() {
+    const page = await render();
+    page.fixture.componentRef.setInput('mode', 'edit');
+    await page.fixture.whenStable();
+    return page;
+  }
+
+  it('shows "Cargando empleado…" and cannot be saved while the employee loads', async () => {
+    const { element, set, submit, submitted } = await renderEdit();
+
+    await set('loading', true);
+    await submit();
+
+    expect(element.querySelector('h2')?.textContent).toContain('Editar empleado');
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando empleado');
+    expect(element.querySelector('[formcontrolname="firstName"]')).toBeNull();
+    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+    expect(submitted).toEqual([]);
+  });
+
+  it('fills the form with the employee and its services, and saves the changes', async () => {
+    const { fixture, element, control, fill, submit, submitted } = await renderEdit();
+    fixture.componentRef.setInput('employee', ana);
+    await fixture.whenStable();
+
+    expect(control('firstName').value).toBe('Ana');
+    expect(control('phone').value).toBe('3001234567');
+    expect(control('email').value).toBe('');
+    expect(control('status').value).toBe('INACTIVE');
+    const chips = Array.from(element.querySelectorAll('.multi-select__chip')).map((chip) =>
+      chip.textContent?.trim(),
+    );
+    expect(chips).toEqual([expect.stringContaining('Tinte'), expect.stringContaining('Masaje')]);
+    expect(element.querySelector('button[type="submit"]')?.textContent).toContain(
+      'Guardar cambios',
+    );
+
+    await fill({ lastName: 'Gómez', status: 'ACTIVE' });
+    await submit();
+
+    expect(submitted).toEqual([
+      {
+        firstName: 'Ana',
+        lastName: 'Gómez',
+        phone: '3001234567',
+        email: null,
+        status: 'ACTIVE',
+        serviceIds: ['s2', 's9'],
+      },
+    ]);
+  });
+
+  it('sends the services left after removing one', async () => {
+    const { fixture, element, submit, submitted } = await renderEdit();
+    fixture.componentRef.setInput('employee', ana);
+    await fixture.whenStable();
+
+    element.querySelector<HTMLButtonElement>('button[aria-label="Quitar Tinte"]')!.click();
+    await fixture.whenStable();
+    await submit();
+
+    expect(submitted[0]?.serviceIds).toEqual(['s9']);
+  });
+
+  it('keeps the edits and shows the 409 on the duplicated field', async () => {
+    const { fixture, set, fill, control, errorOf } = await renderEdit();
+    fixture.componentRef.setInput('employee', ana);
+    await fixture.whenStable();
+    await fill({ phone: '3009998877' });
+
+    await set('failure', {
+      title: EMPLOYEE_FORM_MESSAGES.updateTitle,
+      summary: EMPLOYEE_FORM_MESSAGES.duplicate,
+      fieldErrors: { phone: EMPLOYEE_FORM_MESSAGES.duplicatePhone },
+    } satisfies EmployeeFormFailure);
+
+    expect(control('phone').value).toBe('3009998877');
+    expect(errorOf('phone')).toContain(EMPLOYEE_FORM_MESSAGES.duplicatePhone);
   });
 });

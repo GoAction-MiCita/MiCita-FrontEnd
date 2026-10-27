@@ -21,7 +21,7 @@
 
 @if (store.loading()) {
   <div class="services-page__state" role="status">
-    <span class="services-page__spinner" aria-hidden="true"></span>
+    <app-spinner size="lg" />
     Cargando servicios…
   </div>
 } @else if (store.error(); as error) {

@@ -13,7 +13,7 @@
 
 @if (store.loading()) {
   <div class="employees-page__state" role="status">
-    <span class="employees-page__spinner" aria-hidden="true"></span>
+    <app-spinner size="lg" />
     Cargando empleados…
   </div>
 } @else if (store.error(); as error) {
@@ -37,7 +37,7 @@
     </button>
   </section>
 } @else {
-  <app-employees-table [employees]="store.employees()" />
+  <app-employees-table [employees]="store.employees()" (edit)="openEdit($event)" />
   <app-paginator
     itemsLabel="empleados"
     [page]="store.paging().page"
@@ -49,14 +49,17 @@
   />
 }
 
-@if (panelOpen()) {
+@if (panelMode(); as mode) {
   <app-employee-form-panel
-    [pending]="createStore.pending()"
-    [failure]="createStore.failure()"
+    [mode]="mode"
+    [employee]="formEmployee()"
+    [loading]="formLoading()"
+    [pending]="formPending()"
+    [failure]="formFailure()"
     [services]="servicesStore.services()"
     [servicesLoading]="servicesStore.loading()"
     [servicesFailed]="servicesStore.failed()"
-    (submitted)="create($event)"
+    (submitted)="submit($event)"
     (closed)="closePanel()"
   />
 }
