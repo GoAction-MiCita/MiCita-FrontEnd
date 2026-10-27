@@ -24,6 +24,9 @@
  * POST /api/empleados (HU-17) adds one: 400 per field (firstName/lastName 1..100, phone `+`
  * optional and 7..15 digits, email, status ACTIVE/INACTIVE, unknown `serviceIds[i]`), 409 when the
  * email or phone is already used in the business (`errors.email` / `errors.phone`).
+ * GET and PUT /api/empleados/{id} (HU-18) read and update one with the HU-17 rules: 404 for unknown,
+ * DELETED or other businesses' ids; the PUT 409 ignores the employee itself and `serviceIds`
+ * replaces its services (an empty list removes them all).
  * POST and PUT accept `employeeIds` (HU-12): unknown ids answer 400 as `errors["employeeIds[i]"]`.
  * PATCH /api/servicios/{id}/estado (HU-11) switches ACTIVE ↔ INACTIVE (200, idempotent); DELETED
  * or another value answers 400.
@@ -551,6 +554,86 @@ const routes = {
     });
   },
 
+  'GET /api/empleados/{id}': (_body, req, params) => {
+    const instance = `/api/empleados/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const employee = findEmployee(business, params.id);
+    if (!employee) {
+      return problem(404, 'Not Found', 'Employee not found', instance);
+    }
+    return json(200, employeeResponse(business, employee));
+  },
+
+  'PUT /api/empleados/{id}': (body, req, params) => {
+    const instance = `/api/empleados/${params.id}`;
+    const user = authenticatedUser(req);
+    if (!user) {
+      return problem(401, 'Unauthorized', 'Missing or invalid access token', instance);
+    }
+    const business = businesses.find((b) => b.ownerUsername === user.username);
+    if (!business) {
+      return problem(403, 'Forbidden', 'Business required', instance);
+    }
+    const employee = findEmployee(business, params.id);
+    if (!employee) {
+      return problem(404, 'Not Found', 'Employee not found', instance);
+    }
+    const errors = {};
+    for (const [field, isValid, message] of EMPLOYEE_RULES) {
+      if (!isValid(body[field])) {
+        errors[field] = message;
+      }
+    }
+    Object.assign(errors, serviceErrors(business, body.serviceIds));
+    if (Object.keys(errors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, errors);
+    }
+    const phone = isBlank(body.phone) ? null : String(body.phone).trim();
+    const email = isBlank(body.email) ? null : String(body.email).trim().toLowerCase();
+    // Duplicates: same email or phone in another employee of the business (itself does not count).
+    const others = businessStaff(business).filter((e) => e.id !== employee.id);
+    const duplicated = {
+      ...(email && others.some((e) => e.email?.toLowerCase() === email)
+        ? { email: 'Ya existe un empleado con este correo' }
+        : {}),
+      ...(phone && others.some((e) => e.phone === phone)
+        ? { phone: 'Ya existe un empleado con este teléfono' }
+        : {}),
+    };
+    if (Object.keys(duplicated).length > 0) {
+      return problem(
+        409,
+        'Conflict',
+        'Employee email or phone already exists',
+        instance,
+        duplicated,
+      );
+    }
+    Object.assign(employee, {
+      firstName: body.firstName.trim(),
+      lastName: body.lastName.trim(),
+      phone,
+      email,
+      status: body.status,
+    });
+    // serviceIds replaces the whole association (kept on the services, as in HU-17).
+    const serviceIds = [...new Set(body.serviceIds ?? [])];
+    for (const service of services.filter((s) => s.businessId === business.id)) {
+      service.employees = service.employees.filter((e) => e.id !== employee.id);
+      if (serviceIds.includes(service.id)) {
+        service.employees.push(employeeSummary(employee));
+      }
+    }
+    return json(200, employeeResponse(business, employee));
+  },
+
   'GET /api/servicios/{id}': (_body, req, params) => {
     const instance = `/api/servicios/${params.id}`;
     const user = authenticatedUser(req);
@@ -725,6 +808,23 @@ function businessStaff(business) {
   );
 }
 
+/** HU-18: employee of the business that is not DELETED; null for unknown ids or other businesses. */
+function findEmployee(business, id) {
+  return businessStaff(business).find((e) => e.id === id) ?? null;
+}
+
+/** Employee as answered by the API (HU-16/17/18): without businessId, with its services. */
+function employeeResponse(business, employee) {
+  const { businessId, ...response } = employee;
+  return {
+    ...response,
+    services: services
+      .filter((s) => s.businessId === business.id && s.status !== 'DELETED')
+      .filter((s) => s.employees.some((e) => e.id === employee.id))
+      .map(({ id, name }) => ({ id, name })),
+  };
+}
+
 /** HU-17: each unknown, foreign or DELETED service is reported by its position, `serviceIds[i]`. */
 function serviceErrors(business, serviceIds) {
   if (serviceIds === undefined || serviceIds === null) {
@@ -791,13 +891,16 @@ function findService(business, id) {
   );
 }
 
-/** Exact route first, then routes with an `{id}` path parameter (optionally `/{id}/estado`). */
+/**
+ * Exact route first, then servicios/empleados routes with an `{id}` path parameter (optionally
+ * `/{id}/estado`).
+ */
 function resolveRoute(method, pathname) {
   const exact = routes[`${method} ${pathname}`];
   if (exact) {
     return { handler: exact, params: {} };
   }
-  const match = /^(\/api\/servicios)\/([^/]+)(\/estado)?$/.exec(pathname);
+  const match = /^(\/api\/(?:servicios|empleados))\/([^/]+)(\/estado)?$/.exec(pathname);
   const handler = match && routes[`${method} ${match[1]}/{id}${match[3] ?? ''}`];
   return handler ? { handler, params: { id: decodeURIComponent(match[2]) } } : null;
 }
