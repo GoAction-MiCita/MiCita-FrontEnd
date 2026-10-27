@@ -37,7 +37,12 @@
     </button>
   </section>
 } @else {
-  <app-employees-table [employees]="store.employees()" (edit)="openEdit($event)" />
+  <app-employees-table
+    [employees]="store.employees()"
+    [busyIds]="statusStore.pendingIds()"
+    (edit)="openEdit($event)"
+    (toggleStatus)="toggleStatus($event)"
+  />
   <app-paginator
     itemsLabel="empleados"
     [page]="store.paging().page"

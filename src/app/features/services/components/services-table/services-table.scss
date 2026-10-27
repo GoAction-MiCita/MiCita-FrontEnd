@@ -96,7 +96,8 @@
       color: var(--color-text-muted);
       --icon-size: 1rem;
 
-      &:disabled {
+      &:disabled,
+      &[aria-disabled='true'] {
         cursor: not-allowed;
         opacity: 0.55;
       }

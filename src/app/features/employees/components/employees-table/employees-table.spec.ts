@@ -76,7 +76,7 @@ describe('EmployeesTable', () => {
     ]);
   });
 
-  it('names each row action and keeps activate and delete disabled until their stories exist', async () => {
+  it('names each row action and keeps delete disabled until its story exists', async () => {
     const element = await render([ana, juan]);
 
     const buttons = Array.from(element.querySelectorAll<HTMLButtonElement>('tbody button'));
@@ -88,8 +88,10 @@ describe('EmployeesTable', () => {
       'Activar Juan Pérez',
       'Eliminar Juan Pérez',
     ]);
-    const pending = buttons.filter((button) => !button.ariaLabel?.startsWith('Editar'));
+    const pending = buttons.filter((button) => button.ariaLabel?.startsWith('Eliminar'));
     expect(pending.every((button) => button.disabled && button.title === COMING_SOON)).toBe(true);
+    const enabled = buttons.filter((button) => !button.ariaLabel?.startsWith('Eliminar'));
+    expect(enabled.every((button) => !button.disabled)).toBe(true);
   });
 
   it('emits the employee of the row on Editar (HU-18)', async () => {
@@ -106,5 +108,29 @@ describe('EmployeesTable', () => {
     edit.click();
 
     expect(edited).toEqual([juan]);
+  });
+
+  it('emits the employee on Activar/Desactivar and disables only the busy row (HU-20)', async () => {
+    const fixture = TestBed.createComponent(EmployeesTable);
+    fixture.componentRef.setInput('employees', [ana, juan]);
+    const toggled: Employee[] = [];
+    fixture.componentInstance.toggleStatus.subscribe((employee) => toggled.push(employee));
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    const button = (label: string) =>
+      element.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+
+    button('Activar Juan Pérez').click();
+    expect(toggled).toEqual([juan]);
+
+    fixture.componentRef.setInput('busyIds', new Set(['e1']));
+    await fixture.whenStable();
+
+    // aria-disabled, not disabled: the focused button keeps the focus while busy.
+    expect(button('Desactivar Ana López').disabled).toBe(false);
+    expect(button('Desactivar Ana López').getAttribute('aria-disabled')).toBe('true');
+    expect(button('Desactivar Ana López').getAttribute('aria-busy')).toBe('true');
+    expect(button('Activar Juan Pérez').hasAttribute('aria-disabled')).toBe(false);
+    expect(button('Activar Juan Pérez').hasAttribute('aria-busy')).toBe(false);
   });
 });

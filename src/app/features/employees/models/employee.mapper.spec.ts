@@ -4,6 +4,7 @@ import {
   toEmployee,
   toEmployeeListParams,
   toEmployeePage,
+  toEmployeeStatus,
   toNewEmployeeFieldErrors,
   toRejectedServiceIds,
   toServiceOptions,
@@ -112,6 +113,16 @@ describe('employee.mapper · HU-18', () => {
     expect(toEmployee({ id: 'e1', firstName: 'Ana', lastName: 'López', status }).status).toBe(
       expected,
     );
+  });
+});
+
+describe('employee.mapper · HU-20', () => {
+  it.each([
+    ['ACTIVE', 'ACTIVE'],
+    ['inactive', 'INACTIVE'],
+    ['DELETED', 'INACTIVE'],
+  ] as const)('reads the status %o of the PATCH answer as %s', (status, expected) => {
+    expect(toEmployeeStatus({ status })).toBe(expected);
   });
 });
 

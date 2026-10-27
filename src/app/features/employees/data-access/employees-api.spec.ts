@@ -158,4 +158,18 @@ describe('EmployeesApi', () => {
     expect(await result).toMatchObject({ id: 'e1', fullName: 'Ana Gómez', services: [] });
     http.verify();
   });
+
+  it('changes the status with PATCH and keeps only the status answered (HU-20)', async () => {
+    const { api, http } = setup();
+
+    const result = firstValueFrom(api.changeStatus('e/1', 'INACTIVE'));
+
+    const req = http.expectOne('http://api.test/api/empleados/e%2F1/estado');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ status: 'INACTIVE' });
+    req.flush({ id: 'e/1', firstName: 'Ana', lastName: 'López', status: 'INACTIVE' });
+
+    expect(await result).toBe('INACTIVE');
+    http.verify();
+  });
 });

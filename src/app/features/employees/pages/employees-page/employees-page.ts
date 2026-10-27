@@ -18,8 +18,10 @@ import {
 import { EmployeesTable } from '@features/employees/components/employees-table/employees-table';
 import { CreateEmployeeStore } from '@features/employees/data-access/create-employee-store';
 import { EditEmployeeStore } from '@features/employees/data-access/edit-employee-store';
+import { EmployeeStatusStore } from '@features/employees/data-access/employee-status-store';
 import { EmployeesStore } from '@features/employees/data-access/employees-store';
 import { ServiceOptionsStore } from '@features/employees/data-access/service-options-store';
+import { employeeStatusChangedMessage } from '@features/employees/models/employee-status-messages';
 import { Employee, NewEmployee } from '@features/employees/models/employee.model';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
@@ -35,13 +37,19 @@ export const EMPLOYEES_PAGE_MESSAGES = {
 } as const;
 
 /**
- * HU-16 listado, HU-17 registrar and HU-18 editar (private). The page lives in the query params
- * (`?page=&size=`, page 1-based). The other row actions come in later stories.
+ * HU-16 listado, HU-17 registrar, HU-18 editar and HU-20 activar/desactivar (private). The page lives in the query params
+ * (`?page=&size=`, page 1-based). Deleting comes in HU-21.
  */
 @Component({
   selector: 'app-employees-page',
   imports: [Alert, Button, EmployeeFormPanel, EmployeesTable, Icon, Paginator, Spinner],
-  providers: [EmployeesStore, CreateEmployeeStore, EditEmployeeStore, ServiceOptionsStore],
+  providers: [
+    EmployeesStore,
+    CreateEmployeeStore,
+    EditEmployeeStore,
+    EmployeeStatusStore,
+    ServiceOptionsStore,
+  ],
   templateUrl: './employees-page.html',
   styleUrl: './employees-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,6 +58,7 @@ export default class EmployeesPage {
   protected readonly store = inject(EmployeesStore);
   private readonly createStore = inject(CreateEmployeeStore);
   private readonly editStore = inject(EditEmployeeStore);
+  protected readonly statusStore = inject(EmployeeStatusStore);
   protected readonly servicesStore = inject(ServiceOptionsStore);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
@@ -156,6 +165,23 @@ export default class EmployeesPage {
     this.closePanel();
     this.store.reload();
     this.notifier.error(EMPLOYEES_PAGE_MESSAGES.gone);
+  }
+
+  /**
+   * HU-20: no confirmation; the badge changes only with the 200, errors keep the old status.
+   * A 404 also reloads the list, so the employee that no longer exists disappears.
+   */
+  protected async toggleStatus(employee: Employee): Promise<void> {
+    const change = await this.statusStore.toggle(employee);
+    if (change.kind === 'changed') {
+      this.store.setStatus(employee.id, change.status);
+      this.notifier.success(employeeStatusChangedMessage(change.status));
+    } else if (change.kind === 'failed') {
+      if (change.gone) {
+        this.store.reload();
+      }
+      this.notifier.error(change.message);
+    }
   }
 
   protected goToPage(page: number): void {
