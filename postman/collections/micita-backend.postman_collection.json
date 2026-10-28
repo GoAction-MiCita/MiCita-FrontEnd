@@ -1932,6 +1932,254 @@
           "response": []
         },
         {
+          "name": "Filtrar empleados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?name=RUIZ&status=ACTIVE&serviceIds={{serviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "RUIZ"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "serviceIds",
+                  "value": "{{serviceId}}"
+                }
+              ]
+            },
+            "description": "Filtros de HU-22 combinados con Y: `name` (nombre o apellido contiene, sin distinguir mayúsculas), `status` (ACTIVE o INACTIVE; otro valor 400) y `serviceIds=a,b` (presta al menos uno; un servicio ajeno, inexistente o DELETED da 400 en `errors[\"serviceIds[i]\"]`). La paginación y los totales respetan los filtros."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('filtra por nombre, estado y servicio, y el total respeta los filtros', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content.length).to.be.above(0);",
+                  "  body.content.forEach((e) => {",
+                  "    pm.expect(`${e.firstName} ${e.lastName}`.toLowerCase()).to.include('ruiz');",
+                  "    pm.expect(e.status).to.eql('ACTIVE');",
+                  "    pm.expect(e.services.map((s) => s.id)).to.include(pm.collectionVariables.get('serviceId'));",
+                  "  });",
+                  "  pm.expect(body.totalElements).to.eql(body.content.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados?name=ana&status=ACTIVE&serviceIds=svc-01",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "ana"
+                    },
+                    {
+                      "key": "status",
+                      "value": "ACTIVE"
+                    },
+                    {
+                      "key": "serviceIds",
+                      "value": "svc-01"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": \"e-ana\",\n      \"firstName\": \"Ana\",\n      \"lastName\": \"López\",\n      \"phone\": \"3001234567\",\n      \"email\": \"ana.lopez@barberia.com\",\n      \"status\": \"ACTIVE\",\n      \"services\": [\n        {\n          \"id\": \"svc-01\",\n          \"name\": \"Corte de cabello\"\n        }\n      ]\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"totalPages\": 1\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empleados?serviceIds=svc-01,svc-ajeno",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "empleados"],
+                  "query": [
+                    {
+                      "key": "serviceIds",
+                      "value": "svc-01,svc-ajeno"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Bad Request\",\n  \"status\": 400,\n  \"detail\": \"Invalid request content.\",\n  \"instance\": \"/api/empleados\",\n  \"errors\": {\n    \"serviceIds[1]\": \"El servicio no pertenece al negocio\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Filtrar empleados sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?name=zzz",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "zzz"
+                }
+              ]
+            },
+            "description": "Ningún empleado coincide: 200 con la lista vacía y totales en 0."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200 vacío', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.content).to.eql([]);",
+                  "  pm.expect(body.totalElements).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Filtrar empleados con servicio ajeno",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?serviceIds={{serviceId}},svc-ajeno",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "serviceIds",
+                  "value": "{{serviceId}},svc-ajeno"
+                }
+              ]
+            },
+            "description": "Un servicio que no es del negocio: 400 con su posición."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el servicio rechazado por posición', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.keys('serviceIds[1]');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Filtrar empleados con estado inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/empleados?status=DELETED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "empleados"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DELETED"
+                }
+              ]
+            },
+            "description": "DELETED no es un filtro válido: 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400 con el error en status', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Obtener empleado",
           "request": {
             "method": "GET",

@@ -21,6 +21,9 @@
  * GET /api/empleados (HU-16) lists the employees of the business with their services (not DELETED),
  * ordered by last name, first name and id, with the HU-15 paging rules: owner has 24 visible
  * employees (one more is DELETED), new businesses none, users without business get 403.
+ * HU-22 filters, combined with AND: `name` (first or last name contains, case-insensitive),
+ * `status` (ACTIVE/INACTIVE, anything else 400) and `serviceIds=a,b` (provides any of them; a
+ * service that is not of the business, or DELETED, answers 400 as `errors["serviceIds[i]"]`).
  * POST /api/empleados (HU-17) adds one: 400 per field (firstName/lastName 1..100, phone `+`
  * optional and 7..15 digits, email, status ACTIVE/INACTIVE, unknown `serviceIds[i]`), 409 when the
  * email or phone is already used in the business (`errors.email` / `errors.phone`).
@@ -473,12 +476,46 @@ const routes = {
       return problem(400, 'Bad Request', 'Invalid request content.', instance, paging.errors);
     }
     const { page, size } = paging;
-    const visible = [...businessStaff(business)].sort(
-      (a, b) =>
-        a.lastName.localeCompare(b.lastName, 'es') ||
-        a.firstName.localeCompare(b.firstName, 'es') ||
-        a.id.localeCompare(b.id),
+    // HU-22 filters, combined with AND.
+    const name = (query.get('name') ?? '').trim().toLowerCase();
+    const status = query.get('status');
+    const serviceIds = [
+      ...new Set(
+        (query.get('serviceIds') ?? '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ];
+    const filterErrors = {
+      ...(status !== null && status !== 'ACTIVE' && status !== 'INACTIVE'
+        ? { status: 'El estado debe ser ACTIVE o INACTIVE' }
+        : {}),
+      ...serviceErrors(business, serviceIds),
+    };
+    if (Object.keys(filterErrors).length > 0) {
+      return problem(400, 'Bad Request', 'Invalid request content.', instance, filterErrors);
+    }
+    const providing = new Set(
+      services
+        .filter((s) => serviceIds.includes(s.id))
+        .flatMap((s) => s.employees.map((e) => e.id)),
     );
+    const visible = businessStaff(business)
+      .filter(
+        (e) =>
+          !name ||
+          e.firstName.toLowerCase().includes(name) ||
+          e.lastName.toLowerCase().includes(name),
+      )
+      .filter((e) => !status || e.status === status)
+      .filter((e) => !serviceIds.length || providing.has(e.id))
+      .sort(
+        (a, b) =>
+          a.lastName.localeCompare(b.lastName, 'es') ||
+          a.firstName.localeCompare(b.firstName, 'es') ||
+          a.id.localeCompare(b.id),
+      );
     const content = visible
       .slice(page * size, page * size + size)
       .map(({ businessId, ...employee }) => ({

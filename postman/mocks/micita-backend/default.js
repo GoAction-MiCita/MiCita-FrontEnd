@@ -235,6 +235,42 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
   }
 
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    const requestedStatusCode = req.headers['x-mock-response-code'];
+
+    // "400 Bad Request" — when x-mock-response-code: 400
+    if (requestedStatusCode === '400') {
+      res.writeHead(400, {"Content-Type":"application/json"});
+      return res.end(JSON.stringify({"type":"about:blank","title":"Bad Request","status":400,"detail":"Invalid request content.","instance":"/api/empleados","errors":{"serviceIds[1]":"El servicio no pertenece al negocio"}}));
+    }
+
+    // "200 OK" — default
+    res.writeHead(200, {"Content-Type":"application/json"});
+    return res.end(JSON.stringify({"content":[{"id":"e-ana","firstName":"Ana","lastName":"López","phone":"3001234567","email":"ana.lopez@barberia.com","status":"ACTIVE","services":[{"id":"svc-01","name":"Corte de cabello"}]}],"page":0,"size":10,"totalElements":1,"totalPages":1}));
+  }
+
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
+  // @endpoint GET /api/empleados
+  if (req.method === 'GET' && pathname === '/api/empleados') {
+    // Sample response as there are no examples saved on the request.
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ message: 'Hi from postman mock' }));
+  }
+
   // @endpoint GET /api/empleados/{{employeeId}}
   if (req.method === 'GET' && /^\/api\/empleados\/([^/]+)$/.test(pathname)) {
     const requestedStatusCode = req.headers['x-mock-response-code'];
