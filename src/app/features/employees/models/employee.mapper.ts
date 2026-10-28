@@ -1,5 +1,6 @@
 import { FieldErrors } from '@shared/models/field-errors.model';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
+import { EmployeeFilters, NO_EMPLOYEE_FILTERS } from './employee-filters';
 import {
   CreateEmployeeRequestDto,
   EmployeeResponseDto,
@@ -90,10 +91,20 @@ export function toServiceOptions(dto: PageDto<ServiceOptionDto>): readonly Servi
 
 /**
  * Query params of `GET /api/empleados`: `page` (0-based) and `size`, always sent so the backend
- * default size does not matter. HU-22 adds the filters.
+ * default size does not matter, plus the HU-22 filters that are set (`serviceIds=a,b`).
  */
-export function toEmployeeListParams(paging: Paging = FIRST_PAGE): Record<string, string> {
-  return { page: String(paging.page), size: String(paging.size) };
+export function toEmployeeListParams(
+  filters: EmployeeFilters = NO_EMPLOYEE_FILTERS,
+  paging: Paging = FIRST_PAGE,
+): Record<string, string> {
+  const name = filters.name.trim();
+  return {
+    page: String(paging.page),
+    size: String(paging.size),
+    ...(name && { name }),
+    ...(filters.status && { status: filters.status }),
+    ...(filters.serviceIds.length > 0 && { serviceIds: filters.serviceIds.join(',') }),
+  };
 }
 
 export function toEmployeePage(dto: PageDto<EmployeeResponseDto>): EmployeePage {

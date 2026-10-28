@@ -14,6 +14,7 @@ describe('toEmployeesLoadError', () => {
       message: EMPLOYEES_ERROR_MESSAGES.businessRequired,
       retryable: false,
       businessRequired: true,
+      invalidFilter: false,
     });
   });
 
@@ -22,6 +23,7 @@ describe('toEmployeesLoadError', () => {
       message: EMPLOYEES_ERROR_MESSAGES.network,
       retryable: true,
       businessRequired: false,
+      invalidFilter: false,
     });
   });
 
@@ -30,6 +32,16 @@ describe('toEmployeesLoadError', () => {
       message: EMPLOYEES_ERROR_MESSAGES.unexpected,
       retryable: true,
       businessRequired: false,
+      invalidFilter: false,
+    });
+  });
+
+  it('marks a 400 as a rejected filter (HU-22), without retry', () => {
+    expect(toEmployeesLoadError(error('validation', 'serviceIds: unknown'))).toEqual({
+      message: EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter,
+      retryable: false,
+      businessRequired: false,
+      invalidFilter: true,
     });
   });
 });

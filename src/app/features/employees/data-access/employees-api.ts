@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { API_URL } from '@core/config/api-url';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
 import { map, Observable } from 'rxjs';
+import { EmployeeFilters, NO_EMPLOYEE_FILTERS } from '../models/employee-filters';
 import {
   EmployeeResponseDto,
   PageDto,
@@ -23,11 +24,17 @@ export class EmployeesApi {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = inject(API_URL);
 
-  /** HU-16: one page of the business employees with their services, by last name and first name. */
-  list(paging: Paging = FIRST_PAGE): Observable<EmployeePage> {
+  /**
+   * HU-16/HU-22: one page of the business employees with their services, by last name and first
+   * name, filtered. A 400 means a filter the backend rejects (e.g. a foreign service id).
+   */
+  list(
+    filters: EmployeeFilters = NO_EMPLOYEE_FILTERS,
+    paging: Paging = FIRST_PAGE,
+  ): Observable<EmployeePage> {
     return this.http
       .get<PageDto<EmployeeResponseDto>>(`${this.apiUrl}/empleados`, {
-        params: toEmployeeListParams(paging),
+        params: toEmployeeListParams(filters, paging),
       })
       .pipe(map(toEmployeePage));
   }

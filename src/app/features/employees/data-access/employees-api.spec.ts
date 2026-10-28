@@ -20,7 +20,7 @@ describe('EmployeesApi', () => {
   it('gets the asked page of employees and maps it', async () => {
     const { api, http } = setup();
 
-    const result = firstValueFrom(api.list({ page: 1, size: 50 }));
+    const result = firstValueFrom(api.list(undefined, { page: 1, size: 50 }));
 
     const req = http.expectOne('http://api.test/api/empleados?page=1&size=50');
     expect(req.request.method).toBe('GET');
@@ -183,6 +183,19 @@ describe('EmployeesApi', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(await result).toBeNull();
+    http.verify();
+  });
+
+  it('sends the filters of HU-22 with the page', () => {
+    const { api, http } = setup();
+
+    void firstValueFrom(
+      api.list({ name: 'ana', status: 'ACTIVE', serviceIds: ['s1', 's2'] }, { page: 0, size: 20 }),
+    );
+
+    http.expectOne(
+      'http://api.test/api/empleados?page=0&size=20&name=ana&status=ACTIVE&serviceIds=s1,s2',
+    );
     http.verify();
   });
 });

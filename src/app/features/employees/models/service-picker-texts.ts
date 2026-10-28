@@ -14,3 +14,10 @@ export const SERVICE_PICKER_TEXTS: MultiSelectTexts = {
   empty: 'Tu negocio aún no tiene servicios. Puedes guardar el empleado sin servicios.',
   noMatches: 'No hay servicios con ese nombre.',
 };
+
+/** HU-22: the same picker as a filter of the list (nothing is saved). */
+export const SERVICE_FILTER_TEXTS: MultiSelectTexts = {
+  ...SERVICE_PICKER_TEXTS,
+  placeholder: 'Filtrar por servicios',
+  empty: 'Tu negocio aún no tiene servicios.',
+};

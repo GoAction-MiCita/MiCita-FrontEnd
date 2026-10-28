@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ApiError } from '@core/http/api-error.model';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { Paging } from '@shared/ui/paginator/paging';
+import { EmployeeFilters, NO_EMPLOYEE_FILTERS } from '../models/employee-filters';
 import { EmployeePage } from '../models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '../models/employees-error';
 import { EmployeesApi } from './employees-api';
@@ -28,12 +29,27 @@ const page: EmployeePage = {
 };
 const emptyPage: EmployeePage = { ...page, items: [], totalElements: 0, totalPages: 0 };
 
-function setup(list: (paging: Paging) => Observable<EmployeePage>) {
-  const spy = vi.fn(list);
+function setup(list: (paging: Paging, filters: EmployeeFilters) => Observable<EmployeePage>) {
+  // Records the page only, as most tests care about it; filters go to `filters`.
+  const filters = vi.fn<(filters: EmployeeFilters) => void>();
+  const spy = vi.fn((paging: Paging) =>
+    list(paging, filters.mock.lastCall?.[0] ?? NO_EMPLOYEE_FILTERS),
+  );
   TestBed.configureTestingModule({
-    providers: [EmployeesStore, { provide: EmployeesApi, useValue: { list: spy } }],
+    providers: [
+      EmployeesStore,
+      {
+        provide: EmployeesApi,
+        useValue: {
+          list: (f: EmployeeFilters, paging: Paging) => {
+            filters(f);
+            return spy(paging);
+          },
+        },
+      },
+    ],
   });
-  return { store: TestBed.inject(EmployeesStore), list: spy };
+  return { store: TestBed.inject(EmployeesStore), list: spy, filters };
 }
 
 const settle = () => TestBed.inject(ApplicationRef).whenStable();
@@ -77,6 +93,7 @@ describe('EmployeesStore', () => {
       message: EMPLOYEES_ERROR_MESSAGES.businessRequired,
       retryable: false,
       businessRequired: true,
+      invalidFilter: false,
     });
     expect(store.empty()).toBe(false);
   });
@@ -160,5 +177,52 @@ describe('EmployeesStore.setStatus (HU-20)', () => {
 
     expect(store.loading()).toBe(false);
     expect(store.employees().map((item) => item.id)).toEqual(['new']);
+  });
+});
+
+describe('EmployeesStore filters (HU-22)', () => {
+  const ana: EmployeeFilters = { name: 'ana', status: 'ACTIVE', serviceIds: ['s1'] };
+
+  it('fetches with the filters and goes back to the first page', async () => {
+    const { store, list, filters } = setup(() => of(page));
+    store.setPaging({ page: 2, size: 50 });
+    await settle();
+
+    store.setFilters(ana);
+    await settle();
+
+    expect(filters).toHaveBeenLastCalledWith(ana);
+    expect(list).toHaveBeenLastCalledWith({ page: 0, size: 50 });
+    expect(store.filtered()).toBe(true);
+  });
+
+  it('does not fetch again for the same filters or query', async () => {
+    const { store, list } = setup(() => of(page));
+    store.setQuery(ana, { page: 1, size: 20 });
+    await settle();
+
+    store.setFilters({ ...ana, serviceIds: ['s1'] });
+    store.setQuery(ana, { page: 1, size: 20 });
+    await settle();
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith({ page: 1, size: 20 });
+  });
+
+  it('tells "no results" apart from "no employees"', async () => {
+    const { store } = setup(() => of(emptyPage));
+    store.setFilters(ana);
+    await settle();
+
+    expect(store.noResults()).toBe(true);
+    expect(store.empty()).toBe(false);
+  });
+
+  it('marks a 400 as a rejected filter', async () => {
+    const { store } = setup(() => throwError(() => apiError('validation')));
+    store.setFilters(ana);
+    await settle();
+
+    expect(store.error()?.invalidFilter).toBe(true);
   });
 });
