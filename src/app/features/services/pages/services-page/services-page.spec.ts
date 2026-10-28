@@ -383,7 +383,7 @@ describe('ServicesPage · eliminar servicio (HU-14)', () => {
     await rendered.fixture.whenStable();
   }
 
-  const dialog = (element: HTMLElement) => element.querySelector('app-delete-service-dialog');
+  const dialog = (element: HTMLElement) => element.querySelector('app-confirm-dialog');
 
   it('asks for confirmation with the service name and sends nothing yet', async () => {
     const rendered = await render(() => of(page));
@@ -433,7 +433,7 @@ describe('ServicesPage · eliminar servicio (HU-14)', () => {
     expect(text).toContain(futureAppointmentsMessage('Barba'));
     expect(text).not.toContain('internal details');
     const actions = Array.from(
-      dialog(rendered.element)!.querySelectorAll('.delete-dialog__actions button'),
+      dialog(rendered.element)!.querySelectorAll('.confirm-dialog__actions button'),
     ).map((b) => b.textContent?.trim());
     expect(actions).toEqual(['Cerrar']);
     expect(rendered.list).toHaveBeenCalledTimes(1);

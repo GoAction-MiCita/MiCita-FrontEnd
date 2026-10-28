@@ -89,11 +89,17 @@
 }
 
 @if (deleteStore.service(); as service) {
-  <app-delete-service-dialog
-    [service]="service"
+  <app-confirm-dialog
+    title="Eliminar servicio"
     [pending]="deleteStore.pending()"
-    [failure]="deleteStore.failure()"
+    [alert]="deleteStore.failure()"
+    [blocked]="deleteStore.failure()?.blocked"
     (confirmed)="confirmDelete()"
     (closed)="deleteStore.close()"
-  />
+  >
+    <p class="services-page__question">
+      ¿Seguro que quieres eliminar <strong>«{{ service.name }}»</strong>? Dejará de aparecer en tu
+      listado y tus clientes no podrán agendarlo.
+    </p>
+  </app-confirm-dialog>
 }

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Employee } from '@features/employees/models/employee.model';
 import { EMPTY_VALUE } from '@shared/formatting/format';
-import { COMING_SOON, EmployeesTable } from './employees-table';
+import { EmployeesTable } from './employees-table';
 
 const ana: Employee = {
   id: 'e1',
@@ -76,7 +76,7 @@ describe('EmployeesTable', () => {
     ]);
   });
 
-  it('names each row action and keeps delete disabled until its story exists', async () => {
+  it('names each row action and keeps them all enabled', async () => {
     const element = await render([ana, juan]);
 
     const buttons = Array.from(element.querySelectorAll<HTMLButtonElement>('tbody button'));
@@ -88,10 +88,7 @@ describe('EmployeesTable', () => {
       'Activar Juan Pérez',
       'Eliminar Juan Pérez',
     ]);
-    const pending = buttons.filter((button) => button.ariaLabel?.startsWith('Eliminar'));
-    expect(pending.every((button) => button.disabled && button.title === COMING_SOON)).toBe(true);
-    const enabled = buttons.filter((button) => !button.ariaLabel?.startsWith('Eliminar'));
-    expect(enabled.every((button) => !button.disabled)).toBe(true);
+    expect(buttons.every((button) => !button.disabled)).toBe(true);
   });
 
   it('emits the employee of the row on Editar (HU-18)', async () => {
@@ -132,5 +129,19 @@ describe('EmployeesTable', () => {
     expect(button('Desactivar Ana López').getAttribute('aria-busy')).toBe('true');
     expect(button('Activar Juan Pérez').hasAttribute('aria-disabled')).toBe(false);
     expect(button('Activar Juan Pérez').hasAttribute('aria-busy')).toBe(false);
+  });
+
+  it('emits the employee of the row on Eliminar (HU-21)', async () => {
+    const fixture = TestBed.createComponent(EmployeesTable);
+    fixture.componentRef.setInput('employees', [ana, juan]);
+    const removed: Employee[] = [];
+    fixture.componentInstance.remove.subscribe((employee) => removed.push(employee));
+    await fixture.whenStable();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('button[aria-label="Eliminar Juan Pérez"]')!
+      .click();
+
+    expect(removed).toEqual([juan]);
   });
 });

@@ -10,6 +10,10 @@ import { ServiceOptionsApi } from '@features/employees/data-access/service-optio
 import { EMPLOYEE_FORM_MESSAGES } from '@features/employees/models/employee-form-failure';
 import { EMPLOYEE_STATUS_MESSAGES } from '@features/employees/models/employee-status-messages';
 import {
+  DELETE_EMPLOYEE_MESSAGES,
+  futureAppointmentsMessage,
+} from '@features/employees/models/delete-employee-failure';
+import {
   Employee,
   EmployeePage,
   EmployeeStatus,
@@ -17,7 +21,7 @@ import {
 } from '@features/employees/models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
-import { NEVER, Observable, of, Subject, throwError } from 'rxjs';
+import { map, NEVER, Observable, of, Subject, throwError } from 'rxjs';
 import EmployeesPage, { EMPLOYEES_PAGE_MESSAGES } from './employees-page';
 
 @Component({ template: 'dashboard' })
@@ -59,6 +63,7 @@ interface EditApi {
   readonly get?: (id: string) => Observable<Employee>;
   readonly update?: (id: string, changes: unknown) => Observable<Employee>;
   readonly changeStatus?: (id: string, status: EmployeeStatus) => Observable<EmployeeStatus>;
+  readonly remove?: (id: string) => Observable<void>;
 }
 
 async function renderAt(
@@ -71,6 +76,7 @@ async function renderAt(
   const createSpy = vi.fn(create);
   const getSpy = vi.fn(edit.get ?? (() => of(ana)));
   const updateSpy = vi.fn(edit.update ?? (() => of(ana)));
+  const removeSpy = vi.fn(edit.remove ?? (() => of(undefined)));
   const changeStatusSpy = vi.fn(
     edit.changeStatus ?? ((_id: string, status: EmployeeStatus) => of(status)),
   );
@@ -86,6 +92,7 @@ async function renderAt(
           get: getSpy,
           update: updateSpy,
           changeStatus: changeStatusSpy,
+          remove: removeSpy,
         },
       },
       { provide: ServiceOptionsApi, useValue: { list: servicesSpy } },
@@ -115,6 +122,7 @@ async function renderAt(
     get: getSpy,
     update: updateSpy,
     changeStatus: changeStatusSpy,
+    remove: removeSpy,
     services: servicesSpy,
     notifier,
     url: () => router.url,
@@ -532,4 +540,174 @@ describe('EmployeesPage · activar o desactivar (HU-20)', () => {
       expect(list.mock.calls.length).toBe(listCalls + reloads);
     },
   );
+});
+
+describe('EmployeesPage · eliminar (HU-21)', () => {
+  async function openDelete(
+    edit: EditApi = {},
+    url = '/empleados',
+    list: (paging: Paging) => Observable<EmployeePage> = paged,
+  ) {
+    const page = await renderAt(url, list, undefined, edit);
+    page
+      .element()
+      .querySelector<HTMLButtonElement>('button[aria-label="Eliminar Ana López"]')!
+      .click();
+    await page.harness.fixture.whenStable();
+    const dialog = () => page.element().querySelector('app-confirm-dialog');
+    const button = (text: string) =>
+      Array.from(dialog()?.querySelectorAll('button') ?? []).find(
+        (b) => b.textContent?.trim() === text,
+      );
+    const press = async (text: string) => {
+      button(text)!.click();
+      await page.harness.fixture.whenStable();
+      // The page awaits the store after the click: let it settle.
+      await new Promise((resolve) => setTimeout(resolve));
+      await page.harness.fixture.whenStable();
+    };
+    return { ...page, dialog, button, press };
+  }
+
+  const conflict = (): Observable<void> =>
+    throwError(() => ({ kind: 'conflict', status: 409, message: null, fieldErrors: {} }));
+
+  it('asks for confirmation with the name of the employee', async () => {
+    const { dialog, remove } = await openDelete();
+
+    expect(dialog()?.querySelector('h2')?.textContent).toContain('Eliminar empleado');
+    expect(dialog()?.textContent).toContain('«Ana López»');
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('does not call the API when cancelled', async () => {
+    const { dialog, press, remove } = await openDelete();
+
+    await press('Cancelar');
+
+    expect(dialog()).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('on 204 closes, reloads the list without the employee and confirms', async () => {
+    const { dialog, press, remove, list, notifier } = await openDelete();
+    const listCalls = list.mock.calls.length;
+
+    await press('Eliminar');
+
+    expect(remove).toHaveBeenCalledWith('e1');
+    expect(dialog()).toBeNull();
+    expect(list.mock.calls.length).toBe(listCalls + 1);
+    expect(notifier.success).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.deleted);
+  });
+
+  it('goes back a page when deleting the last employee of the last page', async () => {
+    let total = 41;
+    const shrinking = (paging: Paging) =>
+      of({
+        items: paging.page < Math.ceil(total / paging.size) ? [ana] : [],
+        page: paging.page,
+        size: paging.size,
+        totalElements: total,
+        totalPages: Math.ceil(total / paging.size),
+      });
+    const { press, url, list, harness } = await openDelete(
+      {
+        remove: () => {
+          total = 40;
+          return of(undefined);
+        },
+      },
+      '/empleados?page=3',
+      shrinking,
+    );
+
+    await press('Eliminar');
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/empleados?page=2');
+    expect(list).toHaveBeenLastCalledWith({ page: 1, size: 20 });
+  });
+
+  it('on 409 explains the future appointments and offers to deactivate instead', async () => {
+    const { dialog, button, press, changeStatus, notifier, element } = await openDelete({
+      remove: conflict,
+    });
+
+    await press('Eliminar');
+
+    expect(dialog()?.textContent).toContain(DELETE_EMPLOYEE_MESSAGES.blockedTitle);
+    expect(dialog()?.textContent).toContain(futureAppointmentsMessage(ana));
+    expect(button('Eliminar')).toBeUndefined();
+    expect(button('Cerrar')).toBeDefined();
+
+    await press('Desactivar');
+
+    expect(changeStatus).toHaveBeenCalledWith('e1', 'INACTIVE');
+    expect(dialog()).toBeNull();
+    expect(element().querySelector('.employees-table__badge')?.textContent?.trim()).toBe(
+      'Inactivo',
+    );
+    expect(notifier.success).toHaveBeenCalledWith(EMPLOYEE_STATUS_MESSAGES.deactivated);
+  });
+
+  it('on 409 for an inactive employee only offers "Cerrar"', async () => {
+    const inactive = (paging: Paging) =>
+      paged(paging).pipe(
+        map((page) => ({
+          ...page,
+          items: page.items.map((e) => ({ ...e, status: 'INACTIVE' as const })),
+        })),
+      );
+    const { button, press } = await openDelete({ remove: conflict }, '/empleados', inactive);
+
+    await press('Eliminar');
+
+    expect(button('Desactivar')).toBeUndefined();
+    expect(button('Cerrar')).toBeDefined();
+  });
+
+  it('on 404 closes and reloads the list', async () => {
+    const { dialog, press, list, notifier } = await openDelete({
+      remove: () => throwError(() => apiError('not-found')),
+    });
+    const listCalls = list.mock.calls.length;
+
+    await press('Eliminar');
+
+    expect(dialog()).toBeNull();
+    expect(list.mock.calls.length).toBe(listCalls + 1);
+    expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.gone);
+  });
+
+  it('does not open the confirmation while that employee is changing its status', async () => {
+    const response = new Subject<EmployeeStatus>();
+    const { element, harness, dialog, remove } = await openDelete({
+      changeStatus: () => response.asObservable(),
+    });
+    // Close the dialog openDelete() opened, then start a status change and try again.
+    Array.from(dialog()!.querySelectorAll('button'))
+      .find((b) => b.textContent?.trim() === 'Cancelar')!
+      .click();
+    await harness.fixture.whenStable();
+
+    element()
+      .querySelector<HTMLButtonElement>('button[aria-label="Desactivar Ana López"]')!
+      .click();
+    await harness.fixture.whenStable();
+    element().querySelector<HTMLButtonElement>('button[aria-label="Eliminar Ana López"]')!.click();
+    await harness.fixture.whenStable();
+
+    expect(dialog()).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+
+    response.next('INACTIVE');
+    response.complete();
+    await new Promise((resolve) => setTimeout(resolve));
+    await harness.fixture.whenStable();
+    element().querySelector<HTMLButtonElement>('button[aria-label="Eliminar Ana López"]')!.click();
+    await harness.fixture.whenStable();
+
+    expect(dialog()).not.toBeNull();
+  });
 });
