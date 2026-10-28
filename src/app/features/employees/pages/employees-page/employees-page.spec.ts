@@ -679,4 +679,35 @@ describe('EmployeesPage · eliminar (HU-21)', () => {
     expect(list.mock.calls.length).toBe(listCalls + 1);
     expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_PAGE_MESSAGES.gone);
   });
+
+  it('does not open the confirmation while that employee is changing its status', async () => {
+    const response = new Subject<EmployeeStatus>();
+    const { element, harness, dialog, remove } = await openDelete({
+      changeStatus: () => response.asObservable(),
+    });
+    // Close the dialog openDelete() opened, then start a status change and try again.
+    Array.from(dialog()!.querySelectorAll('button'))
+      .find((b) => b.textContent?.trim() === 'Cancelar')!
+      .click();
+    await harness.fixture.whenStable();
+
+    element()
+      .querySelector<HTMLButtonElement>('button[aria-label="Desactivar Ana López"]')!
+      .click();
+    await harness.fixture.whenStable();
+    element().querySelector<HTMLButtonElement>('button[aria-label="Eliminar Ana López"]')!.click();
+    await harness.fixture.whenStable();
+
+    expect(dialog()).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+
+    response.next('INACTIVE');
+    response.complete();
+    await new Promise((resolve) => setTimeout(resolve));
+    await harness.fixture.whenStable();
+    element().querySelector<HTMLButtonElement>('button[aria-label="Eliminar Ana López"]')!.click();
+    await harness.fixture.whenStable();
+
+    expect(dialog()).not.toBeNull();
+  });
 });

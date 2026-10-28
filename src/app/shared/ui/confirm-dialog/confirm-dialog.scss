@@ -39,7 +39,8 @@
     font-size: var(--font-size-xl);
   }
 
-  // The question is projected: emulated styles do not reach its markup (e.g. <strong>).
+  // The question is projected: emulated styles do not reach its markup (e.g. <strong>), so the
+  // parent styles it.
   &__description {
     color: var(--color-text-muted);
   }

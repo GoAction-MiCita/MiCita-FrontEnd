@@ -78,3 +78,8 @@
     --icon-size: 2rem;
   }
 }
+
+// Question projected into ConfirmDialog: its styles do not reach this markup, the page's do.
+.services-page__question strong {
+  color: var(--color-text);
+}

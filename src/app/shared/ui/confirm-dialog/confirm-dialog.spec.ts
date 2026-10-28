@@ -144,4 +144,25 @@ describe('ConfirmDialog', () => {
     expect(element.querySelector('dialog img')).toBeNull();
     expect(element.textContent).toContain('<img src=x onerror=alert(1)>');
   });
+
+  it('moves the focus to the alternative action when blocked (the confirm button is gone)', async () => {
+    const { button, update } = await render();
+    button('Eliminar')!.focus();
+
+    await update((h) => {
+      h.blocked.set(true);
+      h.blockedActionLabel.set('Desactivar');
+    });
+
+    expect(document.activeElement).toBe(button('Desactivar'));
+  });
+
+  it('moves the focus to "Cerrar" when blocked without an alternative', async () => {
+    const { button, update } = await render();
+    button('Eliminar')!.focus();
+
+    await update((h) => h.blocked.set(true));
+
+    expect(document.activeElement).toBe(button('Cerrar'));
+  });
 });

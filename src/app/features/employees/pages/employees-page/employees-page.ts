@@ -240,6 +240,16 @@ export default class EmployeesPage {
     this.closeDeleteDialog();
   }
 
+  /**
+   * HU-21: not while the row is changing its status (HU-20): the dialog keeps the employee it was
+   * opened with, so the 409 message and the deactivate offer would be outdated.
+   */
+  protected openDelete(employee: Employee): void {
+    if (!this.statusStore.pendingIds().has(employee.id)) {
+      this.deleteStore.open(employee);
+    }
+  }
+
   protected closeDeleteDialog(): void {
     if (!this.deletePending()) {
       this.deleteStore.close();

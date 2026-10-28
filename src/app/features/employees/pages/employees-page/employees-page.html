@@ -42,7 +42,7 @@
     [busyIds]="statusStore.pendingIds()"
     (edit)="openEdit($event)"
     (toggleStatus)="toggleStatus($event)"
-    (remove)="deleteStore.open($event)"
+    (remove)="openDelete($event)"
   />
   <app-paginator
     itemsLabel="empleados"
@@ -82,7 +82,7 @@
     (blockedAction)="deactivateInstead()"
     (closed)="closeDeleteDialog()"
   >
-    <p>
+    <p class="employees-page__question">
       ¿Seguro que quieres eliminar a <strong>«{{ employee.fullName }}»</strong>? Dejará de aparecer
       en tu listado y no se le podrán agendar citas. Sus citas pasadas se conservan.
     </p>

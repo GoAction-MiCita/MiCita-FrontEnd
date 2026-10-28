@@ -19,11 +19,18 @@
 
   <div class="confirm-dialog__actions">
     @if (blocked()) {
-      <button class="confirm-dialog__cancel" type="button" [disabled]="pending()" (click)="close()">
+      <button
+        #closeButton
+        class="confirm-dialog__cancel"
+        type="button"
+        [disabled]="pending()"
+        (click)="close()"
+      >
         Cerrar
       </button>
       @if (blockedActionLabel(); as label) {
         <button
+          #alternativeButton
           class="confirm-dialog__alternative"
           type="button"
           [disabled]="pending()"

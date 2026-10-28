@@ -5,6 +5,7 @@ import {
   Component,
   DestroyRef,
   DOCUMENT,
+  effect,
   ElementRef,
   inject,
   input,
@@ -53,6 +54,9 @@ export class ConfirmDialog {
   protected readonly titleId = `app-confirm-dialog-${nextId}-title`;
   protected readonly descriptionId = `app-confirm-dialog-${nextId++}-description`;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+  private readonly closeButton = viewChild<ElementRef<HTMLButtonElement>>('closeButton');
+  private readonly alternativeButton =
+    viewChild<ElementRef<HTMLButtonElement>>('alternativeButton');
 
   constructor() {
     // Give focus back to the button that opened the dialog (if its row still exists).
@@ -61,6 +65,13 @@ export class ConfirmDialog {
       if (opener instanceof HTMLElement && opener.isConnected) {
         opener.focus();
       }
+    });
+
+    // Blocked (e.g. a 409) removes the focused confirm button: focus the alternative action, or
+    // "Cerrar", so keyboard and screen reader users stay on an available action.
+    effect(() => {
+      const target = this.alternativeButton() ?? this.closeButton();
+      target?.nativeElement.focus();
     });
 
     afterNextRender(() => {
