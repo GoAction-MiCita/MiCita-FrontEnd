@@ -15,6 +15,7 @@ import {
   EmployeeFormMode,
   EmployeeFormPanel,
 } from '@features/employees/components/employee-form-panel/employee-form-panel';
+import { EmployeesFilterBar } from '@features/employees/components/employees-filter-bar/employees-filter-bar';
 import { EmployeesTable } from '@features/employees/components/employees-table/employees-table';
 import { CreateEmployeeStore } from '@features/employees/data-access/create-employee-store';
 import { DeleteEmployeeStore } from '@features/employees/data-access/delete-employee-store';
@@ -23,7 +24,14 @@ import { EmployeeStatusStore } from '@features/employees/data-access/employee-st
 import { EmployeesStore } from '@features/employees/data-access/employees-store';
 import { ServiceOptionsStore } from '@features/employees/data-access/service-options-store';
 import { employeeStatusChangedMessage } from '@features/employees/models/employee-status-messages';
+import {
+  EmployeeFilters,
+  NO_EMPLOYEE_FILTERS,
+  toEmployeeFilterParams,
+  toEmployeeFilters,
+} from '@features/employees/models/employee-filters';
 import { EMPLOYEE_STATUS, Employee, NewEmployee } from '@features/employees/models/employee.model';
+import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { Alert } from '@shared/ui/alert/alert';
 import { Button } from '@shared/ui/button/button';
 import { ConfirmDialog } from '@shared/ui/confirm-dialog/confirm-dialog';
@@ -40,9 +48,9 @@ export const EMPLOYEES_PAGE_MESSAGES = {
 } as const;
 
 /**
- * HU-16 listado, HU-17 registrar, HU-18 editar, HU-20 activar/desactivar and HU-21 eliminar
- * (private). The page lives in the query params
- * (`?page=&size=`, page 1-based).
+ * HU-16 listado, HU-17 registrar, HU-18 editar, HU-20 activar/desactivar, HU-21 eliminar and
+ * HU-22 filtrar (private). Filters and page live in the query params
+ * (`?name=&status=&serviceIds=&page=&size=`, page 1-based).
  */
 @Component({
   selector: 'app-employees-page',
@@ -51,6 +59,7 @@ export const EMPLOYEES_PAGE_MESSAGES = {
     Button,
     ConfirmDialog,
     EmployeeFormPanel,
+    EmployeesFilterBar,
     EmployeesTable,
     Icon,
     Paginator,
@@ -111,20 +120,68 @@ export default class EmployeesPage {
   );
 
   // Query params, bound by withComponentInputBinding.
+  readonly name = input<string>();
+  readonly status = input<string>();
+  readonly serviceIds = input<string>();
   readonly page = input<string>();
   readonly size = input<string>();
 
+  private readonly urlFilters = computed(() =>
+    toEmployeeFilters({ name: this.name(), status: this.status(), serviceIds: this.serviceIds() }),
+  );
   private readonly urlPaging = computed(() => toPaging({ page: this.page(), size: this.size() }));
 
+  /** Set once the list answered with employees; reloads by filter or page keep the bar. */
+  private readonly listShown = signal(false);
+  /**
+   * HU-22: the filter bar waits for the first good answer (no flicker for a business without
+   * employees, nothing for a 403), unless the URL already has filters; it hides if the business
+   * runs out of employees.
+   */
+  protected readonly showFilters = computed(
+    () => !this.store.empty() && (this.listShown() || this.store.filtered()),
+  );
+
   constructor() {
-    // Before the first fetch, so a reload on page 3 asks only once.
+    // Before the first fetch, so a reload with filters or on page 3 asks only once.
     const { queryParamMap } = this.route.snapshot;
-    this.store.setPaging(
+    this.store.setQuery(
+      toEmployeeFilters({
+        name: queryParamMap.get('name'),
+        status: queryParamMap.get('status'),
+        serviceIds: queryParamMap.get('serviceIds'),
+      }),
       toPaging({ page: queryParamMap.get('page'), size: queryParamMap.get('size') }),
     );
     effect(() => {
+      const filters = this.urlFilters();
       const paging = this.urlPaging();
-      untracked(() => this.store.setPaging(paging));
+      untracked(() => this.store.setQuery(filters, paging));
+    });
+
+    effect(() => {
+      if (!this.store.loading() && !this.store.error() && !this.store.empty()) {
+        untracked(() => this.listShown.set(true));
+      }
+    });
+
+    // HU-22: the services filter needs its options (names of the chosen ones, the picker), once
+    // the list confirms the business has employees (not on a 403 or another error).
+    effect(() => {
+      if (this.showFilters() && !this.store.loading() && !this.store.error()) {
+        untracked(() => this.servicesStore.load());
+      }
+    });
+
+    // HU-22: a 400 means a service of the filter is not valid (e.g. a URL edited by hand): say so
+    // and drop the services filter, which fetches the list again.
+    effect(() => {
+      if (this.store.error()?.invalidFilter && this.store.filters().serviceIds.length > 0) {
+        untracked(() => {
+          this.notifier.error(EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter);
+          this.applyFilters({ ...this.store.filters(), serviceIds: [] });
+        });
+      }
     });
 
     // An empty page past the end (a tampered URL): go to the last one.
@@ -143,7 +200,16 @@ export default class EmployeesPage {
     });
   }
 
-  /** HU-17: the services for the picker load the first time the panel opens. */
+  /** Writes the filters to the URL and goes back to page 1; the list follows the URL. */
+  protected applyFilters(filters: EmployeeFilters): void {
+    this.navigate({ ...toEmployeeFilterParams(filters), page: null });
+  }
+
+  protected clearFilters(): void {
+    this.applyFilters(NO_EMPLOYEE_FILTERS);
+  }
+
+  /** HU-17: the services for the picker load the first time they are needed. */
   protected openPanel(): void {
     this.createStore.reset();
     this.servicesStore.load();
@@ -265,11 +331,15 @@ export default class EmployeesPage {
     this.applyPaging({ page: 0, size });
   }
 
-  // No new history entry per page: the back button leaves the list.
   private applyPaging(paging: Paging): void {
+    this.navigate(toPagingParams(paging));
+  }
+
+  // No new history entry per filter or page: the back button leaves the list.
+  private navigate(queryParams: Record<string, string | null>): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: toPagingParams(paging),
+      queryParams,
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });

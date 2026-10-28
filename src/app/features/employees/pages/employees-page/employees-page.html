@@ -11,6 +11,16 @@
   }
 </header>
 
+@if (showFilters()) {
+  <app-employees-filter-bar
+    [filters]="store.filters()"
+    [services]="servicesStore.services()"
+    [servicesLoading]="servicesStore.loading()"
+    [servicesFailed]="servicesStore.failed()"
+    (filtersChange)="applyFilters($event)"
+  />
+}
+
 @if (store.loading()) {
   <div class="employees-page__state" role="status">
     <app-spinner size="lg" />
@@ -34,6 +44,19 @@
     <button appButton type="button" (click)="openPanel()">
       <app-icon name="plus" />
       Agregar empleado
+    </button>
+  </section>
+} @else if (store.noResults()) {
+  <section
+    class="employees-page__state employees-page__empty"
+    aria-labelledby="employees-no-results"
+  >
+    <span class="employees-page__empty-icon"><app-icon name="search" /></span>
+    <h2 id="employees-no-results">No encontramos empleados con esos filtros</h2>
+    <p>Prueba con otro nombre, estado o servicio, o limpia los filtros para ver todo tu equipo.</p>
+    <button class="employees-page__retry" type="button" (click)="clearFilters()">
+      <app-icon name="x" />
+      Limpiar filtros
     </button>
   </section>
 } @else {

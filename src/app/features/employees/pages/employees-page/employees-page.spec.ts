@@ -14,6 +14,11 @@ import {
   futureAppointmentsMessage,
 } from '@features/employees/models/delete-employee-failure';
 import {
+  EmployeeFilters,
+  hasEmployeeFilters,
+  NO_EMPLOYEE_FILTERS,
+} from '@features/employees/models/employee-filters';
+import {
   Employee,
   EmployeePage,
   EmployeeStatus,
@@ -21,7 +26,7 @@ import {
 } from '@features/employees/models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
-import { map, NEVER, Observable, of, Subject, throwError } from 'rxjs';
+import { delay, map, NEVER, Observable, of, Subject, throwError } from 'rxjs';
 import EmployeesPage, { EMPLOYEES_PAGE_MESSAGES } from './employees-page';
 
 @Component({ template: 'dashboard' })
@@ -68,11 +73,15 @@ interface EditApi {
 
 async function renderAt(
   url: string,
-  list: (paging: Paging) => Observable<EmployeePage> = paged,
+  list: (paging: Paging, filters: EmployeeFilters) => Observable<EmployeePage> = paged,
   create: () => Observable<Employee> = () => of(ana),
   edit: EditApi = {},
 ) {
-  const listSpy = vi.fn(list);
+  // `list` records the page only (most tests care about it); `filters` records the filters.
+  const filtersSpy = vi.fn<(filters: EmployeeFilters) => void>();
+  const listSpy = vi.fn((paging: Paging) =>
+    list(paging, filtersSpy.mock.lastCall?.[0] ?? NO_EMPLOYEE_FILTERS),
+  );
   const createSpy = vi.fn(create);
   const getSpy = vi.fn(edit.get ?? (() => of(ana)));
   const updateSpy = vi.fn(edit.update ?? (() => of(ana)));
@@ -87,7 +96,10 @@ async function renderAt(
       {
         provide: EmployeesApi,
         useValue: {
-          list: listSpy,
+          list: (filters: EmployeeFilters, paging: Paging) => {
+            filtersSpy(filters);
+            return listSpy(paging);
+          },
           create: createSpy,
           get: getSpy,
           update: updateSpy,
@@ -118,6 +130,7 @@ async function renderAt(
     harness,
     element,
     list: listSpy,
+    filters: filtersSpy,
     create: createSpy,
     get: getSpy,
     update: updateSpy,
@@ -141,8 +154,14 @@ describe('EmployeesPage', () => {
     );
   });
 
-  it('does not ask for the services until the panel opens', async () => {
+  it('asks for the services once, for the filter bar (HU-22)', async () => {
     const { services } = await renderAt('/empleados');
+
+    expect(services).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask for the services when the business has no employees', async () => {
+    const { services } = await renderAt('/empleados', () => of(emptyPage));
 
     expect(services).not.toHaveBeenCalled();
   });
@@ -709,5 +728,164 @@ describe('EmployeesPage · eliminar (HU-21)', () => {
     await harness.fixture.whenStable();
 
     expect(dialog()).not.toBeNull();
+  });
+});
+
+describe('EmployeesPage · filtrar (HU-22)', () => {
+  // 57 employees; with any filter only 3 match (one page).
+  const filteredList = (paging: Paging, filters: EmployeeFilters): Observable<EmployeePage> =>
+    hasEmployeeFilters(filters)
+      ? of({ items: [ana], page: 0, size: paging.size, totalElements: 3, totalPages: 1 })
+      : paged(paging);
+
+  const filterBar = (element: HTMLElement) => element.querySelector('app-employees-filter-bar');
+
+  it('shows the filter bar with the services of the business', async () => {
+    const { element, harness } = await renderAt('/empleados');
+    filterBar(element())!.querySelector<HTMLButtonElement>('.multi-select__trigger')!.click();
+    await harness.fixture.whenStable();
+
+    expect(filterBar(element())?.textContent).toContain('Corte');
+    expect(filterBar(element())?.textContent).toContain('Tinte');
+  });
+
+  it('reads the filters from the URL and asks once with them', async () => {
+    const { list, filters, element } = await renderAt(
+      '/empleados?name=ana&status=INACTIVE&serviceIds=s1,s2&page=2',
+      filteredList,
+    );
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(filters).toHaveBeenLastCalledWith({
+      name: 'ana',
+      status: 'INACTIVE',
+      serviceIds: ['s1', 's2'],
+    });
+    expect(list).toHaveBeenLastCalledWith({ page: 1, size: 20 });
+    expect(
+      element().querySelector<HTMLSelectElement>('app-employees-filter-bar select')?.value,
+    ).toBe('INACTIVE');
+  });
+
+  it('writes a new filter to the URL and goes back to the first page', async () => {
+    const { element, harness, url, list, filters } = await renderAt(
+      '/empleados?page=3',
+      filteredList,
+    );
+
+    const status = element().querySelector<HTMLSelectElement>('app-employees-filter-bar select')!;
+    status.value = 'ACTIVE';
+    status.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/empleados?status=ACTIVE');
+    expect(filters).toHaveBeenLastCalledWith({ name: '', status: 'ACTIVE', serviceIds: [] });
+    expect(list).toHaveBeenLastCalledWith({ page: 0, size: 20 });
+  });
+
+  it('combines filters', async () => {
+    const { element, harness, url } = await renderAt('/empleados?name=ana', filteredList);
+
+    const status = element().querySelector<HTMLSelectElement>('app-employees-filter-bar select')!;
+    status.value = 'INACTIVE';
+    status.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/empleados?name=ana&status=INACTIVE');
+  });
+
+  it('shows a "no results" state, different from "no employees", that clears the filters', async () => {
+    const { element, harness, url, filters } = await renderAt('/empleados?name=zzz', (paging, f) =>
+      hasEmployeeFilters(f) ? of({ ...emptyPage, size: paging.size }) : paged(paging),
+    );
+
+    expect(element().textContent).toContain('No encontramos empleados con esos filtros');
+    expect(element().textContent).not.toContain('Aún no tienes empleados');
+    expect(filterBar(element())).not.toBeNull();
+
+    Array.from(element().querySelectorAll<HTMLButtonElement>('.employees-page__empty button'))
+      .find((b) => b.textContent?.includes('Limpiar filtros'))!
+      .click();
+    await harness.fixture.whenStable();
+
+    expect(url()).toBe('/empleados');
+    expect(filters).toHaveBeenLastCalledWith(NO_EMPLOYEE_FILTERS);
+    expect(element().querySelector('app-employees-table')).not.toBeNull();
+  });
+
+  it('on a 400 for a service of the filter shows the error and drops that filter', async () => {
+    const { harness, url, notifier, filters } = await renderAt(
+      '/empleados?name=ana&serviceIds=ajeno',
+      (paging, f) =>
+        f.serviceIds.length > 0
+          ? throwError(() => ({ ...apiError('validation'), fieldErrors: { 'serviceIds[0]': 'x' } }))
+          : paged(paging),
+    );
+    await harness.fixture.whenStable();
+
+    expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter);
+    expect(url()).toBe('/empleados?name=ana');
+    expect(filters).toHaveBeenLastCalledWith({ name: 'ana', status: null, serviceIds: [] });
+  });
+
+  it('shows any other 400 as an error with retry, without touching the filters', async () => {
+    const { element, url, notifier } = await renderAt('/empleados?name=ana', (paging, f) =>
+      f.name ? throwError(() => apiError('validation')) : paged(paging),
+    );
+
+    expect(url()).toBe('/empleados?name=ana');
+    expect(notifier.error).not.toHaveBeenCalled();
+    expect(element().querySelector('app-alert')?.textContent).toContain(
+      EMPLOYEES_ERROR_MESSAGES.unexpected,
+    );
+    expect(element().querySelector('.employees-page__retry')?.textContent).toContain('Reintentar');
+  });
+
+  it('does not show the filter bar while the first answer is pending, nor ask for services on a 403', async () => {
+    // Created directly: the harness would wait for the answer that is meant to stay pending.
+    const pending = new Subject<EmployeePage>();
+    const services = vi.fn(() => of([]));
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EmployeesApi, useValue: { list: () => pending } },
+        { provide: ServiceOptionsApi, useValue: { list: services } },
+        { provide: Notifier, useValue: { success: vi.fn(), error: vi.fn() } },
+        provideRouter([]),
+      ],
+    });
+    const fixture = TestBed.createComponent(EmployeesPage);
+    await Promise.resolve();
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando empleados');
+    expect(filterBar(element)).toBeNull();
+
+    pending.error(apiError('forbidden'));
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(filterBar(element)).toBeNull();
+    expect(services).not.toHaveBeenCalled();
+  });
+
+  it('keeps the filter bar while a new filter reloads the list', async () => {
+    let calls = 0;
+    const { element, harness } = await renderAt('/empleados', (paging) =>
+      calls++ === 0 ? paged(paging) : paged(paging).pipe(delay(100)),
+    );
+
+    const status = element().querySelector<HTMLSelectElement>('app-employees-filter-bar select')!;
+    status.value = 'ACTIVE';
+    status.dispatchEvent(new Event('change'));
+    // Midway: the second answer is still on its way.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    harness.fixture.detectChanges();
+
+    expect(element().querySelector('[role="status"]')?.textContent).toContain('Cargando empleados');
+    expect(filterBar(element())).not.toBeNull();
+
+    await harness.fixture.whenStable();
+    expect(element().querySelector('app-employees-table')).not.toBeNull();
   });
 });

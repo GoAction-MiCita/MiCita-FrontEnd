@@ -196,6 +196,22 @@ describe('employee.mapper', () => {
 
   it('always sends page and size', () => {
     expect(toEmployeeListParams()).toEqual({ page: '0', size: '20' });
-    expect(toEmployeeListParams({ page: 2, size: 50 })).toEqual({ page: '2', size: '50' });
+    expect(toEmployeeListParams(undefined, { page: 2, size: 50 })).toEqual({
+      page: '2',
+      size: '50',
+    });
+  });
+
+  it('adds only the filters that are set (HU-22)', () => {
+    expect(
+      toEmployeeListParams(
+        { name: ' ana ', status: 'INACTIVE', serviceIds: ['s1', 's2'] },
+        { page: 0, size: 20 },
+      ),
+    ).toEqual({ page: '0', size: '20', name: 'ana', status: 'INACTIVE', serviceIds: 's1,s2' });
+    expect(toEmployeeListParams({ name: '  ', status: null, serviceIds: [] })).toEqual({
+      page: '0',
+      size: '20',
+    });
   });
 });
