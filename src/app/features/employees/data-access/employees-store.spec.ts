@@ -183,12 +183,12 @@ describe('EmployeesStore.setStatus (HU-20)', () => {
 describe('EmployeesStore filters (HU-22)', () => {
   const ana: EmployeeFilters = { name: 'ana', status: 'ACTIVE', serviceIds: ['s1'] };
 
-  it('fetches with the filters and goes back to the first page', async () => {
+  it('fetches with the filters and the page of the query', async () => {
     const { store, list, filters } = setup(() => of(page));
     store.setPaging({ page: 2, size: 50 });
     await settle();
 
-    store.setFilters(ana);
+    store.setQuery(ana, { page: 0, size: 50 });
     await settle();
 
     expect(filters).toHaveBeenLastCalledWith(ana);
@@ -201,7 +201,6 @@ describe('EmployeesStore filters (HU-22)', () => {
     store.setQuery(ana, { page: 1, size: 20 });
     await settle();
 
-    store.setFilters({ ...ana, serviceIds: ['s1'] });
     store.setQuery(ana, { page: 1, size: 20 });
     await settle();
 
@@ -211,16 +210,18 @@ describe('EmployeesStore filters (HU-22)', () => {
 
   it('tells "no results" apart from "no employees"', async () => {
     const { store } = setup(() => of(emptyPage));
-    store.setFilters(ana);
+    store.setQuery(ana, { page: 0, size: 20 });
     await settle();
 
     expect(store.noResults()).toBe(true);
     expect(store.empty()).toBe(false);
   });
 
-  it('marks a 400 as a rejected filter', async () => {
-    const { store } = setup(() => throwError(() => apiError('validation')));
-    store.setFilters(ana);
+  it('marks a 400 on serviceIds as a rejected filter', async () => {
+    const { store } = setup(() =>
+      throwError(() => ({ ...apiError('validation'), fieldErrors: { 'serviceIds[0]': 'x' } })),
+    );
+    store.setQuery(ana, { page: 0, size: 20 });
     await settle();
 
     expect(store.error()?.invalidFilter).toBe(true);

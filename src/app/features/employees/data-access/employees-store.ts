@@ -85,14 +85,6 @@ export class EmployeesStore {
       : null;
   });
 
-  /** New filters go back to the first page; equal values (URL round trip) do not refetch. */
-  setFilters(filters: EmployeeFilters): void {
-    const { filters: current, paging } = this.query();
-    if (!sameEmployeeFilters(filters, current)) {
-      this.query.set({ filters, paging: { ...paging, page: 0 } });
-    }
-  }
-
   /** Equal values (URL round trip) do not refetch. */
   setPaging(paging: Paging): void {
     if (!samePaging(paging, this.paging())) {
@@ -100,7 +92,10 @@ export class EmployeesStore {
     }
   }
 
-  /** Both at once, as read from the URL, so a link with filters and page fetches only once. */
+  /**
+   * Both at once, as read from the URL (the source of truth: new filters come with page 1), so a
+   * link with filters and page fetches only once.
+   */
   setQuery(filters: EmployeeFilters, paging: Paging): void {
     const current = this.query();
     if (!sameEmployeeFilters(filters, current.filters) || !samePaging(paging, current.paging)) {

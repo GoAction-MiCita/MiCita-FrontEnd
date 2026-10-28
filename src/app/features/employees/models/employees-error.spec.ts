@@ -36,12 +36,29 @@ describe('toEmployeesLoadError', () => {
     });
   });
 
-  it('marks a 400 as a rejected filter (HU-22), without retry', () => {
-    expect(toEmployeesLoadError(error('validation', 'serviceIds: unknown'))).toEqual({
+  it('marks a 400 on serviceIds as a rejected filter (HU-22), without retry', () => {
+    expect(
+      toEmployeesLoadError({
+        ...error('validation', 'detalle'),
+        fieldErrors: { 'serviceIds[1]': 'El servicio no pertenece al negocio' },
+      }),
+    ).toEqual({
       message: EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter,
       retryable: false,
       businessRequired: false,
       invalidFilter: true,
     });
+  });
+
+  it('treats any other 400 as an unexpected, retryable error', () => {
+    expect(
+      toEmployeesLoadError({ ...error('validation'), fieldErrors: { size: 'Fuera de rango' } }),
+    ).toEqual({
+      message: EMPLOYEES_ERROR_MESSAGES.unexpected,
+      retryable: true,
+      businessRequired: false,
+      invalidFilter: false,
+    });
+    expect(toEmployeesLoadError(error('validation')).invalidFilter).toBe(false);
   });
 });

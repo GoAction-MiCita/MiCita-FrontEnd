@@ -50,8 +50,7 @@ export const EMPLOYEES_PAGE_MESSAGES = {
 /**
  * HU-16 listado, HU-17 registrar, HU-18 editar, HU-20 activar/desactivar, HU-21 eliminar and
  * HU-22 filtrar (private). Filters and page live in the query params
- * (`?name=&status=&serviceIds=&page=&size=`, page 1-based). The page lives in the query params
- * (`?page=&size=`, page 1-based).
+ * (`?name=&status=&serviceIds=&page=&size=`, page 1-based).
  */
 @Component({
   selector: 'app-employees-page',
@@ -132,8 +131,16 @@ export default class EmployeesPage {
   );
   private readonly urlPaging = computed(() => toPaging({ page: this.page(), size: this.size() }));
 
-  /** HU-22: the filter bar is shown unless the business has no employees at all. */
-  protected readonly showFilters = computed(() => !this.store.empty());
+  /** Set once the list answered with employees; reloads by filter or page keep the bar. */
+  private readonly listShown = signal(false);
+  /**
+   * HU-22: the filter bar waits for the first good answer (no flicker for a business without
+   * employees, nothing for a 403), unless the URL already has filters; it hides if the business
+   * runs out of employees.
+   */
+  protected readonly showFilters = computed(
+    () => !this.store.empty() && (this.listShown() || this.store.filtered()),
+  );
 
   constructor() {
     // Before the first fetch, so a reload with filters or on page 3 asks only once.
@@ -152,10 +159,16 @@ export default class EmployeesPage {
       untracked(() => this.store.setQuery(filters, paging));
     });
 
-    // HU-22: the services filter needs its options (names of the chosen ones, the picker), once
-    // the list confirms the business has employees.
     effect(() => {
-      if (this.showFilters() && !this.store.loading()) {
+      if (!this.store.loading() && !this.store.error() && !this.store.empty()) {
+        untracked(() => this.listShown.set(true));
+      }
+    });
+
+    // HU-22: the services filter needs its options (names of the chosen ones, the picker), once
+    // the list confirms the business has employees (not on a 403 or another error).
+    effect(() => {
+      if (this.showFilters() && !this.store.loading() && !this.store.error()) {
         untracked(() => this.servicesStore.load());
       }
     });
@@ -163,7 +176,7 @@ export default class EmployeesPage {
     // HU-22: a 400 means a service of the filter is not valid (e.g. a URL edited by hand): say so
     // and drop the services filter, which fetches the list again.
     effect(() => {
-      if (this.store.error()?.invalidFilter) {
+      if (this.store.error()?.invalidFilter && this.store.filters().serviceIds.length > 0) {
         untracked(() => {
           this.notifier.error(EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter);
           this.applyFilters({ ...this.store.filters(), serviceIds: [] });

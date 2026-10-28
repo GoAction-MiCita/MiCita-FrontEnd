@@ -26,7 +26,7 @@ import {
 } from '@features/employees/models/employee.model';
 import { EMPLOYEES_ERROR_MESSAGES } from '@features/employees/models/employees-error';
 import { FIRST_PAGE, Paging } from '@shared/ui/paginator/paging';
-import { map, NEVER, Observable, of, Subject, throwError } from 'rxjs';
+import { delay, map, NEVER, Observable, of, Subject, throwError } from 'rxjs';
 import EmployeesPage, { EMPLOYEES_PAGE_MESSAGES } from './employees-page';
 
 @Component({ template: 'dashboard' })
@@ -817,12 +817,75 @@ describe('EmployeesPage · filtrar (HU-22)', () => {
     const { harness, url, notifier, filters } = await renderAt(
       '/empleados?name=ana&serviceIds=ajeno',
       (paging, f) =>
-        f.serviceIds.length > 0 ? throwError(() => apiError('validation')) : paged(paging),
+        f.serviceIds.length > 0
+          ? throwError(() => ({ ...apiError('validation'), fieldErrors: { 'serviceIds[0]': 'x' } }))
+          : paged(paging),
     );
     await harness.fixture.whenStable();
 
     expect(notifier.error).toHaveBeenCalledWith(EMPLOYEES_ERROR_MESSAGES.invalidServiceFilter);
     expect(url()).toBe('/empleados?name=ana');
     expect(filters).toHaveBeenLastCalledWith({ name: 'ana', status: null, serviceIds: [] });
+  });
+
+  it('shows any other 400 as an error with retry, without touching the filters', async () => {
+    const { element, url, notifier } = await renderAt('/empleados?name=ana', (paging, f) =>
+      f.name ? throwError(() => apiError('validation')) : paged(paging),
+    );
+
+    expect(url()).toBe('/empleados?name=ana');
+    expect(notifier.error).not.toHaveBeenCalled();
+    expect(element().querySelector('app-alert')?.textContent).toContain(
+      EMPLOYEES_ERROR_MESSAGES.unexpected,
+    );
+    expect(element().querySelector('.employees-page__retry')?.textContent).toContain('Reintentar');
+  });
+
+  it('does not show the filter bar while the first answer is pending, nor ask for services on a 403', async () => {
+    // Created directly: the harness would wait for the answer that is meant to stay pending.
+    const pending = new Subject<EmployeePage>();
+    const services = vi.fn(() => of([]));
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EmployeesApi, useValue: { list: () => pending } },
+        { provide: ServiceOptionsApi, useValue: { list: services } },
+        { provide: Notifier, useValue: { success: vi.fn(), error: vi.fn() } },
+        provideRouter([]),
+      ],
+    });
+    const fixture = TestBed.createComponent(EmployeesPage);
+    await Promise.resolve();
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('[role="status"]')?.textContent).toContain('Cargando empleados');
+    expect(filterBar(element)).toBeNull();
+
+    pending.error(apiError('forbidden'));
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(filterBar(element)).toBeNull();
+    expect(services).not.toHaveBeenCalled();
+  });
+
+  it('keeps the filter bar while a new filter reloads the list', async () => {
+    let calls = 0;
+    const { element, harness } = await renderAt('/empleados', (paging) =>
+      calls++ === 0 ? paged(paging) : paged(paging).pipe(delay(100)),
+    );
+
+    const status = element().querySelector<HTMLSelectElement>('app-employees-filter-bar select')!;
+    status.value = 'ACTIVE';
+    status.dispatchEvent(new Event('change'));
+    // Midway: the second answer is still on its way.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    harness.fixture.detectChanges();
+
+    expect(element().querySelector('[role="status"]')?.textContent).toContain('Cargando empleados');
+    expect(filterBar(element())).not.toBeNull();
+
+    await harness.fixture.whenStable();
+    expect(element().querySelector('app-employees-table')).not.toBeNull();
   });
 });
