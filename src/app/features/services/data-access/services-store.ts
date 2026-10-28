@@ -88,14 +88,6 @@ export class ServicesStore {
       : null;
   });
 
-  /** New filters go back to the first page; equal values (URL round trip) do not refetch. */
-  setFilters(filters: ServiceFilters): void {
-    const { filters: current, paging } = this.query();
-    if (!sameServiceFilters(filters, current)) {
-      this.query.set({ filters, paging: { ...paging, page: 0 } });
-    }
-  }
-
   setPaging(paging: Paging): void {
     if (!samePaging(paging, this.paging())) {
       this.query.update((query) => ({ ...query, paging }));

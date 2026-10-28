@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { NO_SERVICE_FILTERS, ServiceFilters } from '@features/services/models/service-filters';
-import { NAME_FILTER_DEBOUNCE_MS, ServicesFilterBar } from './services-filter-bar';
+import { NAME_FILTER_DEBOUNCE_MS } from '@shared/ui/filter-bar/filter-bar';
+import { ServicesFilterBar } from './services-filter-bar';
 
 async function render(filters: ServiceFilters = NO_SERVICE_FILTERS) {
   const fixture = TestBed.createComponent(ServicesFilterBar);

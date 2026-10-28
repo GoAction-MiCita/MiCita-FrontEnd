@@ -3,15 +3,13 @@ import {
   Component,
   computed,
   effect,
-  inject,
   input,
   output,
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { EMPLOYEE_PICKER_TEXTS } from '@features/services/models/employee-picker-texts';
-import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 import {
   hasServiceFilters,
   NO_SERVICE_FILTERS,
@@ -23,11 +21,8 @@ import {
   ServiceEmployee,
   ServiceStatus,
 } from '@features/services/models/service.model';
-import { Icon } from '@shared/ui/icon/icon';
-import { map, Subject, switchMap, takeUntil, timer } from 'rxjs';
-
-/** HU-13: wait after the last keystroke before filtering by name. */
-export const NAME_FILTER_DEBOUNCE_MS = 300;
+import { FilterBar } from '@shared/ui/filter-bar/filter-bar';
+import { MultiSelect } from '@shared/ui/multi-select/multi-select';
 
 /**
  * Filter bar of the services list (HU-13): name, status and employees (HU-12 picker). `filters`
@@ -35,7 +30,7 @@ export const NAME_FILTER_DEBOUNCE_MS = 300;
  */
 @Component({
   selector: 'app-services-filter-bar',
-  imports: [ReactiveFormsModule, MultiSelect, Icon],
+  imports: [ReactiveFormsModule, FilterBar, MultiSelect],
   templateUrl: './services-filter-bar.html',
   styleUrl: './services-filter-bar.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,55 +46,37 @@ export class ServicesFilterBar {
   protected readonly employeePickerTexts = EMPLOYEE_PICKER_TEXTS;
   protected readonly canClear = computed(() => hasServiceFilters(this.filters()));
 
-  protected readonly form = inject(NonNullableFormBuilder).group({
-    name: [''],
-    status: ['' as ServiceStatus | ''],
-    employeeIds: [[] as readonly string[]],
+  protected readonly statusControl = new FormControl<ServiceStatus | ''>('', { nonNullable: true });
+  protected readonly employeeIdsControl = new FormControl<readonly string[]>([], {
+    nonNullable: true,
   });
-
-  private readonly cancelName = new Subject<void>();
 
   constructor() {
     // Follow the URL (reload, back/forward, "Limpiar filtros") without emitting again.
     effect(() => {
-      const { name, status, employeeIds } = this.filters();
+      const { status, employeeIds } = this.filters();
       untracked(() => {
-        const controls = this.form.controls;
-        if (controls.name.value.trim() !== name) {
-          controls.name.setValue(name, { emitEvent: false });
-        }
-        controls.status.setValue(status ?? '', { emitEvent: false });
-        controls.employeeIds.setValue(employeeIds, { emitEvent: false });
+        this.statusControl.setValue(status ?? '', { emitEvent: false });
+        this.employeeIdsControl.setValue(employeeIds, { emitEvent: false });
       });
     });
 
-    // Debounce that "Limpiar filtros" can cancel, so a keystroke typed just before never returns.
-    this.form.controls.name.valueChanges
-      .pipe(
-        switchMap((name) =>
-          timer(NAME_FILTER_DEBOUNCE_MS).pipe(
-            map(() => name),
-            takeUntil(this.cancelName),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe((name) => this.emit({ name: name.trim() }));
-
-    this.form.controls.status.valueChanges
+    this.statusControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((status) => this.emit({ status: status || null }));
 
-    this.form.controls.employeeIds.valueChanges
+    this.employeeIdsControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((employeeIds) => this.emit({ employeeIds }));
   }
 
+  protected changeName(name: string): void {
+    this.emit({ name });
+  }
+
   protected clear(): void {
-    this.cancelName.next();
-    this.form.controls.name.setValue('', { emitEvent: false });
-    this.form.controls.status.setValue('', { emitEvent: false });
-    this.form.controls.employeeIds.setValue([], { emitEvent: false });
+    this.statusControl.setValue('', { emitEvent: false });
+    this.employeeIdsControl.setValue([], { emitEvent: false });
     this.filtersChange.emit(NO_SERVICE_FILTERS);
   }
 

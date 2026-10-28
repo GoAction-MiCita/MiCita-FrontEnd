@@ -1,0 +1,27 @@
+<form
+  class="filter-bar"
+  role="search"
+  [attr.aria-label]="label()"
+  (submit)="$event.preventDefault()"
+>
+  <label class="filter-bar__search">
+    <span class="u-visually-hidden">{{ searchLabel() }}</span>
+    <app-icon name="search" />
+    <input
+      type="search"
+      [formControl]="nameControl"
+      [maxlength]="nameMaxLength"
+      autocomplete="off"
+      [placeholder]="searchLabel()"
+    />
+  </label>
+
+  <ng-content />
+
+  @if (canClear()) {
+    <button class="filter-bar__clear" type="button" (click)="clear()">
+      <app-icon name="x" />
+      Limpiar filtros
+    </button>
+  }
+</form>

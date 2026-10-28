@@ -3,13 +3,12 @@ import {
   Component,
   computed,
   effect,
-  inject,
   input,
   output,
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import {
   EmployeeFilters,
   hasEmployeeFilters,
@@ -22,12 +21,8 @@ import {
   ServiceOption,
 } from '@features/employees/models/employee.model';
 import { SERVICE_FILTER_TEXTS } from '@features/employees/models/service-picker-texts';
-import { Icon } from '@shared/ui/icon/icon';
+import { FilterBar } from '@shared/ui/filter-bar/filter-bar';
 import { MultiSelect, MultiSelectOption } from '@shared/ui/multi-select/multi-select';
-import { map, Subject, switchMap, takeUntil, timer } from 'rxjs';
-
-/** HU-22 (same as HU-13): wait after the last keystroke before filtering by name. */
-export const NAME_FILTER_DEBOUNCE_MS = 300;
 
 /**
  * Filter bar of the employees list (HU-22): name, status and services. `filters` is the source of
@@ -35,7 +30,7 @@ export const NAME_FILTER_DEBOUNCE_MS = 300;
  */
 @Component({
   selector: 'app-employees-filter-bar',
-  imports: [ReactiveFormsModule, MultiSelect, Icon],
+  imports: [ReactiveFormsModule, FilterBar, MultiSelect],
   templateUrl: './employees-filter-bar.html',
   styleUrl: './employees-filter-bar.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,55 +54,39 @@ export class EmployeesFilterBar {
     })),
   );
 
-  protected readonly form = inject(NonNullableFormBuilder).group({
-    name: [''],
-    status: ['' as EmployeeStatus | ''],
-    serviceIds: [[] as readonly string[]],
+  protected readonly statusControl = new FormControl<EmployeeStatus | ''>('', {
+    nonNullable: true,
   });
-
-  private readonly cancelName = new Subject<void>();
+  protected readonly serviceIdsControl = new FormControl<readonly string[]>([], {
+    nonNullable: true,
+  });
 
   constructor() {
     // Follow the URL (reload, back/forward, "Limpiar filtros") without emitting again.
     effect(() => {
-      const { name, status, serviceIds } = this.filters();
+      const { status, serviceIds } = this.filters();
       untracked(() => {
-        const controls = this.form.controls;
-        if (controls.name.value.trim() !== name) {
-          controls.name.setValue(name, { emitEvent: false });
-        }
-        controls.status.setValue(status ?? '', { emitEvent: false });
-        controls.serviceIds.setValue(serviceIds, { emitEvent: false });
+        this.statusControl.setValue(status ?? '', { emitEvent: false });
+        this.serviceIdsControl.setValue(serviceIds, { emitEvent: false });
       });
     });
 
-    // Debounce that "Limpiar filtros" can cancel, so a keystroke typed just before never returns.
-    this.form.controls.name.valueChanges
-      .pipe(
-        switchMap((name) =>
-          timer(NAME_FILTER_DEBOUNCE_MS).pipe(
-            map(() => name),
-            takeUntil(this.cancelName),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe((name) => this.emit({ name: name.trim() }));
-
-    this.form.controls.status.valueChanges
+    this.statusControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((status) => this.emit({ status: status || null }));
 
-    this.form.controls.serviceIds.valueChanges
+    this.serviceIdsControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((serviceIds) => this.emit({ serviceIds }));
   }
 
+  protected changeName(name: string): void {
+    this.emit({ name });
+  }
+
   protected clear(): void {
-    this.cancelName.next();
-    this.form.controls.name.setValue('', { emitEvent: false });
-    this.form.controls.status.setValue('', { emitEvent: false });
-    this.form.controls.serviceIds.setValue([], { emitEvent: false });
+    this.statusControl.setValue('', { emitEvent: false });
+    this.serviceIdsControl.setValue([], { emitEvent: false });
     this.filtersChange.emit(NO_EMPLOYEE_FILTERS);
   }
 
