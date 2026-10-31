@@ -20,10 +20,11 @@ export interface PasswordStrengthError {
 const CHECKS: readonly (readonly [PasswordRule, (value: string) => boolean])[] = [
   ['minLength', (v) => v.length >= PASSWORD_RULES.minLength],
   ['maxLength', (v) => v.length <= PASSWORD_RULES.maxLength],
-  ['lowercase', (v) => /\p{Ll}/u.test(v)],
-  ['uppercase', (v) => /\p{Lu}/u.test(v)],
-  // Special = not a letter, not a digit and not whitespace.
-  ['special', (v) => /[^\p{L}\p{N}\s]/u.test(v)],
+  // ASCII classes, as in the backend pattern: `ñ` or `á` are not lowercase there, but special.
+  ['lowercase', (v) => /[a-z]/.test(v)],
+  ['uppercase', (v) => /[A-Z]/.test(v)],
+  // Special = not an ASCII letter, not an ASCII digit and not whitespace.
+  ['special', (v) => /[^A-Za-z0-9\s]/.test(v)],
 ];
 
 /** Evaluates every password rule; used by the validator and by the rules checklist UI. */

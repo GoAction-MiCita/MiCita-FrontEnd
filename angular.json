@@ -73,7 +73,8 @@
               "buildTarget": "mi-cita-app:build:production"
             },
             "development": {
-              "buildTarget": "mi-cita-app:build:development"
+              "buildTarget": "mi-cita-app:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

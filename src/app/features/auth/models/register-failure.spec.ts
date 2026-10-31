@@ -6,13 +6,49 @@ function apiError(overrides: Partial<ApiError>): ApiError {
 }
 
 describe('toRegisterFailure', () => {
-  it('passes 400 field errors through', () => {
+  it('replaces the English 400 field messages of the backend with Spanish ones', () => {
     const failure = toRegisterFailure(
-      apiError({ kind: 'validation', status: 400, fieldErrors: { phone: 'Formato inválido' } }),
+      apiError({
+        kind: 'validation',
+        status: 400,
+        fieldErrors: {
+          firstName: 'must not be blank',
+          phone: 'must have 7 to 15 digits, optionally starting with +',
+          password: 'must have at least 6 characters, including lowercase, uppercase and special',
+        },
+      }),
     );
 
-    expect(failure.fieldErrors).toEqual({ phone: 'Formato inválido' });
+    expect(failure.fieldErrors).toEqual({
+      firstName: 'Ingresa un nombre válido (máximo 100 caracteres)',
+      phone: 'Ingresa un teléfono válido (7 a 15 dígitos)',
+      password: 'La contraseña no cumple las reglas de seguridad',
+    });
     expect(failure.summary).toContain('Revisa los campos');
+  });
+
+  it('keeps the server message of a 400 field the form does not know', () => {
+    const failure = toRegisterFailure(
+      apiError({ kind: 'validation', status: 400, fieldErrors: { other: 'invalid' } }),
+    );
+
+    expect(failure.fieldErrors).toEqual({ other: 'invalid' });
+  });
+
+  it('keeps the server message of a field named like an Object.prototype member', () => {
+    const failure = toRegisterFailure(
+      apiError({ kind: 'validation', status: 400, fieldErrors: { constructor: 'invalid' } }),
+    );
+
+    expect(failure.fieldErrors).toEqual({ constructor: 'invalid' });
+  });
+
+  it('marks the username on the backend 409 for a duplicated username', () => {
+    const failure = toRegisterFailure(
+      apiError({ kind: 'conflict', status: 409, message: 'Username is already registered' }),
+    );
+
+    expect(failure.fieldErrors).toEqual({ username: 'Este nombre de usuario ya está en uso' });
   });
 
   it('marks the email on a 409 whose detail mentions the email', () => {

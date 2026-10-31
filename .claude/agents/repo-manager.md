@@ -84,7 +84,7 @@ Contiene el backend simulado (colección de Postman, mock y scripts). Es una ram
   - Comprobar: `git worktree list`. Si la carpeta se borró a mano: `git worktree prune`.
 - Los cambios del mock (endpoints de una HU nueva, colección, escenarios) se hacen **dentro del worktree**: commit y push a `origin/chore/mock-server`. Las reglas de commits y la ejecución de pruebas son las mismas, más `npx prettier --check postman` y la colección contra el mock.
 - Para mantenerla al día con el código de la app, puedes llevar `origin/integration` hacia ella (`git merge origin/integration` dentro del worktree; está publicada, así que no hagas rebase). Nunca al revés.
-- Uso desde cualquier rama de HU: el mock en el puerto 8080 (`postman mock run ./postman/mocks/micita-backend --port 8080`, dentro del worktree), porque `environment.development.ts` apunta a `http://localhost:8080/api` y el mock responde con CORS. La colección se ejecuta con `--env-var "baseUrl=http://localhost:8080"`.
+- Uso desde cualquier rama de HU: el mock en el puerto 8080 (`postman mock run ./postman/mocks/micita-backend --port 8080`, dentro del worktree), porque el proxy de `npm start` (`proxy.conf.json`) reenvía `/api` a `http://localhost:8080`. La colección se ejecuta con `--env-var "baseUrl=http://localhost:8080"`.
 
 ## Ramas
 

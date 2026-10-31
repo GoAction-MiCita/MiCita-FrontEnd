@@ -24,6 +24,12 @@ describe('passwordStrength', () => {
     expect(validate('Abc de1')).toEqual({ passwordStrength: { failed: ['special'] } });
   });
 
+  it('uses ASCII letters like the backend: accented letters count as special', () => {
+    expect(validate('ñABC12')).toEqual({ passwordStrength: { failed: ['lowercase'] } });
+    expect(validate('Ñabc12')).toEqual({ passwordStrength: { failed: ['uppercase'] } });
+    expect(validate('Abcdeñ')).toBeNull();
+  });
+
   it('rejects passwords longer than 72 characters', () => {
     expect(validate(`Aa#${'x'.repeat(70)}`)).toEqual({
       passwordStrength: { failed: ['maxLength'] },

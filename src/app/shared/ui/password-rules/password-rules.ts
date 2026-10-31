@@ -9,8 +9,9 @@ import { Icon } from '@shared/ui/icon/icon';
 const RULE_LABELS: Readonly<Record<PasswordRule, string>> = {
   minLength: `Mínimo ${PASSWORD_RULES.minLength} caracteres`,
   maxLength: `Máximo ${PASSWORD_RULES.maxLength} caracteres`,
-  lowercase: 'Una letra minúscula',
-  uppercase: 'Una letra mayúscula',
+  // The backend only counts ASCII letters here (ñ and accented letters count as special).
+  lowercase: 'Una letra minúscula (a-z)',
+  uppercase: 'Una letra mayúscula (A-Z)',
   special: 'Un carácter especial (!@#$%)',
 };
 

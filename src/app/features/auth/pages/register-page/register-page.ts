@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { email } from '@shared/forms/validators/email.validator';
+import { notBlank } from '@shared/forms/validators/not-blank.validator';
 import { passwordStrength } from '@shared/forms/validators/password-strength.validator';
 import { phone } from '@shared/forms/validators/phone.validator';
 import { Alert } from '@shared/ui/alert/alert';
@@ -14,7 +15,7 @@ import { FormFieldControl } from '@shared/ui/form-field/form-field-control';
 import { Icon } from '@shared/ui/icon/icon';
 import { PasswordRules } from '@shared/ui/password-rules/password-rules';
 import { RegisterStore } from '@features/auth/data-access/register-store';
-import { NewUserField } from '@features/auth/models/user.model';
+import { NEW_USER_MAX_LENGTH, NewUserField } from '@features/auth/models/user.model';
 
 const REQUIRED_MESSAGES: Readonly<Record<NewUserField, ErrorMessages>> = {
   firstName: { required: 'El nombre es obligatorio' },
@@ -53,12 +54,24 @@ export default class RegisterPage {
     'Mínimo 6 caracteres, con minúsculas, mayúsculas y un carácter especial.';
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    address: ['', Validators.required],
+    firstName: [
+      '',
+      [Validators.required, notBlank(), Validators.maxLength(NEW_USER_MAX_LENGTH.firstName)],
+    ],
+    lastName: [
+      '',
+      [Validators.required, notBlank(), Validators.maxLength(NEW_USER_MAX_LENGTH.lastName)],
+    ],
+    address: [
+      '',
+      [Validators.required, notBlank(), Validators.maxLength(NEW_USER_MAX_LENGTH.address)],
+    ],
     phone: ['', [Validators.required, phone()]],
-    email: ['', [Validators.required, email()]],
-    username: ['', Validators.required],
+    email: ['', [Validators.required, email(), Validators.maxLength(NEW_USER_MAX_LENGTH.email)]],
+    username: [
+      '',
+      [Validators.required, notBlank(), Validators.maxLength(NEW_USER_MAX_LENGTH.username)],
+    ],
     password: ['', [Validators.required, passwordStrength()]],
   });
 
