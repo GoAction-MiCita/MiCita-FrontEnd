@@ -28,6 +28,10 @@ describe('service filters', () => {
     expect(toServiceFilters({ name: 'a'.repeat(500) }).name).toHaveLength(100);
   });
 
+  it('drops repeated employees from the URL', () => {
+    expect(toServiceFilters({ employeeIds: 'e1,e2,e1' }).employeeIds).toEqual(['e1', 'e2']);
+  });
+
   it('writes only the filters in use (null removes the param)', () => {
     expect(toServiceFilterParams(NO_SERVICE_FILTERS)).toEqual({
       name: null,

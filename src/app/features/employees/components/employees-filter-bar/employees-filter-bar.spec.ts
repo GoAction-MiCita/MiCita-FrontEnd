@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { NO_EMPLOYEE_FILTERS, EmployeeFilters } from '@features/employees/models/employee-filters';
-import { NAME_FILTER_DEBOUNCE_MS, EmployeesFilterBar } from './employees-filter-bar';
+import { NAME_FILTER_DEBOUNCE_MS } from '@shared/ui/filter-bar/filter-bar';
+import { EmployeesFilterBar } from './employees-filter-bar';
 
 async function render(filters: EmployeeFilters = NO_EMPLOYEE_FILTERS) {
   const fixture = TestBed.createComponent(EmployeesFilterBar);

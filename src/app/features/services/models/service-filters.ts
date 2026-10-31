@@ -1,3 +1,4 @@
+import { capName, sameIds, splitIds } from '@shared/models/list-filter-params';
 import { SERVICE_STATUS, ServiceStatus } from './service.model';
 
 /** Filters of the services list (HU-13). Empty values mean "no filter". */
@@ -17,8 +18,6 @@ export interface ServiceFilterParams {
   readonly employeeIds?: string | null;
 }
 
-const NAME_MAX_LENGTH = 100;
-
 export function hasServiceFilters(filters: ServiceFilters): boolean {
   return filters.name !== '' || filters.status !== null || filters.employeeIds.length > 0;
 }
@@ -27,7 +26,7 @@ export function hasServiceFilters(filters: ServiceFilters): boolean {
 export function toServiceFilters(params: ServiceFilterParams): ServiceFilters {
   const status = params.status;
   return {
-    name: (params.name ?? '').trim().slice(0, NAME_MAX_LENGTH),
+    name: capName(params.name),
     status: status === SERVICE_STATUS.active || status === SERVICE_STATUS.inactive ? status : null,
     employeeIds: splitIds(params.employeeIds),
   };
@@ -43,17 +42,5 @@ export function toServiceFilterParams(filters: ServiceFilters): Record<string, s
 }
 
 export function sameServiceFilters(a: ServiceFilters, b: ServiceFilters): boolean {
-  return (
-    a.name === b.name &&
-    a.status === b.status &&
-    a.employeeIds.length === b.employeeIds.length &&
-    a.employeeIds.every((id, index) => id === b.employeeIds[index])
-  );
-}
-
-function splitIds(value: string | null | undefined): readonly string[] {
-  return (value ?? '')
-    .split(',')
-    .map((id) => id.trim())
-    .filter((id) => id !== '');
+  return a.name === b.name && a.status === b.status && sameIds(a.employeeIds, b.employeeIds);
 }

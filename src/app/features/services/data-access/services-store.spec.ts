@@ -111,7 +111,7 @@ describe('ServicesStore filters (HU-13)', () => {
     const { store, list } = setup(() => of(page));
     await settle();
 
-    store.setFilters(active);
+    store.setQuery(active, FIRST_PAGE);
     await settle();
 
     expect(store.filtered()).toBe(true);
@@ -121,10 +121,10 @@ describe('ServicesStore filters (HU-13)', () => {
 
   it('does not fetch again for equal filters', async () => {
     const { store, list } = setup(() => of(page));
-    store.setFilters(active);
+    store.setQuery(active, FIRST_PAGE);
     await settle();
 
-    store.setFilters({ ...active, employeeIds: [] });
+    store.setQuery({ ...active, employeeIds: [] }, FIRST_PAGE);
     await settle();
 
     expect(list).toHaveBeenCalledTimes(1);
@@ -136,7 +136,7 @@ describe('ServicesStore filters (HU-13)', () => {
     expect(store.empty()).toBe(true);
     expect(store.noResults()).toBe(false);
 
-    store.setFilters(active);
+    store.setQuery(active, FIRST_PAGE);
     await settle();
     expect(store.empty()).toBe(false);
     expect(store.noResults()).toBe(true);
@@ -144,7 +144,7 @@ describe('ServicesStore filters (HU-13)', () => {
 
   it('keeps the filters on reload', async () => {
     const { store, list } = setup(() => of(page));
-    store.setFilters(active);
+    store.setQuery(active, FIRST_PAGE);
     await settle();
 
     store.reload();
@@ -208,7 +208,7 @@ describe('ServicesStore paging (HU-15)', () => {
 
   it('asks for the requested page with the same filters', async () => {
     const { store, list } = setup(() => of(pageOf(57)));
-    store.setFilters({ name: 'cor', status: null, employeeIds: [] });
+    store.setQuery({ name: 'cor', status: null, employeeIds: [] }, FIRST_PAGE);
     await settle();
 
     store.setPaging({ page: 2, size: 20 });
@@ -219,20 +219,6 @@ describe('ServicesStore paging (HU-15)', () => {
       { page: 2, size: 20 },
     );
     expect(store.totals()).toEqual({ totalElements: 57, totalPages: 3 });
-  });
-
-  it('goes back to the first page when the filters change, keeping the size', async () => {
-    const { store, list } = setup(() => of(pageOf(57)));
-    store.setPaging({ page: 2, size: 50 });
-    await settle();
-
-    store.setFilters({ name: '', status: 'ACTIVE', employeeIds: [] });
-    await settle();
-
-    expect(list).toHaveBeenLastCalledWith(
-      { name: '', status: 'ACTIVE', employeeIds: [] },
-      { page: 0, size: 50 },
-    );
   });
 
   it('applies filters and page from the URL in one request', async () => {

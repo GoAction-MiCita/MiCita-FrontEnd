@@ -27,3 +27,37 @@
   white-space: nowrap;
   border: 0;
 }
+
+// Bordered box around a list filter (search input, status select) of app-filter-bar. The
+// filters a feature projects into the bar use it too, since the bar's styles cannot reach them.
+@mixin filter-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+
+  &:focus-within {
+    @include focus-ring;
+  }
+
+  input,
+  select {
+    flex: 1;
+    min-width: 0;
+    padding-block: var(--space-2);
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    outline: none;
+  }
+
+  select {
+    cursor: pointer;
+  }
+}
