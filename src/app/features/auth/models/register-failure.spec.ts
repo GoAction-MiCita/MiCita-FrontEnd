@@ -35,6 +35,14 @@ describe('toRegisterFailure', () => {
     expect(failure.fieldErrors).toEqual({ other: 'invalid' });
   });
 
+  it('keeps the server message of a field named like an Object.prototype member', () => {
+    const failure = toRegisterFailure(
+      apiError({ kind: 'validation', status: 400, fieldErrors: { constructor: 'invalid' } }),
+    );
+
+    expect(failure.fieldErrors).toEqual({ constructor: 'invalid' });
+  });
+
   it('marks the username on the backend 409 for a duplicated username', () => {
     const failure = toRegisterFailure(
       apiError({ kind: 'conflict', status: 409, message: 'Username is already registered' }),

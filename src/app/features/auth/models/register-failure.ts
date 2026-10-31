@@ -1,7 +1,7 @@
 import { API_ERROR_KIND, ApiError } from '@core/http/api-error.model';
 import { FieldErrors } from '@shared/models/field-errors.model';
 import { toNewUserFieldErrors } from './user.mapper';
-import { NewUserField } from './user.model';
+import { NEW_USER_MAX_LENGTH, NewUserField } from './user.model';
 
 /** What the register page needs to show after a failed `POST /auth/register`. */
 export interface RegisterFailure {
@@ -20,12 +20,12 @@ const DUPLICATE_MESSAGES: Readonly<Record<DuplicableField, string>> = {
 
 // The backend writes 400 field messages in English, so the UI shows its own text per field.
 const INVALID_FIELD_MESSAGES: Readonly<Record<NewUserField, string>> = {
-  firstName: 'Ingresa un nombre válido (máximo 100 caracteres)',
-  lastName: 'Ingresa un apellido válido (máximo 100 caracteres)',
-  address: 'Ingresa una dirección válida (máximo 255 caracteres)',
+  firstName: `Ingresa un nombre válido (máximo ${NEW_USER_MAX_LENGTH.firstName} caracteres)`,
+  lastName: `Ingresa un apellido válido (máximo ${NEW_USER_MAX_LENGTH.lastName} caracteres)`,
+  address: `Ingresa una dirección válida (máximo ${NEW_USER_MAX_LENGTH.address} caracteres)`,
   phone: 'Ingresa un teléfono válido (7 a 15 dígitos)',
   email: 'Ingresa un correo válido',
-  username: 'Ingresa un nombre de usuario válido (máximo 50 caracteres)',
+  username: `Ingresa un nombre de usuario válido (máximo ${NEW_USER_MAX_LENGTH.username} caracteres)`,
   password: 'La contraseña no cumple las reglas de seguridad',
 };
 
@@ -56,8 +56,14 @@ export function toRegisterFailure(error: ApiError): RegisterFailure {
 /** Keeps the fields the server rejected, with the Spanish message of each known form field. */
 function toInvalidFieldMessages(error: ApiError): FieldErrors {
   const entries = Object.entries(toNewUserFieldErrors(error.fieldErrors)).map(
+    // hasOwn: a server key such as `constructor` must not hit Object.prototype.
     ([field, message]) =>
-      [field, INVALID_FIELD_MESSAGES[field as NewUserField] ?? message] as const,
+      [
+        field,
+        Object.hasOwn(INVALID_FIELD_MESSAGES, field)
+          ? INVALID_FIELD_MESSAGES[field as NewUserField]
+          : message,
+      ] as const,
   );
   return Object.fromEntries(entries);
 }

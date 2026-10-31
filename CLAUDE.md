@@ -15,7 +15,7 @@ Las tareas (HU) viven en Notion: _Go Action / Proyectos y tareas / Tareas_ (por 
 El mock del backend (colección de Postman y servidor simulado) vive en la rama `chore/mock-server`, que **nunca se integra** en `integration`, `staging` ni `main`. Se usa desde un git worktree, sin cambiar de rama:
 
 1. Una vez: `git worktree add ../mi-cita-mock chore/mock-server` (con la carpeta principal en otra rama).
-2. Mock, dentro de `../mi-cita-mock`: `postman mock run ./postman/mocks/micita-backend --port 8080`. El puerto 8080 es el de `environment.development.ts`, y el mock responde con CORS.
+2. Mock, dentro de `../mi-cita-mock`: `postman mock run ./postman/mocks/micita-backend --port 8080`. El puerto 8080 es el destino del proxy de `npm start` (`proxy.conf.json`), el mismo del backend local, así que solo puede correr uno de los dos.
 3. App, en la carpeta principal y en cualquier rama: `npm start`.
 4. Colección, dentro de `../mi-cita-mock`: `postman collection run ./postman/collections/micita-backend.postman_collection.json -e ./postman/environments/micita-mock.postman_environment.json --env-var "baseUrl=http://localhost:8080"`.
 

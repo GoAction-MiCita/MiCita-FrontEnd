@@ -21,3 +21,12 @@ export interface NewUser {
 }
 
 export type NewUserField = keyof NewUser;
+
+/** Backend `RegisterUserRequest` length limits (Swagger); the password limit is in its validator. */
+export const NEW_USER_MAX_LENGTH = {
+  firstName: 100,
+  lastName: 100,
+  address: 255,
+  email: 254,
+  username: 50,
+} as const;
