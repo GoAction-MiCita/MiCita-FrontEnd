@@ -89,7 +89,7 @@ Dentro de `features/<dominio>/` y siguiendo CLAUDE.md:
 - `data-access/*-api.ts`: rutas, métodos, query params y cabeceras del Swagger.
 - Errores: los códigos del Swagger deben llegar como `ApiError` con el `kind` correcto; los `fieldErrors` del `ProblemDetail` se aplican con `applyServerErrors`. Mensajes nuevos en español en `shared/ui/form-field` o en la página, según corresponda.
 - Validadores de `shared/forms/validators/`: alinearlos con las restricciones del Swagger (longitudes, patrones, mínimos y máximos).
-- `environment.development.ts` sigue en `http://localhost:8080/api`; cámbialo solo si el Swagger expone otra base y tras §4.1.
+- `environment.development.ts` sigue en `/api` y `proxy.conf.json` lo reenvía a `http://localhost:8080` (el backend local no envía CORS); cámbialos solo si el Swagger expone otra base y tras §4.1.
 
 Pruebas (obligatorias):
 

@@ -6,7 +6,7 @@ Las tareas (HU) viven en Notion: _Go Action / Proyectos y tareas / Tareas_ (por 
 ## Stack y comandos
 
 - Angular 22 standalone + **zoneless**, signals, Reactive Forms tipados, SCSS propio (sin librería de UI), Vitest, ESLint (angular-eslint) y Prettier.
-- `npm start`: servidor de desarrollo (usa `environment.development.ts` → `http://localhost:8080/api`).
+- `npm start`: servidor de desarrollo (usa `environment.development.ts` → `/api`, y `proxy.conf.json` reenvía `/api` a `http://localhost:8080`, donde está el backend local o el mock; así no hace falta CORS).
 - `npm run build`, `npm test` (watch), `npm run test:ci`, `npm run lint`, `npm run format` y `npm run format:check`.
 - Antes de dar algo por terminado: `npm run lint`, `npm run test:ci` y `npm run build` en verde.
 

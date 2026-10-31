@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { applyServerErrors } from '@shared/forms/apply-server-errors';
 import { ErrorMessages } from '@shared/forms/error-messages';
 import { email } from '@shared/forms/validators/email.validator';
+import { notBlank } from '@shared/forms/validators/not-blank.validator';
 import { passwordStrength } from '@shared/forms/validators/password-strength.validator';
 import { phone } from '@shared/forms/validators/phone.validator';
 import { Alert } from '@shared/ui/alert/alert';
@@ -25,6 +26,15 @@ const REQUIRED_MESSAGES: Readonly<Record<NewUserField, ErrorMessages>> = {
   username: { required: 'El nombre de usuario es obligatorio' },
   password: { required: 'La contraseña es obligatoria' },
 };
+
+// Mirrors the backend `RegisterUserRequest` limits (Swagger); the password limit is in its validator.
+const MAX_LENGTH = {
+  firstName: 100,
+  lastName: 100,
+  address: 255,
+  email: 254,
+  username: 50,
+} as const;
 
 /** HU-01 · Registro de usuario (public). */
 @Component({
@@ -53,12 +63,12 @@ export default class RegisterPage {
     'Mínimo 6 caracteres, con minúsculas, mayúsculas y un carácter especial.';
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    address: ['', Validators.required],
+    firstName: ['', [Validators.required, notBlank(), Validators.maxLength(MAX_LENGTH.firstName)]],
+    lastName: ['', [Validators.required, notBlank(), Validators.maxLength(MAX_LENGTH.lastName)]],
+    address: ['', [Validators.required, notBlank(), Validators.maxLength(MAX_LENGTH.address)]],
     phone: ['', [Validators.required, phone()]],
-    email: ['', [Validators.required, email()]],
-    username: ['', Validators.required],
+    email: ['', [Validators.required, email(), Validators.maxLength(MAX_LENGTH.email)]],
+    username: ['', [Validators.required, notBlank(), Validators.maxLength(MAX_LENGTH.username)]],
     password: ['', [Validators.required, passwordStrength()]],
   });
 

@@ -18,6 +18,17 @@ const DUPLICATE_MESSAGES: Readonly<Record<DuplicableField, string>> = {
   username: 'Este nombre de usuario ya está en uso',
 };
 
+// The backend writes 400 field messages in English, so the UI shows its own text per field.
+const INVALID_FIELD_MESSAGES: Readonly<Record<NewUserField, string>> = {
+  firstName: 'Ingresa un nombre válido (máximo 100 caracteres)',
+  lastName: 'Ingresa un apellido válido (máximo 100 caracteres)',
+  address: 'Ingresa una dirección válida (máximo 255 caracteres)',
+  phone: 'Ingresa un teléfono válido (7 a 15 dígitos)',
+  email: 'Ingresa un correo válido',
+  username: 'Ingresa un nombre de usuario válido (máximo 50 caracteres)',
+  password: 'La contraseña no cumple las reglas de seguridad',
+};
+
 const SUMMARY = {
   checkFields: 'Revisa los campos marcados e inténtalo de nuevo.',
   duplicate: 'El correo o el nombre de usuario ya están registrados.',
@@ -28,7 +39,7 @@ const SUMMARY = {
 export function toRegisterFailure(error: ApiError): RegisterFailure {
   switch (error.kind) {
     case API_ERROR_KIND.validation:
-      return { summary: SUMMARY.checkFields, fieldErrors: toNewUserFieldErrors(error.fieldErrors) };
+      return { summary: SUMMARY.checkFields, fieldErrors: toInvalidFieldMessages(error) };
     case API_ERROR_KIND.conflict: {
       const field = duplicatedField(error);
       return field
@@ -40,6 +51,15 @@ export function toRegisterFailure(error: ApiError): RegisterFailure {
     default:
       return { summary: SUMMARY.unexpected, fieldErrors: {} };
   }
+}
+
+/** Keeps the fields the server rejected, with the Spanish message of each known form field. */
+function toInvalidFieldMessages(error: ApiError): FieldErrors {
+  const entries = Object.entries(toNewUserFieldErrors(error.fieldErrors)).map(
+    ([field, message]) =>
+      [field, INVALID_FIELD_MESSAGES[field as NewUserField] ?? message] as const,
+  );
+  return Object.fromEntries(entries);
 }
 
 /**

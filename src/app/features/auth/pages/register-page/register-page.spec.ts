@@ -120,14 +120,26 @@ describe('RegisterPage', () => {
       kind: 'validation',
       status: 400,
       message: 'Bad Request',
-      fieldErrors: { phone: 'El teléfono debe tener entre 7 y 15 dígitos' },
+      fieldErrors: { phone: 'must have 7 to 15 digits, optionally starting with +' },
     };
     const { element, input, fill, submit } = await render(() => throwError(() => error));
 
     await fill(validValues);
     await submit();
 
-    expect(element.textContent).toContain('El teléfono debe tener entre 7 y 15 dígitos');
+    expect(element.textContent).toContain('Ingresa un teléfono válido (7 a 15 dígitos)');
+    expect(element.textContent).not.toContain('must have');
     expect(input('phone').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('applies the backend limits: blank text and too long values do not call the API', async () => {
+    const { element, fill, submit, registerSpy } = await render(() => of({} as User));
+
+    await fill({ ...validValues, firstName: '   ', username: 'u'.repeat(51) });
+    await submit();
+
+    expect(registerSpy).not.toHaveBeenCalled();
+    expect(element.textContent).toContain('El nombre es obligatorio');
+    expect(element.textContent).toContain('Debe tener máximo 50 caracteres');
   });
 });
